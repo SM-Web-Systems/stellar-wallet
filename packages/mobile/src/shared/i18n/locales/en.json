@@ -37,7 +37,7 @@
   },
   "auth": {
     "welcomeBack": "Welcome Back",
-    "signInSubtitle": "Sign in to your Stellar Wallet",
+    "signInSubtitle": "Sign in to your Amma Wallet",
     "email": "Email",
     "emailPlaceholder": "you@example.com",
     "password": "Password",
@@ -47,7 +47,7 @@
     "noAccount": "Don't have an account?",
     "createOne": "Create one",
     "createAccount": "Create Account",
-    "createSubtitle": "Get started with Stellar Wallet",
+    "createSubtitle": "Get started with Amma Wallet",
     "firstName": "First name",
     "firstNamePlaceholder": "John",
     "lastName": "Last name",
@@ -65,7 +65,7 @@
     "ruleNumber": "One number",
     "ruleMatch": "Passwords match",
     "welcomeMessage": "Welcome back!",
-    "accountCreated": "Account created! Welcome to Stellar Wallet.",
+    "accountCreated": "Account created! Welcome to Amma Wallet.",
     "fillAllFields": "Please fill in all fields",
     "fixPasswordReqs": "Please fix password requirements",
     "emailRequired": "Email and password are required",
@@ -73,10 +73,10 @@
     "passwordsMismatch": "Passwords do not match",
     "loginFailed": "Login failed",
     "registerFailed": "Registration failed",
-    "registerSubtitle": "Join Stellar Wallet"
+    "registerSubtitle": "Join Amma Wallet"
   },
   "onboarding": {
-    "title": "Stellar Wallet",
+    "title": "Amma Wallet",
     "subtitle": "Manage your Stellar assets securely",
     "subtitleAdd": "Add another wallet to your collection",
     "createWallet": "Create New Wallet",

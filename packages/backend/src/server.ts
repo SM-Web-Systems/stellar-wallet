@@ -312,7 +312,7 @@ async function bootstrap() {
   // ═══════════════════════════════════════
   await app.listen({ port: config.PORT, host: "0.0.0.0" });
   syncTomlImages().catch(console.error);
-  console.log(`\n  Stellar Wallet API running on http://localhost:${config.PORT}`);
+  console.log(`\n  Amma Wallet API running on http://localhost:${config.PORT}`);
   console.log(`  Network: ${config.STELLAR_NETWORK}`);
   console.log(`  Horizon: ${config.HORIZON_URL}\n`);
 

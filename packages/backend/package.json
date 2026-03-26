@@ -1,5 +1,5 @@
 {
-  "name": "@stellar-wallet/backend",
+  "name": "@amma-wallet/backend",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "echo 'using tsx runtime'",

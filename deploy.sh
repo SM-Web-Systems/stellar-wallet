@@ -2,7 +2,7 @@
 set -e
 
 echo "=== Pulling latest code ==="
-cd ~/stellar-wallet
+cd ~/amma-wallet
 git pull
 
 echo "=== Installing backend dependencies ==="
@@ -16,6 +16,6 @@ npm install
 npm run build
 
 echo "=== Restarting backend ==="
-pm2 restart stellar-backend
+pm2 restart amma-backend
 
 echo "=== Done! ==="

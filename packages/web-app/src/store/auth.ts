@@ -147,7 +147,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: "stellar-wallet-auth",
+      name: "amma-wallet-auth",
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,

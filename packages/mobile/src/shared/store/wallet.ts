@@ -305,7 +305,7 @@ export const useWalletStore = create<WalletState>()(
       setNetwork: (n) => set({ network: n }),
     }),
     {
-      name: "stellar-wallet-mobile",
+      name: "amma-wallet-mobile",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         accounts: state.accounts,

@@ -201,7 +201,7 @@ export const users = pgTable(
 );
 
 // ════════════════════════════════════════════
-// User Wallets — Linked Stellar wallets
+// User Wallets — Linked Amma wallets
 // ════════════════════════════════════════════
 
 export const userWallets = pgTable(

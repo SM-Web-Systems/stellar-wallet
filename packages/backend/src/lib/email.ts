@@ -19,12 +19,12 @@ export async function sendPasswordResetEmail(
   const resetUrl = `${process.env.WEB_APP_URL || "http://localhost:5173"}/reset-password?token=${resetToken}`;
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM || '"Stellar Wallet" <noreply@stellarwallet.app>',
+    from: process.env.SMTP_FROM || '"Amma Wallet" <noreply@ammawallet.com>',
     to,
     subject: "Password Reset Request",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #8b5cf6;">Stellar Wallet - Password Reset</h2>
+        <h2 style="color: #8b5cf6;">Amma Wallet - Password Reset</h2>
         <p>You requested a password reset. Click the button below to set a new password:</p>
         <a href="${resetUrl}" 
            style="display: inline-block; background: #8b5cf6; color: white; padding: 12px 24px; 

@@ -54,7 +54,7 @@ export default function Onboarding() {
     return (
       <View style={{ flex: 1, backgroundColor: "#0a0e1a", justifyContent: "center", alignItems: "center", padding: 24 }}>
         <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: "#3b82f6", marginBottom: 24 }} />
-        <Text style={{ color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 8 }}>Stellar Wallet</Text>
+        <Text style={{ color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 8 }}>Amma Wallet</Text>
         <Text style={{ color: "#6b7280", fontSize: 14, textAlign: "center", marginBottom: 32 }}>
           {t("onboarding.subtitle", "Your gateway to the Stellar network")}
         </Text>

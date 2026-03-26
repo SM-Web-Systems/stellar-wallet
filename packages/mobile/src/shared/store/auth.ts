@@ -44,7 +44,7 @@ function hashPin(pin: string): string {
     const char = pin.charCodeAt(i);
     hash = ((hash << 5) - hash + char) | 0;
   }
-  const str = pin + "stellar-wallet-pin-salt" + pin;
+  const str = pin + "amma-wallet-pin-salt" + pin;
   let hash2 = 0;
   for (let i = 0; i < str.length; i++) {
     hash2 = ((hash2 << 5) - hash2 + str.charCodeAt(i)) | 0;
@@ -216,7 +216,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: "stellar-wallet-auth",
+      name: "amma-wallet-auth",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         user: state.user,

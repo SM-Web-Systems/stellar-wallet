@@ -30,9 +30,7 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen p-6">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-stellar-blue to-stellar-purple flex items-center justify-center">
-            <span className="text-2xl font-bold text-white">S</span>
-          </div>
+          <img src="/favicon-128.png" alt="Amma Wallet" className="w-16 h-16 mx-auto mb-4 rounded-2xl" />
           <h1 className="text-3xl font-bold text-white">{t("auth.welcomeBack")}</h1>
           <p className="mt-2 text-stellar-muted">{t("auth.signInSubtitle")}</p>
         </div>

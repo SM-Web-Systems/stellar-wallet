@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Amma Wallet",
-  "description": "A secure Stellar wallet for sending, receiving, and swapping XLM and Stellar tokens",
-  "version": "1.1.0",
+  "description": "A secure crypto wallet for sending, receiving, and swapping XLM and tokens on the Stellar network",
+  "version": "1.2.0",
   "icons": {
     "16": "icons/icon-16.png",
     "48": "icons/icon-48.png",
@@ -27,6 +27,7 @@
     "notifications"
   ],
   "host_permissions": [
+    "https://ammawallet.com/*",
     "https://horizon.stellar.org/*",
     "https://horizon-testnet.stellar.org/*",
     "https://soroban-testnet.stellar.org/*",

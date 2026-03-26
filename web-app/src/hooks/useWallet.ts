@@ -83,7 +83,7 @@ export const useWalletStore = create<WalletState>()(
       switchNetwork: (network) => set({ network }),
     }),
     {
-      name: "stellar-wallet",
+      name: "amma-wallet",
       partialize: (state) => ({
         publicKey: state.publicKey,
         encryptedSecret: state.encryptedSecret,

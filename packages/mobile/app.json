@@ -1,31 +1,31 @@
 {
   "expo": {
-    "name": "Stellar Wallet",
-    "slug": "stellar-wallet",
+    "name": "Amma Wallet",
+    "slug": "Amma-wallet",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "stellarwallet",
+    "scheme": "ammawallet",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon-128.png",
       "resizeMode": "contain",
       "backgroundColor": "#0a0e1a"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.stellarwallet.app",
+      "bundleIdentifier": "com.ammawallet.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon-128.png",
         "backgroundColor": "#0a0e1a"
       },
-      "package": "com.stellarwallet.app",
+      "package": "com.ammawallet.app",
       "permissions": [
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT"
