@@ -14,6 +14,9 @@ import { walletRoutes } from "./routes/wallets";
 import { passwordResetRoutes } from "./routes/password-reset";
 import { trustlineRoutes } from "./routes/trustlines";
 import StellarHDWallet from "stellar-hd-wallet";
+import { db, schema } from "./db";
+import { eq, and } from "drizzle-orm";
+import { authMiddleware } from "./middleware/auth";
 
 
 const app = Fastify({ logger: true });
@@ -252,6 +255,205 @@ async function bootstrap() {
     }
   });
 
+  // ═══════════════════════════════════════
+  // Delegated Signing — server signs on behalf of user
+  // ═══════════════════════════════════════
+  app.post("/api/v1/transactions/sign", { preHandler: authMiddleware }, async (request, reply) => {
+    const userId = request.user!.userId;
+    const { xdr, networkPassphrase: clientPassphrase } = request.body as {
+      xdr: string;
+      networkPassphrase?: string;
+    };
+
+    if (!xdr) {
+      return reply.status(400).send({ error: "xdr is required" });
+    }
+
+    try {
+      // 1. Check user has delegated mode enabled
+      const [user] = await db
+        .select({ signingMode: schema.users.signingMode })
+        .from(schema.users)
+        .where(eq(schema.users.id, userId))
+        .limit(1);
+
+      if (!user || user.signingMode !== "delegated") {
+        return reply.status(403).send({
+          error: "Delegated signing is not enabled. Enable it in Settings → Signing Mode.",
+        });
+      }
+
+      // 2. Get the user's active wallet with stored secret
+      const [wallet] = await db
+        .select()
+        .from(schema.userWallets)
+        .where(
+          and(
+            eq(schema.userWallets.userId, userId),
+            eq(schema.userWallets.isActive, true)
+          )
+        )
+        .limit(1);
+
+      if (!wallet) {
+        return reply.status(404).send({ error: "No active wallet found" });
+      }
+
+      if (!wallet.encryptedSecret) {
+        return reply.status(400).send({
+          error: "No secret key stored on server for this wallet. Re-import your wallet to enable delegated signing.",
+        });
+      }
+
+      // 3. Parse the unsigned transaction
+      const { stellarClient } = await import("./lib/stellar-client");
+      const passphrase = clientPassphrase || stellarClient.networkPassphrase;
+
+      const tx = StellarSdk.TransactionBuilder.fromXDR(xdr, passphrase);
+
+      // 4. Verify the transaction source matches the user's wallet
+      const txSource = tx instanceof StellarSdk.FeeBumpTransaction
+        ? tx.innerTransaction.source
+        : tx.source;
+      if (txSource !== wallet.publicKey) {
+        return reply.status(403).send({
+          error: "Transaction source does not match your active wallet",
+        });
+      }
+
+      // 5. Sign with the stored secret
+      const keypair = StellarSdk.Keypair.fromSecret(wallet.encryptedSecret);
+      tx.sign(keypair);
+
+      const signedXdr = tx.toXDR();
+
+      return { signedXdr, networkPassphrase: passphrase };
+    } catch (error: any) {
+      return reply.status(500).send({
+        error: error.message || "Failed to sign transaction",
+      });
+    }
+  });
+
+  // Sign AND submit in one step (delegated convenience)
+  app.post("/api/v1/transactions/sign-and-submit", { preHandler: authMiddleware }, async (request, reply) => {
+    const userId = request.user!.userId;
+    const { xdr, networkPassphrase: clientPassphrase } = request.body as {
+      xdr: string;
+      networkPassphrase?: string;
+    };
+
+    if (!xdr) {
+      return reply.status(400).send({ error: "xdr is required" });
+    }
+
+    try {
+      const [user] = await db
+        .select({ signingMode: schema.users.signingMode })
+        .from(schema.users)
+        .where(eq(schema.users.id, userId))
+        .limit(1);
+
+      if (!user || user.signingMode !== "delegated") {
+        return reply.status(403).send({
+          error: "Delegated signing is not enabled.",
+        });
+      }
+
+      const [wallet] = await db
+        .select()
+        .from(schema.userWallets)
+        .where(
+          and(
+            eq(schema.userWallets.userId, userId),
+            eq(schema.userWallets.isActive, true)
+          )
+        )
+        .limit(1);
+
+      if (!wallet || !wallet.encryptedSecret) {
+        return reply.status(400).send({ error: "No secret key stored on server" });
+      }
+
+      const { stellarClient } = await import("./lib/stellar-client");
+      const passphrase = clientPassphrase || stellarClient.networkPassphrase;
+
+      const tx = StellarSdk.TransactionBuilder.fromXDR(xdr, passphrase);
+      const txSource = tx instanceof StellarSdk.FeeBumpTransaction
+        ? tx.innerTransaction.source
+        : tx.source;
+
+      if (txSource !== wallet.publicKey) {
+        return reply.status(403).send({
+          error: "Transaction source does not match your active wallet",
+        });
+      }
+
+      const keypair = StellarSdk.Keypair.fromSecret(wallet.encryptedSecret);
+      tx.sign(keypair);
+
+      const result = await stellarClient.wallet.stellar().submitTransaction(
+        stellarClient.stellar.decodeTransaction(tx.toXDR())
+      );
+
+      return { success: true, result };
+    } catch (error: any) {
+      return reply.status(500).send({
+        error: error.message || "Failed to sign and submit",
+      });
+    }
+  });
+
+  // Update signing mode preference
+  app.patch("/api/v1/user/signing-mode", { preHandler: authMiddleware }, async (request, reply) => {
+    const userId = request.user!.userId;
+    const { mode } = request.body as { mode: string };
+
+    if (mode !== "self" && mode !== "delegated") {
+      return reply.status(400).send({ error: "Mode must be 'self' or 'delegated'" });
+    }
+
+    // If switching to delegated, verify the active wallet has a stored secret
+    if (mode === "delegated") {
+      const [wallet] = await db
+        .select({ encryptedSecret: schema.userWallets.encryptedSecret })
+        .from(schema.userWallets)
+        .where(
+          and(
+            eq(schema.userWallets.userId, userId),
+            eq(schema.userWallets.isActive, true)
+          )
+        )
+        .limit(1);
+
+      if (!wallet?.encryptedSecret) {
+        return reply.status(400).send({
+          error: "Cannot enable delegated signing: no secret key stored on server for your active wallet.",
+        });
+      }
+    }
+
+    await db
+      .update(schema.users)
+      .set({ signingMode: mode, updatedAt: new Date() })
+      .where(eq(schema.users.id, userId));
+
+    return { signingMode: mode };
+  });
+
+  // Get current signing mode
+  app.get("/api/v1/user/signing-mode", { preHandler: authMiddleware }, async (request) => {
+    const userId = request.user!.userId;
+
+    const [user] = await db
+      .select({ signingMode: schema.users.signingMode })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId))
+      .limit(1);
+
+    return { signingMode: user?.signingMode || "self" };
+  });
+
   // Transaction history for an account
   app.get("/api/v1/transactions/:publicKey", async (req, res) => {
     const { publicKey } = req.params as { publicKey: string };
@@ -353,6 +555,8 @@ async function bootstrap() {
       return reply.status(400).send({ error: e.message || "Invalid mnemonic" });
     }
   });
+
+  
 
   // ═══════════════════════════════════════
   // Start

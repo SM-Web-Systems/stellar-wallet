@@ -195,6 +195,7 @@ export const users = pgTable(
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+    signingMode: text("signing_mode").default("self"), // 'self' | 'delegated'
   },
   (table) => [
     uniqueIndex("idx_users_email").on(table.email),

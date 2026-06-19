@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
 
-if (!process.env.DATABASE_URL_DIRECT) {
+if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL_DIRECT is required for migrations");
 }
 
@@ -10,6 +10,6 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL_DIRECT,
+    url: process.env.DATABASE_URL,
   },
 });
