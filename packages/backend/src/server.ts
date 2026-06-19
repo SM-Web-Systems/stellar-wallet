@@ -1,5 +1,7 @@
 import "dotenv/config";
 import Fastify from "fastify";
+import fastifyStatic from '@fastify/static';
+import path from 'path';
 import * as StellarSdk from "@stellar/stellar-sdk";
 import cors from "@fastify/cors";
 import { config } from "./config/index.js";
@@ -10,6 +12,7 @@ import { syncTomlImages } from "./lib/toml-sync.js";
 import { authRoutes } from "./routes/auth";
 import { walletRoutes } from "./routes/wallets";
 import { passwordResetRoutes } from "./routes/password-reset";
+import { trustlineRoutes } from "./routes/trustlines";
 
 
 const app = Fastify({ logger: true });
@@ -41,6 +44,12 @@ async function bootstrap() {
   app.register(authRoutes);
   app.register(walletRoutes);
   app.register(passwordResetRoutes);
+  app.register(trustlineRoutes);
+  app.register(fastifyStatic, {
+    root: path.resolve(__dirname, '../assets/icons'),
+    prefix: '/assets/icons/',
+    decorateReply: false,
+  });
 
   // ═══════════════════════════════════════
   // Health

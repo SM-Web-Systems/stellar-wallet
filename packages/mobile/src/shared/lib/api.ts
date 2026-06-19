@@ -117,3 +117,25 @@ export function buildPaymentTx(params: {
   // Kept as a placeholder — the actual implementation is in wallet store or send page
   return params;
 }
+
+export const trustlineApi = {
+  list: (publicKey: string) =>
+    fetch(`${API_BASE}/api/v1/trustlines/${publicKey}`).then(r => r.json()),
+
+  check: (publicKey: string, code: string, issuer: string) =>
+    fetch(`${API_BASE}/api/v1/trustlines/check/${publicKey}/${code}/${issuer}`).then(r => r.json()),
+
+  buildAdd: (publicKey: string, assetCode: string, assetIssuer: string) =>
+    fetch(`${API_BASE}/api/v1/trustlines/add`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ publicKey, assetCode, assetIssuer }),
+    }).then(r => r.json()),
+
+  buildRemove: (publicKey: string, assetCode: string, assetIssuer: string) =>
+    fetch(`${API_BASE}/api/v1/trustlines/remove`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ publicKey, assetCode, assetIssuer }),
+    }).then(r => r.json()),
+};

@@ -58,6 +58,7 @@ export const tokens = pgTable(
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+    localIcon: text('local_icon'),
   },
   (table) => [
     uniqueIndex("idx_tokens_code_issuer").on(table.assetCode, table.assetIssuer),

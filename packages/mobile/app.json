@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Amma Wallet",
-    "slug": "Amma-wallet",
+    "slug": "stellar-wallet",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -42,6 +42,7 @@
       "eas": {
         "projectId": "89ad7ee8-3012-4a8a-89bf-00538c7c55df"
       }
-    }
+    },
+    "owner": "chrissou78"
   }
 }

@@ -1,21 +1,28 @@
-import { TokenService } from "../modules/tokens/token.service";
+import { TokenService } from '../modules/tokens/token.service';
+import { syncTomlImages } from '../lib/toml-sync';
+import { syncAllIcons } from '../lib/icon-resolver';
 
 const tokenService = new TokenService();
 
 export async function runTokenIndexer() {
-  console.log("[TokenIndexer] Starting sync...");
+  console.log('[token-indexer] Starting sync...');
 
   try {
-    // 1. Discover new assets from Horizon
-    const count = await tokenService.discoverFromHorizon();
-    console.log(`[TokenIndexer] Discovered ${count} assets from Horizon`);
+    // Phase 1: Discover new assets from Horizon
+    const discovered = await tokenService.discoverFromHorizon();
+    console.log(`[token-indexer] Discovered ${discovered} assets from Horizon`);
 
-    // 2. Enrich with StellarExpert ratings + metadata
+    // Phase 2: Enrich with StellarExpert ratings & metadata
     await tokenService.enrichFromStellarExpert();
-    console.log("[TokenIndexer] Enriched from StellarExpert");
-  } catch (error) {
-    console.error("[TokenIndexer] Error:", error);
-  }
 
-  console.log("[TokenIndexer] Sync complete.");
+    // Phase 3: Sync TOML images for tokens with a homeDomain
+    await syncTomlImages();
+
+    // Phase 4: Download & cache icons from CryptoLogos / CMC / spothq
+    await syncAllIcons();
+
+    console.log('[token-indexer] Sync complete');
+  } catch (err) {
+    console.error('[token-indexer] Error:', err);
+  }
 }

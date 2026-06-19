@@ -1,11 +1,17 @@
 import { db } from "../../db";
-import { tokens, contractTokens, userTokens, syncState } from "../../db/schema";
+import {
+  tokens,
+  contractTokens,
+  userTokens,
+  syncState,
+} from "../../db/schema";
 import { cache } from "../../lib/cache";
-import { eq, and, ilike, or, desc, asc, sql } from "drizzle-orm";
+import { eq, and, ilike, or, desc, asc, sql, inArray } from "drizzle-orm";
 import { stellarClient } from "../../lib/stellar-client";
+import { config } from "../../config";
 import * as StellarSdk from "@stellar/stellar-sdk";
 
-type TokenSort = "rating" | "volume" | "trustlines" | "name";
+type TokenSort = "rating" | "volume" | "trustlines" | "name" | "recent";
 
 interface SearchParams {
   query?: string;
@@ -33,6 +39,17 @@ async function setSyncCursor(key: string, value: string): Promise<void> {
       target: syncState.key,
       set: { value, updatedAt: new Date() },
     });
+}
+
+// ─── Resolve the best icon URL for a token ───
+function resolveIconUrl(
+  meta: { localIcon?: string | null; tomlImage?: string | null } | undefined
+): string | null {
+  if (!meta) return null;
+  if (meta.localIcon) {
+    return `${config.API_BASE_URL}/assets/icons/${meta.localIcon}`;
+  }
+  return meta.tomlImage ?? null;
 }
 
 export class TokenService {
@@ -121,7 +138,7 @@ export class TokenService {
     }
   }
 
-  // ─── Search tokens ───
+  // ─── Search tokens (with pagination metadata) ───
   async search(params: SearchParams) {
     const {
       query,
@@ -138,7 +155,8 @@ export class TokenService {
         or(
           ilike(tokens.assetCode, `%${query}%`),
           ilike(tokens.tomlName, `%${query}%`),
-          ilike(tokens.homeDomain, `%${query}%`)
+          ilike(tokens.homeDomain, `%${query}%`),
+          ilike(tokens.tomlOrg, `%${query}%`)
         )!
       );
     }
@@ -147,20 +165,39 @@ export class TokenService {
       conditions.push(eq(tokens.isVerified, true));
     }
 
-    const sortMap = {
+    const sortMap: Record<string, any> = {
       rating: desc(tokens.ratingAverage),
       volume: desc(tokens.volume7d),
       trustlines: desc(tokens.trustlineCount),
       name: asc(tokens.assetCode),
+      recent: desc(tokens.createdAt),
     };
 
-    return db
-      .select()
-      .from(tokens)
-      .where(and(...conditions))
-      .orderBy(sortMap[sortBy])
-      .limit(limit)
-      .offset(offset);
+    const whereClause = and(...conditions);
+
+    const [results, countResult] = await Promise.all([
+      db
+        .select()
+        .from(tokens)
+        .where(whereClause)
+        .orderBy(sortMap[sortBy] || sortMap.rating)
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(tokens)
+        .where(whereClause),
+    ]);
+
+    return {
+      tokens: results,
+      pagination: {
+        total: Number(countResult[0].count),
+        limit,
+        offset,
+        hasMore: offset + limit < Number(countResult[0].count),
+      },
+    };
   }
 
   // ─── Get single token with full detail ───
@@ -169,7 +206,6 @@ export class TokenService {
     const cached = await cache.get(cacheKey);
     if (cached) return cached;
 
-    // Build the where clause depending on native vs issued
     const whereClause = issuer
       ? and(eq(tokens.assetCode, code), eq(tokens.assetIssuer, issuer))
       : and(eq(tokens.assetCode, code), eq(tokens.assetType, "native"));
@@ -189,7 +225,6 @@ export class TokenService {
 
     if (!token) return null;
 
-    // Skip orderbook/pools for native XLM
     let orderbook = null;
     let pools: any[] = [];
     if (issuer) {
@@ -201,6 +236,7 @@ export class TokenService {
 
     const result = {
       ...token.tokens,
+      image: resolveIconUrl(token.tokens),
       contractToken: token.contract_tokens,
       orderbook,
       liquidityPools: pools,
@@ -223,11 +259,17 @@ export class TokenService {
       .orderBy(desc(tokens.ratingAverage))
       .limit(20);
 
-    await cache.set(cacheKey, result, 600); // 10 min in-memory
-    return result;
+    // Attach resolved icon URL to each featured token
+    const withIcons = result.map((t) => ({
+      ...t,
+      image: resolveIconUrl(t),
+    }));
+
+    await cache.set(cacheKey, withIcons, 600);
+    return withIcons;
   }
 
-  // ─── User's enriched token list ───
+  // ─── User's enriched token list (batched — no N+1) ───
   async getUserTokens(publicKey: string) {
     const account = await stellarClient.horizon.loadAccount(publicKey);
 
@@ -236,88 +278,116 @@ export class TokenService {
       assetIssuer: b.asset_type === "native" ? null : b.asset_issuer,
       balance: b.balance,
       assetType: b.asset_type,
+      limit: b.limit || null,
+      buyingLiabilities: b.buying_liabilities || "0",
+      sellingLiabilities: b.selling_liabilities || "0",
     }));
 
-    // Pre-fetch the native XLM token row once (for its tomlImage etc.)
-    const [xlmTokenMeta] = await db
-      .select()
-      .from(tokens)
-      .where(
-        and(eq(tokens.assetCode, "XLM"), eq(tokens.assetType, "native"))
-      )
-      .limit(1);
+    // ── Batch fetch ALL token metadata in one query ──
+    const issuedAssets = balances.filter(
+      (b): b is typeof b & { assetIssuer: string } => b.assetIssuer !== null
+    );
+    const orConditions = [
+      and(eq(tokens.assetCode, "XLM"), eq(tokens.assetType, "native")),
+      ...issuedAssets.map((b) =>
+        and(
+          eq(tokens.assetCode, b.assetCode),
+          eq(tokens.assetIssuer, b.assetIssuer)
+        )
+      ),
+    ];
 
-    const enriched = await Promise.all(
-      balances.map(async (b) => {
-        if (b.assetType === "native" || !b.assetIssuer) {
-          return {
-            assetCode: "XLM",
-            assetIssuer: null,
-            balance: b.balance,
-            assetType: "native",
-            token: xlmTokenMeta
-              ? {
-                  tomlName: xlmTokenMeta.tomlName || "Stellar Lumens",
-                  tomlImage: xlmTokenMeta.tomlImage || null,
-                  domain: xlmTokenMeta.homeDomain || "stellar.org",
-                  isVerified: xlmTokenMeta.isVerified ?? true,
-                  ratingAverage: xlmTokenMeta.ratingAverage ?? "10.0",
-                }
-              : {
-                  tomlName: "Stellar Lumens",
-                  tomlImage: null,
-                  domain: "stellar.org",
-                  isVerified: true,
-                  ratingAverage: "10.0",
-                },
-            isFavorite: false,
-            isHidden: false,
-          };
-        }
+    const allMeta =
+      orConditions.length > 0
+        ? await db.select().from(tokens).where(or(...orConditions))
+        : [];
 
-        const [tokenMeta] = await db
-          .select()
-          .from(tokens)
-          .where(
-            and(
-              eq(tokens.assetCode, b.assetCode),
-              eq(tokens.assetIssuer, b.assetIssuer)
-            )
-          )
-          .limit(1);
+    // Build lookup map: "CODE:ISSUER" => token row
+    const metaMap = new Map<string, (typeof allMeta)[0]>();
+    for (const m of allMeta) {
+      const key =
+        m.assetType === "native"
+          ? "XLM:native"
+          : `${m.assetCode}:${m.assetIssuer}`;
+      metaMap.set(key, m);
+    }
 
-        const [prefs] = tokenMeta
-          ? await db
-              .select()
-              .from(userTokens)
-              .where(
-                and(
-                  eq(userTokens.publicKey, publicKey),
-                  eq(userTokens.tokenId, tokenMeta.id)
-                )
+    // ── Batch fetch user preferences ──
+    const tokenIds = allMeta.map((m) => m.id);
+    const allPrefs =
+      tokenIds.length > 0
+        ? await db
+            .select()
+            .from(userTokens)
+            .where(
+              and(
+                eq(userTokens.publicKey, publicKey),
+                inArray(userTokens.tokenId, tokenIds)
               )
-              .limit(1)
-          : [null];
+            )
+        : [];
 
-        return {
-          assetCode: b.assetCode,
-          assetIssuer: b.assetIssuer,
-          balance: b.balance,
-          assetType: b.assetType,
-          token: tokenMeta
+    const prefsMap = new Map<number, (typeof allPrefs)[0]>();
+    for (const p of allPrefs) {
+      if (p.tokenId) prefsMap.set(p.tokenId, p);
+    }
+
+    // ── Assemble enriched list ──
+    const enriched = balances.map((b) => {
+      const key = !b.assetIssuer
+        ? "XLM:native"
+        : `${b.assetCode}:${b.assetIssuer}`;
+      const meta = metaMap.get(key);
+      const prefs = meta ? prefsMap.get(meta.id) : undefined;
+
+      // Resolve the best available icon for this specific token
+      const image = resolveIconUrl(meta);
+
+      return {
+        assetCode: b.assetCode,
+        assetIssuer: b.assetIssuer,
+        balance: b.balance,
+        assetType: b.assetType,
+        limit: b.limit,
+        buyingLiabilities: b.buyingLiabilities,
+        sellingLiabilities: b.sellingLiabilities,
+        image,
+        token: meta
+          ? {
+              id: meta.id,
+              tomlName:
+                meta.tomlName ||
+                (b.assetType === "native" ? "Stellar Lumens" : ""),
+              tomlImage: meta.tomlImage || null,
+              localIcon: meta.localIcon || null,
+              domain:
+                meta.homeDomain ||
+                (b.assetType === "native" ? "stellar.org" : ""),
+              isVerified:
+                meta.isVerified ?? (b.assetType === "native" ? true : false),
+              ratingAverage:
+                meta.ratingAverage ??
+                (b.assetType === "native" ? "10.0" : null),
+              anchorAsset: meta.anchorAsset,
+              anchorType: meta.anchorType,
+            }
+          : b.assetType === "native"
             ? {
-                tomlName: tokenMeta.tomlName || "",
-                tomlImage: tokenMeta.tomlImage || null,
-                domain: tokenMeta.homeDomain || "",
-                isVerified: tokenMeta.isVerified ?? false,
-                ratingAverage: tokenMeta.ratingAverage ?? null,
+                id: null,
+                tomlName: "Stellar Lumens",
+                tomlImage: null,
+                localIcon: null,
+                domain: "stellar.org",
+                isVerified: true,
+                ratingAverage: "10.0",
+                anchorAsset: null,
+                anchorType: null,
               }
             : undefined,
-          isFavorite: prefs?.isFavorite ?? false,
-          isHidden: prefs?.isHidden ?? false,
-        };
-      })
-    );
+        isFavorite: prefs?.isFavorite ?? false,
+        isHidden: prefs?.isHidden ?? false,
+      };
+    });
 
     return enriched.filter((t) => !t.isHidden);
   }
@@ -348,6 +418,66 @@ export class TokenService {
       .values({ publicKey, tokenId, isFavorite: true })
       .returning();
     return inserted;
+  }
+
+  // ─── Flag spam tokens ───
+  async flagSpamTokens() {
+    await db
+      .update(tokens)
+      .set({ isSpam: true, updatedAt: new Date() })
+      .where(
+        and(
+          eq(tokens.isVerified, false),
+          sql`${tokens.trustlineCount} < 10`,
+          sql`${tokens.homeDomain} IS NULL`,
+          sql`(${tokens.ratingAverage} < 1.0 OR ${tokens.ratingAverage} IS NULL)`
+        )
+      );
+  }
+
+  // ─── Ensure a token exists in our registry (upsert) ───
+  async ensureToken(assetCode: string, assetIssuer: string) {
+    await db
+      .insert(tokens)
+      .values({
+        assetType:
+          assetCode.length <= 4 ? "credit_alphanum4" : "credit_alphanum12",
+        assetCode,
+        assetIssuer,
+      })
+      .onConflictDoNothing();
+
+    // Background: resolve home_domain + queue TOML sync
+    setImmediate(async () => {
+      try {
+        const assets = await stellarClient.horizon
+          .assets()
+          .forCode(assetCode)
+          .forIssuer(assetIssuer)
+          .call();
+
+        // The Horizon API returns home_domain in the JSON but the SDK's
+        // AssetRecord type doesn't declare it. Cast to access it safely.
+        const record = assets.records[0] as
+          | (typeof assets.records)[0] & { home_domain?: string }
+          | undefined;
+
+        if (record?.home_domain) {
+          await db
+            .update(tokens)
+            .set({
+              homeDomain: record.home_domain,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(tokens.assetCode, assetCode),
+                eq(tokens.assetIssuer, assetIssuer)
+              )
+            );
+        }
+      } catch {}
+    });
   }
 
   // ─── Orderbook helper ───

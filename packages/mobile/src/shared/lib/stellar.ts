@@ -1,32 +1,38 @@
-const HORIZON_TESTNET = "https://horizon-testnet.stellar.org";
-const HORIZON_PUBLIC = "https://horizon.stellar.org";
-const FRIENDBOT_URL = "https://friendbot.stellar.org";
+// packages/mobile/src/shared/lib/stellar.ts
+import * as StellarSdk from "@stellar/stellar-sdk";
+import * as SecureStore from "expo-secure-store";
+import { useWalletStore } from "../store/wallet";
 
-export function getHorizonUrl(network: "testnet" | "public") {
-  return network === "testnet" ? HORIZON_TESTNET : HORIZON_PUBLIC;
-}
+const API_BASE = "https://ammawallet.com";
 
-export async function fundTestnet(publicKey: string) {
-  const res = await fetch(`${FRIENDBOT_URL}?addr=${encodeURIComponent(publicKey)}`);
-  if (!res.ok) throw new Error("Friendbot funding failed");
-  return res.json();
-}
+export async function signAndSubmitXdr(
+  xdr: string,
+  networkPassphrase: string
+): Promise<any> {
+  // Get the active account's secret key from secure storage
+  const store = useWalletStore.getState();
+  const activeAccount = store.accounts.find(
+    (a) => a.id === store.activeAccountId
+  );
+  if (!activeAccount) throw new Error("No active wallet");
 
-export async function getBalances(publicKey: string, network: "testnet" | "public" = "testnet") {
-  const url = getHorizonUrl(network);
-  const res = await fetch(`${url}/accounts/${publicKey}`);
-  if (!res.ok) throw new Error("Failed to load account");
-  const data = await res.json();
-  return data.balances || [];
-}
+  const secretKey = await SecureStore.getItemAsync(
+    `wallet_secret_${activeAccount.id}`
+  );
+  if (!secretKey) throw new Error("Secret key not found in secure storage");
 
-export async function buildPaymentTx(
-  _secretKey: string,
-  _destination: string,
-  _amount: string,
-  _assetCode: string = "XLM",
-  _assetIssuer?: string
-) {
-  // TODO: Implement via backend signing endpoint or use stellar-base
-  throw new Error("Send not yet implemented on mobile — coming soon");
+  // Parse, sign, submit
+  const tx = StellarSdk.TransactionBuilder.fromXDR(xdr, networkPassphrase);
+  const keypair = StellarSdk.Keypair.fromSecret(secretKey);
+  tx.sign(keypair);
+
+  const res = await fetch(`${API_BASE}/api/v1/transactions/submit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ signedXdr: tx.toXDR() }),
+  });
+
+  const result = await res.json();
+  if (result.error) throw new Error(result.error);
+  return result;
 }
