@@ -13,6 +13,7 @@ import { authRoutes } from "./routes/auth";
 import { walletRoutes } from "./routes/wallets";
 import { passwordResetRoutes } from "./routes/password-reset";
 import { trustlineRoutes } from "./routes/trustlines";
+import StellarHDWallet from "stellar-hd-wallet";
 
 
 const app = Fastify({ logger: true });
@@ -313,6 +314,43 @@ async function bootstrap() {
     } catch {
       reply.status(400);
       return { error: "Invalid secret key" };
+    }
+  });
+
+  app.post("/api/v1/keypair/validate-mnemonic", async (request, reply) => {
+    const { mnemonic } = request.body as { mnemonic: string };
+    if (!mnemonic || typeof mnemonic !== "string") {
+      return reply.status(400).send({ error: "Mnemonic is required" });
+    }
+    try {
+      const isValid = StellarHDWallet.validateMnemonic(mnemonic.trim());
+      return { valid: isValid };
+    } catch {
+      return { valid: false };
+    }
+  });
+
+  // Derive keypair from mnemonic + account index
+  app.post("/api/v1/keypair/from-mnemonic", async (request, reply) => {
+    const { mnemonic, accountIndex = 0 } = request.body as {
+      mnemonic: string;
+      accountIndex?: number;
+    };
+    if (!mnemonic || typeof mnemonic !== "string") {
+      return reply.status(400).send({ error: "Mnemonic is required" });
+    }
+    try {
+      if (!StellarHDWallet.validateMnemonic(mnemonic.trim())) {
+        return reply.status(400).send({ error: "Invalid mnemonic phrase" });
+      }
+      const wallet = StellarHDWallet.fromMnemonic(mnemonic.trim());
+      return {
+        publicKey: wallet.getPublicKey(accountIndex),
+        secretKey: wallet.getSecret(accountIndex),
+        accountIndex,
+      };
+    } catch (e: any) {
+      return reply.status(400).send({ error: e.message || "Invalid mnemonic" });
     }
   });
 

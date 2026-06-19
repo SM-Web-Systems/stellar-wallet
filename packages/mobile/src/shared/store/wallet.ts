@@ -3,6 +3,11 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { useAuthStore } from "./auth";
+import {
+  generateMnemonic as genMnemonic,
+  keypairFromMnemonic,
+  validateMnemonic,
+} from "../lib/hd-wallet";
 
 const API_BASE = "https://ammawallet.com";
 
@@ -12,6 +17,8 @@ export interface WalletAccount {
   name: string;
   publicKey: string;
   encryptedSecret: string;
+  derivationIndex?: number;
+  isHD?: boolean;
 }
 
 interface WalletState {
@@ -33,6 +40,19 @@ interface WalletState {
   getSecretKey: () => string | null;
   setNetwork: (n: "testnet" | "public") => void;
   syncFromServer: (accessToken: string) => Promise<void>;
+  createWalletFromMnemonic: (
+    name: string,
+    pin: string,
+    mnemonic: string,
+    accountIndex?: number
+  ) => Promise<{ publicKey: string; mnemonic: string }>;
+  importFromMnemonic: (
+    name: string,
+    mnemonic: string,
+    pin: string,
+    accountIndex?: number
+  ) => Promise<string>;
+  generateMnemonic: () => string;
 }
 
 function generateId() {
@@ -303,6 +323,166 @@ export const useWalletStore = create<WalletState>()(
       logout: () => set({ accounts: [], activeAccountId: null, isUnlocked: false, _secretKey: null }),
       getSecretKey: () => get()._secretKey,
       setNetwork: (n) => set({ network: n }),
+
+      // ─── NEW: the three methods above go here ───
+      generateMnemonic: () => {
+        return genMnemonic();
+      },
+
+      // ─── Create wallet from a 24-word mnemonic ───
+      createWalletFromMnemonic: async (
+        name: string,
+        _pin: string,
+        mnemonic: string,
+        accountIndex: number = 0
+      ) => {
+        const trimmedName = (
+          name || `Wallet ${get().accounts.length + 1}`
+        ).trim();
+
+        if (
+          get().accounts.some(
+            (a) => a.name.toLowerCase() === trimmedName.toLowerCase()
+          )
+        ) {
+          throw new Error("A wallet with this name already exists");
+        }
+
+        if (!validateMnemonic(mnemonic)) {
+          throw new Error("Invalid mnemonic phrase");
+        }
+
+        const { publicKey, secretKey } = keypairFromMnemonic(
+          mnemonic,
+          accountIndex
+        );
+
+        if (get().accounts.some((a) => a.publicKey === publicKey)) {
+          throw new Error("This wallet already exists");
+        }
+
+        const storeKey = `secret_${publicKey}`;
+        await SecureStore.setItemAsync(storeKey, secretKey);
+
+        // Store mnemonic securely
+        const mnemonicKey = `mnemonic_${publicKey}`;
+        await SecureStore.setItemAsync(mnemonicKey, mnemonic.trim());
+
+        // Sync to server
+        let serverId: number | undefined;
+        try {
+          const serverWallet = await serverRequest("/api/v1/wallets", {
+            method: "POST",
+            body: JSON.stringify({
+              name: trimmedName,
+              publicKey,
+              encryptedSecret: secretKey,
+              network: get().network,
+            }),
+          });
+          serverId = serverWallet?.id;
+        } catch {}
+
+        // Fund on testnet
+        if (get().network === "testnet") {
+          try {
+            await fetch(
+              `https://friendbot.stellar.org?addr=${encodeURIComponent(publicKey)}`
+            );
+          } catch {}
+        }
+
+        const account: WalletAccount = {
+          id: generateId(),
+          serverId,
+          name: trimmedName,
+          publicKey,
+          encryptedSecret: storeKey,
+          derivationIndex: accountIndex,
+          isHD: true,
+        };
+
+        set((s) => ({
+          accounts: [...s.accounts, account],
+          activeAccountId: account.id,
+          isUnlocked: true,
+          _secretKey: secretKey,
+        }));
+
+        return { publicKey, mnemonic: mnemonic.trim() };
+      },
+
+      // ─── Import from mnemonic ───
+      importFromMnemonic: async (
+        name: string,
+        mnemonic: string,
+        _pin: string,
+        accountIndex: number = 0
+      ) => {
+        const trimmedName = (
+          name || `Imported ${get().accounts.length + 1}`
+        ).trim();
+
+        if (
+          get().accounts.some(
+            (a) => a.name.toLowerCase() === trimmedName.toLowerCase()
+          )
+        ) {
+          throw new Error("A wallet with this name already exists");
+        }
+
+        if (!validateMnemonic(mnemonic)) {
+          throw new Error("Invalid mnemonic phrase. Check your words.");
+        }
+
+        const { publicKey, secretKey } = keypairFromMnemonic(
+          mnemonic,
+          accountIndex
+        );
+
+        if (get().accounts.some((a) => a.publicKey === publicKey)) {
+          throw new Error("Wallet already exists");
+        }
+
+        const storeKey = `secret_${publicKey}`;
+        await SecureStore.setItemAsync(storeKey, secretKey);
+
+        const mnemonicKey = `mnemonic_${publicKey}`;
+        await SecureStore.setItemAsync(mnemonicKey, mnemonic.trim());
+
+        let serverId: number | undefined;
+        try {
+          const serverWallet = await serverRequest("/api/v1/wallets", {
+            method: "POST",
+            body: JSON.stringify({
+              name: trimmedName,
+              publicKey,
+              encryptedSecret: secretKey,
+              network: get().network,
+            }),
+          });
+          serverId = serverWallet?.id;
+        } catch {}
+
+        const account: WalletAccount = {
+          id: generateId(),
+          serverId,
+          name: trimmedName,
+          publicKey,
+          encryptedSecret: storeKey,
+          derivationIndex: accountIndex,
+          isHD: true,
+        };
+
+        set((s) => ({
+          accounts: [...s.accounts, account],
+          activeAccountId: account.id,
+          isUnlocked: true,
+          _secretKey: secretKey,
+        }));
+
+        return publicKey;
+      },
     }),
     {
       name: "amma-wallet-mobile",

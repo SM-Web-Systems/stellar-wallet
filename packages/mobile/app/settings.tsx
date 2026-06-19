@@ -27,6 +27,8 @@ import {
 import { useWalletStore } from "../src/shared/store/wallet";
 import { useAuthStore } from "../src/shared/store/auth";
 import PinModal from "../src/components/PinModal";
+import { ShieldCheck } from "lucide-react-native";
+import * as SecureStore from "expo-secure-store";
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -220,6 +222,13 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
               )}
             </View>
+            {/* Recovery Phrase (if HD wallet) */}
+            {activeAccount?.isHD && (
+              <>
+                <View style={styles.divider} />
+                <RecoveryPhraseReveal publicKey={activeAccount.publicKey} />
+              </>
+            )}
           </View>
         </View>
       )}
@@ -335,6 +344,77 @@ export default function SettingsScreen() {
         title={t("pin.enterToProceed")}
       />
     </ScrollView>
+  );
+}
+
+function RecoveryPhraseReveal({ publicKey }: { publicKey: string }) {
+  const { t } = useTranslation();
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [phrase, setPhrase] = useState<string | null>(null);
+  const [visible, setVisible] = useState(false);
+  const { unlock, getSecretKey } = useWalletStore();
+
+  const handleReveal = async (pin: string) => {
+    await unlock(pin);
+    const mnemonic = await SecureStore.getItemAsync(`mnemonic_${publicKey}`);
+    if (!mnemonic) throw new Error("No recovery phrase found for this wallet");
+    setPhrase(mnemonic);
+    setVisible(true);
+  };
+
+  const handleCopy = async () => {
+    if (phrase) {
+      await Clipboard.setStringAsync(phrase);
+      Alert.alert(t("common.success"), t("receive.copied"));
+    }
+  };
+
+  const handleHide = () => {
+    setPhrase(null);
+    setVisible(false);
+  };
+
+  return (
+    <>
+      <View style={styles.row}>
+        <ShieldCheck size={20} color="#10b981" />
+        <View style={styles.rowText}>
+          <Text style={styles.label}>
+            {t("settings.recoveryPhrase", "Recovery Phrase")}
+          </Text>
+          {visible && phrase ? (
+            <Text style={[styles.valueMono, { fontSize: 11, lineHeight: 18 }]}>
+              {phrase}
+            </Text>
+          ) : (
+            <Text style={styles.valueHidden}>
+              ●●●●● ●●●●● ●●●●● ●●●●● ●●●●●
+            </Text>
+          )}
+        </View>
+        {visible && phrase ? (
+          <View style={styles.rowActions}>
+            <TouchableOpacity onPress={handleCopy} style={styles.iconBtn}>
+              <Copy size={18} color="#9ca3af" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleHide} style={styles.iconBtn}>
+              <EyeOff size={18} color="#9ca3af" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity onPress={() => setShowPinModal(true)}>
+            <Eye size={18} color="#9ca3af" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <PinModal
+        visible={showPinModal}
+        onClose={() => setShowPinModal(false)}
+        onConfirm={handleReveal}
+        title={t("pin.enterToProceed")}
+      />
+    </>
   );
 }
 

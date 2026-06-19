@@ -24,7 +24,8 @@
     "jsonwebtoken": "^9.0.3",
     "mercurius": "^15.0.0",
     "nodemailer": "^8.0.1",
-    "postgres": "^3.4.8"
+    "postgres": "^3.4.8",
+    "stellar-hd-wallet": "^1.0.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
