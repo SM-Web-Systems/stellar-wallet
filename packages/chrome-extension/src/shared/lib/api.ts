@@ -173,17 +173,26 @@ export const txApi = {
     ),
 };
 
+// ─── User Wallets ──────────────────────────────────────────
 export const userWalletApi = {
   list: () => request<any[]>("/api/v1/wallets"),
 
-  add: (data: { name: string; publicKey: string; encryptedSecret?: string; network?: string }) =>
+  add: (data: {
+    name: string;
+    publicKey: string;
+    encryptedSecret?: string;
+    network?: string;
+  }) =>
     request<any>("/api/v1/wallets", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
   activate: (id: number) =>
-    request<any>(`/api/v1/wallets/${id}/activate`, { method: "PATCH", body: JSON.stringify({}) }),
+    request<any>(`/api/v1/wallets/${id}/activate`, {
+      method: "PATCH",
+      body: JSON.stringify({}),
+    }),
 
   rename: (id: number, name: string) =>
     request<any>(`/api/v1/wallets/${id}`, {
@@ -191,6 +200,51 @@ export const userWalletApi = {
       body: JSON.stringify({ name }),
     }),
 
-  remove: (id: number) =>
-    request<any>(`/api/v1/wallets/${id}`, { method: "DELETE" }),
+  remove: (id: number) => request<any>(`/api/v1/wallets/${id}`, { method: "DELETE" }),
+};
+
+// ─── Signing ───────────────────────────────────────────────
+export const signingApi = {
+  getMode: () =>
+    request<{ signingMode: "self" | "delegated" }>("/api/v1/user/signing-mode").then(
+      (data) => data.signingMode
+    ),
+
+  setMode: (mode: "self" | "delegated") =>
+    request<any>("/api/v1/user/signing-mode", {
+      method: "PATCH",
+      body: JSON.stringify({ mode }),
+    }),
+
+  sign: (xdr: string, networkPassphrase: string) =>
+    request<{ signedXdr: string }>("/api/v1/transactions/sign", {
+      method: "POST",
+      body: JSON.stringify({ xdr, networkPassphrase }),
+    }),
+
+  signAndSubmit: (xdr: string, networkPassphrase: string) =>
+    request<any>("/api/v1/transactions/sign-and-submit", {
+      method: "POST",
+      body: JSON.stringify({ xdr, networkPassphrase }),
+    }),
+};
+
+// ─── Keypair ───────────────────────────────────────────────
+export const keypairApi = {
+  generate: () => request<{ publicKey: string; secretKey: string }>("/api/v1/keypair/generate"),
+  fromSecret: (secret: string) =>
+    request<{ publicKey: string }>("/api/v1/keypair/from-secret", {
+      method: "POST",
+      body: JSON.stringify({ secretKey: secret }),
+    }),
+  validateMnemonic: (mnemonic: string) =>
+    request<{ valid: boolean }>("/api/v1/keypair/validate-mnemonic", {
+      method: "POST",
+      body: JSON.stringify({ mnemonic }),
+    }),
+  fromMnemonic: (mnemonic: string, accountIndex = 0) =>
+    request<{ publicKey: string; secretKey: string }>("/api/v1/keypair/from-mnemonic", {
+      method: "POST",
+      body: JSON.stringify({ mnemonic, accountIndex }),
+    }),
 };

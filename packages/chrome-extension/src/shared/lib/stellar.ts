@@ -1,5 +1,7 @@
 import * as StellarSdk from "@stellar/stellar-sdk";
 import { HORIZON_URL, NETWORK_PASSPHRASE, FRIENDBOT_URL } from "./constants";
+import { signingApi } from "./api";
+import { useAuthStore } from "../store/auth";
 
 const server = new StellarSdk.Horizon.Server(HORIZON_URL);
 
@@ -23,6 +25,37 @@ export async function loadAccount(publicKey: string) {
   return server.loadAccount(publicKey);
 }
 
+// ─── Signing mode helper ───────────────────────────────────
+function getSigningMode(): "self" | "delegated" {
+  const state = useAuthStore.getState();
+  return state.signingMode === "delegated" ? "delegated" : "self";
+}
+
+// ─── Sign and submit with mode routing ─────────────────────
+export async function signAndSubmitXdr(
+  xdr: string,
+  networkPassphrase: string,
+  secretKey?: string
+): Promise<any> {
+  const mode = getSigningMode();
+
+  if (mode === "delegated") {
+    return signingApi.signAndSubmit(xdr, networkPassphrase);
+  }
+
+  // Self-custody: sign locally and submit
+  if (!secretKey) throw new Error("Secret key is required for self-custody signing");
+  const tx = StellarSdk.TransactionBuilder.fromXDR(xdr, networkPassphrase);
+  if (tx instanceof StellarSdk.FeeBumpTransaction) {
+    throw new Error("Fee bump transactions are not supported for local signing");
+  }
+  const keypair = StellarSdk.Keypair.fromSecret(secretKey);
+  tx.sign(keypair);
+  const result = await server.submitTransaction(tx);
+  return result;
+}
+
+// ─── Legacy functions (kept for backward compatibility) ────
 export async function buildPaymentTx(
   senderSecret: string,
   destination: string,
@@ -49,7 +82,11 @@ export async function buildPaymentTx(
   return server.submitTransaction(tx);
 }
 
-export async function buildTrustlineTx(senderSecret: string, assetCode: string, assetIssuer: string) {
+export async function buildTrustlineTx(
+  senderSecret: string,
+  assetCode: string,
+  assetIssuer: string
+) {
   const keypair = StellarSdk.Keypair.fromSecret(senderSecret);
   const account = await server.loadAccount(keypair.publicKey());
   const asset = new StellarSdk.Asset(assetCode, assetIssuer);
@@ -68,6 +105,9 @@ export async function buildTrustlineTx(senderSecret: string, assetCode: string, 
 
 export function signXdr(xdr: string, secretKey: string): string {
   const tx = StellarSdk.TransactionBuilder.fromXDR(xdr, NETWORK_PASSPHRASE);
+  if (tx instanceof StellarSdk.FeeBumpTransaction) {
+    throw new Error("Fee bump transactions are not supported for local signing");
+  }
   const keypair = StellarSdk.Keypair.fromSecret(secretKey);
   tx.sign(keypair);
   return tx.toXDR();

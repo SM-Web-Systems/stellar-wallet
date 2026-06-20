@@ -29,7 +29,6 @@ async function request<T>(path: string, options?: RequestInit & { auth?: boolean
     ...(options?.headers as Record<string, string>),
   };
 
-  // Add auth header if we have a token and auth isn't explicitly false
   if (options?.auth !== false && _accessToken) {
     headers["Authorization"] = `Bearer ${_accessToken}`;
   }
@@ -39,7 +38,6 @@ async function request<T>(path: string, options?: RequestInit & { auth?: boolean
     headers,
   });
 
-  // If 401 and we have a refresh token, try to refresh
   if (res.status === 401 && _refreshToken) {
     const refreshed = await tryRefresh();
     if (refreshed) {
@@ -123,7 +121,7 @@ export const userWalletApi = {
     }),
 
   activate: (id: number) => request<any>(`/api/v1/wallets/${id}/activate`, { method: "PATCH", body: JSON.stringify({}) }),
-  rename: (id: number, name: string) => request<any>(`/api/v1/wallets/${id}`, {method: "PATCH", body: JSON.stringify({ name }),}),
+  rename: (id: number, name: string) => request<any>(`/api/v1/wallets/${id}`, { method: "PATCH", body: JSON.stringify({ name }) }),
   remove: (id: number) => request<any>(`/api/v1/wallets/${id}`, { method: "DELETE" }),
 };
 
@@ -163,13 +161,91 @@ export const walletApi = {
 
 // ——— Transactions ———
 export const txApi = {
-  submit: (xdr: string, network: string) =>
+  submit: (signedXdr: string) =>
     request<any>("/api/v1/transactions/submit", {
       method: "POST",
-      body: JSON.stringify({ xdr, networkPassphrase: network }),
+      body: JSON.stringify({ signedXdr }),
     }),
   history: (publicKey: string, limit = 20, cursor?: string) =>
     request<any[]>(
       `/api/v1/transactions/${publicKey}?limit=${limit}${cursor ? `&cursor=${cursor}` : ""}`
+    ),
+};
+
+// ——— Signing Mode (Delegated) ———
+export const signingApi = {
+  getMode: () =>
+    request<{ signingMode: string }>("/api/v1/user/signing-mode").then(
+      (data) => data.signingMode as "self" | "delegated"
+    ),
+
+  setMode: (mode: "self" | "delegated") =>
+    request<any>("/api/v1/user/signing-mode", {
+      method: "PATCH",
+      body: JSON.stringify({ mode }),
+    }),
+
+  sign: (xdr: string, networkPassphrase: string) =>
+    request<{ signedXdr: string; networkPassphrase: string }>("/api/v1/transactions/sign", {
+      method: "POST",
+      body: JSON.stringify({ xdr, networkPassphrase }),
+    }),
+
+  signAndSubmit: (xdr: string, networkPassphrase: string) =>
+    request<any>("/api/v1/transactions/sign-and-submit", {
+      method: "POST",
+      body: JSON.stringify({ xdr, networkPassphrase }),
+    }),
+};
+
+// ——— API Keys ———
+export const apiKeyApi = {
+  create: (name: string) =>
+    request<{ id: number; name: string; key: string; createdAt: string; message: string }>(
+      "/api/v1/api-keys",
+      {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      }
+    ),
+
+  list: () =>
+    request<
+      {
+        id: number;
+        name: string;
+        keyPreview: string;
+        isActive: boolean;
+        lastUsedAt: string | null;
+        createdAt: string;
+      }[]
+    >("/api/v1/api-keys"),
+
+  revoke: (id: number) =>
+    request<{ success: boolean; message: string }>(`/api/v1/api-keys/${id}`, {
+      method: "DELETE",
+    }),
+};
+
+// ——— Keypair ———
+export const keypairApi = {
+  generate: () => request<{ publicKey: string; secretKey: string }>("/api/v1/keypair/generate"),
+  fromSecret: (secret: string) =>
+    request<{ publicKey: string }>("/api/v1/keypair/from-secret", {
+      method: "POST",
+      body: JSON.stringify({ secret }),
+    }),
+  validateMnemonic: (mnemonic: string) =>
+    request<{ valid: boolean }>("/api/v1/keypair/validate-mnemonic", {
+      method: "POST",
+      body: JSON.stringify({ mnemonic }),
+    }),
+  fromMnemonic: (mnemonic: string, accountIndex = 0) =>
+    request<{ publicKey: string; secretKey: string; accountIndex: number }>(
+      "/api/v1/keypair/from-mnemonic",
+      {
+        method: "POST",
+        body: JSON.stringify({ mnemonic, accountIndex }),
+      }
     ),
 };

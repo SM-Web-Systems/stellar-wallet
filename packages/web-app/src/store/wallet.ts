@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { generateKeypair, keypairFromSecret, fundTestnet } from "../lib/stellar";
 import { encryptSecret, decryptSecret } from "../lib/crypto";
-import { userWalletApi } from "../lib/api";
+import { userWalletApi, keypairApi } from "../lib/api";
 
 export interface WalletAccount {
   id: string;
@@ -11,6 +11,8 @@ export interface WalletAccount {
   publicKey: string;
   encryptedSecret: string;
   createdAt: number;
+  isHD?: boolean;
+  derivationIndex?: number;
 }
 
 interface WalletState {
@@ -20,11 +22,15 @@ interface WalletState {
   isUnlocked: boolean;
   _secretKey: string | null;
   _syncing: boolean;
+  _mnemonic: string | null;
 
   getPublicKey: () => string | null;
   activeAccount: () => WalletAccount | null;
   createWallet: (name: string, pin: string) => Promise<string>;
   importWallet: (name: string, secretKey: string, pin: string) => Promise<string>;
+  createWalletFromMnemonic: (name: string, pin: string, mnemonic: string, accountIndex?: number) => Promise<{ publicKey: string; mnemonic: string }>;
+  importFromMnemonic: (name: string, mnemonic: string, pin: string, accountIndex?: number) => Promise<string>;
+  generateMnemonic: () => Promise<string>;
   switchAccount: (accountId: string) => void;
   removeAccount: (accountId: string) => void;
   renameAccount: (accountId: string, newName: string) => void;
@@ -32,6 +38,7 @@ interface WalletState {
   lock: () => void;
   logout: () => void;
   getSecretKey: () => string;
+  getMnemonic: () => string | null;
   setNetwork: (n: "testnet" | "public") => void;
   syncFromServer: () => Promise<void>;
 }
@@ -49,6 +56,7 @@ export const useWalletStore = create<WalletState>()(
       isUnlocked: false,
       _secretKey: null,
       _syncing: false,
+      _mnemonic: null,
 
       getPublicKey: () => {
         const state = get();
@@ -76,7 +84,6 @@ export const useWalletStore = create<WalletState>()(
           const merged: WalletAccount[] = [];
           const seenPubkeys = new Set<string>();
 
-          // Keep local accounts, update with server IDs
           for (const local of localAccounts) {
             const serverMatch = serverWallets.find(
               (sw: any) => sw.publicKey === local.publicKey
@@ -89,7 +96,6 @@ export const useWalletStore = create<WalletState>()(
             seenPubkeys.add(local.publicKey);
           }
 
-          // Add server wallets not present locally
           for (const sw of serverWallets) {
             if (!seenPubkeys.has(sw.publicKey)) {
               merged.push({
@@ -103,7 +109,6 @@ export const useWalletStore = create<WalletState>()(
             }
           }
 
-          // Determine active account
           const activeServer = serverWallets.find((sw: any) => sw.isActive);
           const currentActiveId = get().activeAccountId;
           let newActiveId = currentActiveId;
@@ -128,7 +133,7 @@ export const useWalletStore = create<WalletState>()(
         }
       },
 
-      // ─── Create ───────────────────────────────
+      // ─── Create (random keypair) ──────────────
       createWallet: async (name, pin) => {
         const trimmedName = (name || `Wallet ${get().accounts.length + 1}`).trim();
         if (get().accounts.some((a) => a.name.toLowerCase() === trimmedName.toLowerCase())) {
@@ -138,7 +143,6 @@ export const useWalletStore = create<WalletState>()(
         const { publicKey, secretKey } = generateKeypair();
         const encrypted = await encryptSecret(secretKey, pin);
 
-        // Sync to server FIRST — if it fails with 409, stop
         let serverId: number | undefined;
         try {
           const serverWallet = await userWalletApi.add({
@@ -152,7 +156,6 @@ export const useWalletStore = create<WalletState>()(
           if (err.message?.includes("already exists")) {
             throw new Error("A wallet with this name already exists");
           }
-          // Non-name error — continue without server sync
           console.error("Failed to sync wallet to server:", err);
         }
 
@@ -179,7 +182,7 @@ export const useWalletStore = create<WalletState>()(
         return publicKey;
       },
 
-      // ─── Import ───────────────────────────────
+      // ─── Import (secret key) ──────────────────
       importWallet: async (name, secretKey, pin) => {
         const { publicKey } = keypairFromSecret(secretKey);
 
@@ -197,7 +200,6 @@ export const useWalletStore = create<WalletState>()(
           createdAt: Date.now(),
         };
 
-        // Sync to server
         try {
           const serverWallet = await userWalletApi.add({
             name: account.name,
@@ -220,12 +222,139 @@ export const useWalletStore = create<WalletState>()(
         return publicKey;
       },
 
+      // ─── Generate mnemonic ────────────────────
+      generateMnemonic: async () => {
+        // Fallback: generate via crypto API
+        // For web app, we use the backend keypair API
+        // Actually, let's use bip39 directly if available
+        const { generateMnemonic: gen } = await import("bip39");
+        return gen();
+      },
+
+      // ─── Create from mnemonic ─────────────────
+      createWalletFromMnemonic: async (name, pin, mnemonic, accountIndex = 0) => {
+        const trimmedName = (name || `HD Wallet ${get().accounts.length + 1}`).trim();
+        if (get().accounts.some((a) => a.name.toLowerCase() === trimmedName.toLowerCase())) {
+          throw new Error("A wallet with this name already exists");
+        }
+
+        // Derive keypair from mnemonic via backend
+        const derived = await keypairApi.fromMnemonic(mnemonic, accountIndex);
+        const { publicKey, secretKey } = derived;
+
+        if (get().accounts.some((a) => a.publicKey === publicKey)) {
+          throw new Error("This wallet is already added");
+        }
+
+        const encrypted = await encryptSecret(secretKey, pin);
+
+        // Store mnemonic encrypted with same PIN
+        const encryptedMnemonic = await encryptSecret(mnemonic, pin);
+        localStorage.setItem(`mnemonic_${publicKey}`, encryptedMnemonic);
+
+        let serverId: number | undefined;
+        try {
+          const serverWallet = await userWalletApi.add({
+            name: trimmedName,
+            publicKey,
+            encryptedSecret: encrypted,
+            network: get().network,
+          });
+          serverId = serverWallet.id;
+        } catch (err: any) {
+          if (err.message?.includes("already exists")) {
+            throw new Error("A wallet with this name already exists");
+          }
+          console.error("Failed to sync wallet to server:", err);
+        }
+
+        try {
+          await fundTestnet(publicKey);
+        } catch {}
+
+        const account: WalletAccount = {
+          id: generateId(),
+          serverId,
+          name: trimmedName,
+          publicKey,
+          encryptedSecret: encrypted,
+          createdAt: Date.now(),
+          isHD: true,
+          derivationIndex: accountIndex,
+        };
+
+        set((state) => ({
+          accounts: [...state.accounts, account],
+          activeAccountId: account.id,
+          isUnlocked: true,
+          _secretKey: secretKey,
+          _mnemonic: mnemonic,
+        }));
+
+        return { publicKey, mnemonic };
+      },
+
+      // ─── Import from mnemonic ─────────────────
+      importFromMnemonic: async (name, mnemonic, pin, accountIndex = 0) => {
+        // Validate mnemonic via backend
+        const validation = await keypairApi.validateMnemonic(mnemonic);
+        if (!validation.valid) {
+          throw new Error("Invalid recovery phrase");
+        }
+
+        const derived = await keypairApi.fromMnemonic(mnemonic, accountIndex);
+        const { publicKey, secretKey } = derived;
+
+        if (get().accounts.some((a) => a.publicKey === publicKey)) {
+          throw new Error("This wallet is already added");
+        }
+
+        const encrypted = await encryptSecret(secretKey, pin);
+
+        // Store mnemonic encrypted
+        const encryptedMnemonic = await encryptSecret(mnemonic, pin);
+        localStorage.setItem(`mnemonic_${publicKey}`, encryptedMnemonic);
+
+        let serverId: number | undefined;
+        try {
+          const serverWallet = await userWalletApi.add({
+            name: name || `HD Wallet ${get().accounts.length + 1}`,
+            publicKey,
+            encryptedSecret: encrypted,
+            network: get().network,
+          });
+          serverId = serverWallet.id;
+        } catch (err) {
+          console.error("Failed to sync wallet to server:", err);
+        }
+
+        const account: WalletAccount = {
+          id: generateId(),
+          serverId,
+          name: name || `HD Wallet ${get().accounts.length + 1}`,
+          publicKey,
+          encryptedSecret: encrypted,
+          createdAt: Date.now(),
+          isHD: true,
+          derivationIndex: accountIndex,
+        };
+
+        set((state) => ({
+          accounts: [...state.accounts, account],
+          activeAccountId: account.id,
+          isUnlocked: true,
+          _secretKey: secretKey,
+          _mnemonic: mnemonic,
+        }));
+
+        return publicKey;
+      },
+
       // ─── Switch ───────────────────────────────
       switchAccount: (accountId) => {
         const account = get().accounts.find((a) => a.id === accountId);
         if (!account) throw new Error("Account not found");
 
-        // Sync active status to server
         if (account.serverId) {
           userWalletApi.activate(account.serverId).catch(console.error);
         }
@@ -234,6 +363,7 @@ export const useWalletStore = create<WalletState>()(
           activeAccountId: accountId,
           isUnlocked: false,
           _secretKey: null,
+          _mnemonic: null,
         });
       },
 
@@ -244,23 +374,24 @@ export const useWalletStore = create<WalletState>()(
         if (account?.serverId) {
           userWalletApi.remove(account.serverId).catch(console.error);
         }
+        // Clean up stored mnemonic
+        if (account) {
+          localStorage.removeItem(`mnemonic_${account.publicKey}`);
+        }
         const remaining = accounts.filter((a) => a.id !== accountId);
         let newActiveId = activeAccountId;
         if (activeAccountId === accountId) {
           newActiveId = remaining.length > 0 ? remaining[0].id : null;
         }
-        set({ accounts: remaining, activeAccountId: newActiveId, isUnlocked: false, _secretKey: null });
+        set({ accounts: remaining, activeAccountId: newActiveId, isUnlocked: false, _secretKey: null, _mnemonic: null });
       },
 
       // ─── Rename ───────────────────────────────
       renameAccount: (accountId, newName) => {
         const account = get().accounts.find((a) => a.id === accountId);
-
-        // Sync rename to server
         if (account?.serverId) {
           userWalletApi.rename(account.serverId, newName).catch(console.error);
         }
-
         set((state) => ({
           accounts: state.accounts.map((a) =>
             a.id === accountId ? { ...a, name: newName } : a
@@ -273,23 +404,46 @@ export const useWalletStore = create<WalletState>()(
         const account = get().activeAccount();
         if (!account) throw new Error("No active account");
         const secretKey = await decryptSecret(account.encryptedSecret, pin);
-        set({ isUnlocked: true, _secretKey: secretKey });
+
+        // Also try to decrypt mnemonic if HD wallet
+        let mnemonic: string | null = null;
+        if (account.isHD) {
+          const encMnemonic = localStorage.getItem(`mnemonic_${account.publicKey}`);
+          if (encMnemonic) {
+            try {
+              mnemonic = await decryptSecret(encMnemonic, pin);
+            } catch {}
+          }
+        }
+
+        set({ isUnlocked: true, _secretKey: secretKey, _mnemonic: mnemonic });
       },
 
-      lock: () => set({ isUnlocked: false, _secretKey: null }),
+      lock: () => set({ isUnlocked: false, _secretKey: null, _mnemonic: null }),
 
-      logout: () =>
+      logout: () => {
+        // Clean up all mnemonics
+        const accounts = get().accounts;
+        for (const acc of accounts) {
+          localStorage.removeItem(`mnemonic_${acc.publicKey}`);
+        }
         set({
           accounts: [],
           activeAccountId: null,
           isUnlocked: false,
           _secretKey: null,
-        }),
+          _mnemonic: null,
+        });
+      },
 
       getSecretKey: () => {
         const sk = get()._secretKey;
         if (!sk) throw new Error("Wallet is locked");
         return sk;
+      },
+
+      getMnemonic: () => {
+        return get()._mnemonic;
       },
 
       setNetwork: (n) => set({ network: n }),

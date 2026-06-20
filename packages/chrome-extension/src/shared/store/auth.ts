@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { authApi, setTokens, clearTokens, getAccessToken } from "../lib/api";
+import { authApi, signingApi, setTokens, clearTokens, getAccessToken } from "../lib/api";
 import { useWalletStore } from "./wallet";
 
 interface User {
@@ -16,6 +16,7 @@ interface User {
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
+  signingMode: "self" | "delegated";
 
   register: (data: {
     email: string;
@@ -35,11 +36,20 @@ interface AuthState {
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
+async function fetchSigningMode(): Promise<"self" | "delegated"> {
+  try {
+    return await signingApi.getMode();
+  } catch {
+    return "self";
+  }
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
       isAuthenticated: false,
+      signingMode: "self",
 
       register: async (data) => {
         const res = await authApi.register(data);
@@ -50,7 +60,8 @@ export const useAuthStore = create<AuthState>()(
       login: async (email, password) => {
         const res = await authApi.login(email, password);
         setTokens(res.accessToken, res.refreshToken);
-        set({ user: res.user, isAuthenticated: true });
+        const signingMode = await fetchSigningMode();
+        set({ user: res.user, isAuthenticated: true, signingMode });
         await useWalletStore.getState().syncFromServer();
       },
 
@@ -60,22 +71,23 @@ export const useAuthStore = create<AuthState>()(
         } catch {}
         clearTokens();
         useWalletStore.getState().logout();
-        set({ user: null, isAuthenticated: false });
+        set({ user: null, isAuthenticated: false, signingMode: "self" });
       },
 
       loadProfile: async () => {
         const token = getAccessToken();
         if (!token) {
-          set({ user: null, isAuthenticated: false });
+          set({ user: null, isAuthenticated: false, signingMode: "self" });
           return;
         }
         try {
           const res = await authApi.me();
-          set({ user: res.user, isAuthenticated: true });
+          const signingMode = await fetchSigningMode();
+          set({ user: res.user, isAuthenticated: true, signingMode });
           await useWalletStore.getState().syncFromServer();
         } catch {
           clearTokens();
-          set({ user: null, isAuthenticated: false });
+          set({ user: null, isAuthenticated: false, signingMode: "self" });
         }
       },
 
@@ -93,6 +105,7 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        signingMode: state.signingMode,
       }),
     }
   )

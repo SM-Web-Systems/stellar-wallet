@@ -1,5 +1,7 @@
 import * as StellarSdk from "@stellar/stellar-sdk";
 import { HORIZON_URL, NETWORK_PASSPHRASE, FRIENDBOT_URL } from "./constants";
+import { signingApi, txApi } from "./api";
+import { useAuthStore } from "../store/auth";
 
 const server = new StellarSdk.Horizon.Server(HORIZON_URL);
 
@@ -21,6 +23,62 @@ export async function fundTestnet(publicKey: string) {
 
 export async function loadAccount(publicKey: string) {
   return server.loadAccount(publicKey);
+}
+
+/**
+ * Get the current signing mode from the auth store.
+ */
+function getSigningMode(): "self" | "delegated" {
+  const state = useAuthStore.getState();
+  return state.signingMode === "delegated" ? "delegated" : "self";
+}
+
+/**
+ * Sign and submit a transaction XDR.
+ * Routes to local signing or delegated signing based on user preference.
+ */
+export async function signAndSubmitXdr(
+  xdr: string,
+  networkPassphrase: string,
+  secretKey: string
+): Promise<any> {
+  const mode = getSigningMode();
+
+  if (mode === "delegated") {
+    return signingApi.signAndSubmit(xdr, networkPassphrase);
+  }
+
+  return signAndSubmitLocal(xdr, networkPassphrase, secretKey);
+}
+
+/**
+ * Self-custody: sign locally with the secret key, then submit via API.
+ */
+async function signAndSubmitLocal(
+  xdr: string,
+  networkPassphrase: string,
+  secretKey: string
+): Promise<any> {
+  const tx = StellarSdk.TransactionBuilder.fromXDR(xdr, networkPassphrase);
+  if (tx instanceof StellarSdk.FeeBumpTransaction) {
+    throw new Error("Fee bump transactions are not supported for local signing");
+  }
+  const keypair = StellarSdk.Keypair.fromSecret(secretKey);
+  tx.sign(keypair);
+  return txApi.submit(tx.toXDR());
+}
+
+/**
+ * Sign XDR locally and return the signed XDR string (without submitting).
+ */
+export function signXdr(xdr: string, secretKey: string): string {
+  const tx = StellarSdk.TransactionBuilder.fromXDR(xdr, NETWORK_PASSPHRASE);
+  if (tx instanceof StellarSdk.FeeBumpTransaction) {
+    throw new Error("Fee bump transactions are not supported for local signing");
+  }
+  const keypair = StellarSdk.Keypair.fromSecret(secretKey);
+  tx.sign(keypair);
+  return tx.toXDR();
 }
 
 export async function buildPaymentTx(
@@ -64,13 +122,6 @@ export async function buildTrustlineTx(senderSecret: string, assetCode: string, 
 
   tx.sign(keypair);
   return server.submitTransaction(tx);
-}
-
-export function signXdr(xdr: string, secretKey: string): string {
-  const tx = StellarSdk.TransactionBuilder.fromXDR(xdr, NETWORK_PASSPHRASE);
-  const keypair = StellarSdk.Keypair.fromSecret(secretKey);
-  tx.sign(keypair);
-  return tx.toXDR();
 }
 
 export { server, StellarSdk };

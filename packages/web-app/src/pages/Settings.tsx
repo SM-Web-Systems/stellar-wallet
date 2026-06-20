@@ -6,7 +6,22 @@ import { useAuthStore } from "../store/auth";
 import { useNavigate } from "react-router-dom";
 import PinModal from "../components/PinModal";
 import { toast } from "sonner";
-import { Copy, Check, LogOut, Eye, EyeOff, Shield, KeyRound, User, Loader2 } from "lucide-react";
+import { signingApi } from "../lib/api";
+import {
+  Copy,
+  Check,
+  LogOut,
+  Eye,
+  EyeOff,
+  Shield,
+  KeyRound,
+  User,
+  Loader2,
+  RefreshCw,
+  ShieldCheck,
+  AlertTriangle,
+  Key,
+} from "lucide-react";
 import NetworkSwitcher from "../components/NetworkSwitcher";
 
 export default function SettingsPage() {
@@ -19,6 +34,7 @@ export default function SettingsPage() {
   const navigate = useNavigate();
 
   const { user, logout: authLogout, changePassword, updateProfile } = useAuthStore();
+  const signingMode = useAuthStore((s) => s.signingMode);
 
   const active = accounts.find((a) => a.id === activeAccountId);
   const publicKey = active?.publicKey || "";
@@ -26,8 +42,17 @@ export default function SettingsPage() {
   const [copiedPk, setCopiedPk] = useState(false);
   const [copiedSk, setCopiedSk] = useState(false);
   const [showPin, setShowPin] = useState(false);
+  const [pinAction, setPinAction] = useState<"secret" | "mnemonic">("secret");
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // Recovery phrase
+  const [revealedMnemonic, setRevealedMnemonic] = useState<string | null>(null);
+  const [showMnemonic, setShowMnemonic] = useState(false);
+  const [copiedMnemonic, setCopiedMnemonic] = useState(false);
+
+  // Signing mode
+  const [signingLoading, setSigningLoading] = useState(false);
 
   // Password change
   const [showPasswordChange, setShowPasswordChange] = useState(false);
@@ -57,17 +82,68 @@ export default function SettingsPage() {
     setTimeout(() => setCopiedSk(false), 2000);
   };
 
-  const handleReveal = () => {
+  const handleCopyMnemonic = () => {
+    if (!revealedMnemonic) return;
+    navigator.clipboard.writeText(revealedMnemonic);
+    setCopiedMnemonic(true);
+    toast.success(t("common.copied", "Copied!"));
+    setTimeout(() => setCopiedMnemonic(false), 2000);
+  };
+
+  const handleRevealSecret = () => {
+    setPinAction("secret");
     setShowPin(true);
   };
 
-  const handleHide = () => {
+  const handleRevealMnemonic = () => {
+    setPinAction("mnemonic");
+    setShowPin(true);
+  };
+
+  const handleHideSecret = () => {
     setRevealedKey(null);
     setCopiedSk(false);
   };
 
+  const handleHideMnemonic = () => {
+    setRevealedMnemonic(null);
+    setShowMnemonic(false);
+    setCopiedMnemonic(false);
+  };
+
+  // ── Signing mode toggle ──
+  const handleSigningModeToggle = async (mode: "self" | "delegated") => {
+    if (mode === signingMode) return;
+
+    if (mode === "delegated") {
+      const confirmed = window.confirm(
+        t(
+          "settings.delegatedWarning",
+          "Delegated signing stores your encrypted secret key on our server and signs transactions server-side. This is convenient but less secure than self-custody. Continue?"
+        )
+      );
+      if (!confirmed) return;
+    }
+
+    setSigningLoading(true);
+    try {
+      await signingApi.setMode(mode);
+      useAuthStore.setState({ signingMode: mode });
+      toast.success(
+        mode === "delegated"
+          ? t("settings.delegatedEnabled", "Delegated signing enabled")
+          : t("settings.selfCustodyEnabled", "Self-custody signing enabled")
+      );
+    } catch (err: any) {
+      toast.error(err.message || t("settings.signingModeError", "Failed to update signing mode"));
+    } finally {
+      setSigningLoading(false);
+    }
+  };
+
   const handleChangePassword = async () => {
-    if (!currentPassword) return toast.error(t("settings.currentPasswordRequired", "Current password is required"));
+    if (!currentPassword)
+      return toast.error(t("settings.currentPasswordRequired", "Current password is required"));
     if (newPassword.length < 8) return toast.error(t("auth.rule8chars"));
     if (!/[A-Z]/.test(newPassword)) return toast.error(t("auth.ruleUppercase"));
     if (!/\d/.test(newPassword)) return toast.error(t("auth.ruleNumber"));
@@ -111,6 +187,9 @@ export default function SettingsPage() {
     navigate("/login");
   };
 
+  // Check if the active wallet is an HD wallet (has mnemonic)
+  const isHDWallet = active && (active as any).isHD === true;
+
   return (
     <div className="space-y-6 max-w-lg">
       <h1 className="text-2xl font-bold text-white">{t("settings.title", "Settings")}</h1>
@@ -130,7 +209,9 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <p className="text-white font-medium">
-                    {user.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : t("settings.noNameSet", "No name set")}
+                    {user.firstName
+                      ? `${user.firstName} ${user.lastName || ""}`.trim()
+                      : t("settings.noNameSet", "No name set")}
                   </p>
                   <p className="text-sm text-stellar-muted">{user.email}</p>
                 </div>
@@ -193,8 +274,17 @@ export default function SettingsPage() {
 
         {active && (
           <div className="flex items-center justify-between">
-            <span className="text-sm text-stellar-muted">{t("onboarding.walletName", "Name")}</span>
-            <span className="text-sm text-white font-medium">{active.name}</span>
+            <span className="text-sm text-stellar-muted">
+              {t("onboarding.walletName", "Name")}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-white font-medium">{active.name}</span>
+              {isHDWallet && (
+                <span className="px-1.5 py-0.5 text-[10px] rounded bg-stellar-blue/20 text-stellar-blue font-medium">
+                  HD
+                </span>
+              )}
+            </div>
           </div>
         )}
 
@@ -228,6 +318,62 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Signing Mode */}
+      <div className="bg-stellar-card border border-stellar-border rounded-2xl p-6 space-y-4">
+        <h2 className="text-sm font-semibold text-stellar-muted uppercase tracking-wider">
+          {t("settings.signingMode", "Signing Mode")}
+        </h2>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => handleSigningModeToggle("self")}
+            disabled={signingLoading}
+            className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-colors ${
+              signingMode === "self"
+                ? "border-stellar-blue bg-stellar-blue/10 text-white"
+                : "border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Shield size={24} />
+            <span className="text-sm font-medium">
+              {t("settings.selfCustody", "Self-Custody")}
+            </span>
+          </button>
+          <button
+            onClick={() => handleSigningModeToggle("delegated")}
+            disabled={signingLoading}
+            className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-colors ${
+              signingMode === "delegated"
+                ? "border-stellar-purple bg-stellar-purple/10 text-white"
+                : "border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <RefreshCw size={24} />
+            <span className="text-sm font-medium">
+              {t("settings.delegated", "Delegated")}
+            </span>
+          </button>
+        </div>
+
+        {signingLoading && (
+          <div className="flex items-center justify-center py-1">
+            <Loader2 size={16} className="animate-spin text-stellar-muted" />
+          </div>
+        )}
+
+        <p className="text-xs text-stellar-muted">
+          {signingMode === "delegated"
+            ? t(
+                "settings.delegatedDesc",
+                "Transactions are signed server-side. Convenient but requires trust in our server."
+              )
+            : t(
+                "settings.selfCustodyDesc",
+                "Transactions are signed locally on your device. Most secure option."
+              )}
+        </p>
+      </div>
+
       {/* Language */}
       <div className="bg-stellar-card border border-stellar-border rounded-2xl p-6">
         <LanguageSwitcher />
@@ -242,7 +388,7 @@ export default function SettingsPage() {
         {/* Reveal Secret Key */}
         {!revealedKey ? (
           <button
-            onClick={handleReveal}
+            onClick={handleRevealSecret}
             className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5 transition-colors text-sm"
           >
             <Eye size={16} />
@@ -275,13 +421,96 @@ export default function SettingsPage() {
               </div>
             </div>
             <button
-              onClick={handleHide}
+              onClick={handleHideSecret}
               className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5 transition-colors text-sm"
             >
               <EyeOff size={16} />
               {t("settings.hideSecret", "Hide Secret Key")}
             </button>
           </div>
+        )}
+
+        {/* Reveal Recovery Phrase (HD wallets only) */}
+        {isHDWallet && (
+          <>
+            {!revealedMnemonic ? (
+              <button
+                onClick={handleRevealMnemonic}
+                className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5 transition-colors text-sm"
+              >
+                <ShieldCheck size={16} />
+                {t("settings.revealMnemonic", "Reveal Recovery Phrase")}
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg space-y-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle size={14} className="text-yellow-400" />
+                    <p className="text-xs text-yellow-400 font-semibold">
+                      {t(
+                        "settings.mnemonicWarning",
+                        "Never share your recovery phrase! Anyone with it can access all your funds."
+                      )}
+                    </p>
+                  </div>
+                  <div className="relative">
+                    <div
+                      className={`grid grid-cols-3 gap-2 p-3 rounded-lg bg-stellar-dark ${
+                        !showMnemonic ? "blur-sm select-none" : ""
+                      }`}
+                    >
+                      {revealedMnemonic.split(" ").map((word, i) => (
+                        <div key={i} className="flex items-center gap-1">
+                          <span className="text-[10px] text-stellar-muted w-4 text-right">
+                            {i + 1}.
+                          </span>
+                          <span className="text-xs text-white font-mono">{word}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {!showMnemonic && (
+                      <button
+                        onClick={() => setShowMnemonic(true)}
+                        className="absolute inset-0 flex items-center justify-center gap-2 text-white text-sm font-medium bg-black/40 rounded-lg"
+                      >
+                        <Eye size={16} />
+                        {t("onboarding.tapToReveal", "Click to reveal")}
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {showMnemonic && (
+                      <button
+                        onClick={() => setShowMnemonic(false)}
+                        className="flex-1 py-2 rounded-lg border border-yellow-500/30 text-xs text-yellow-300 hover:bg-yellow-500/10 flex items-center justify-center gap-1.5"
+                      >
+                        <EyeOff size={12} />
+                        {t("common.hide", "Hide")}
+                      </button>
+                    )}
+                    <button
+                      onClick={handleCopyMnemonic}
+                      className="flex-1 py-2 rounded-lg border border-yellow-500/30 text-xs text-yellow-300 hover:bg-yellow-500/10 flex items-center justify-center gap-1.5"
+                    >
+                      {copiedMnemonic ? (
+                        <Check size={12} className="text-green-400" />
+                      ) : (
+                        <Copy size={12} />
+                      )}
+                      {copiedMnemonic ? t("common.copied", "Copied") : t("common.copy", "Copy")}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={handleHideMnemonic}
+                  className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5 transition-colors text-sm"
+                >
+                  <EyeOff size={16} />
+                  {t("settings.hideMnemonic", "Hide Recovery Phrase")}
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {/* Change Password */}
@@ -310,7 +539,10 @@ export default function SettingsPage() {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder={t("settings.newPassword", "New password (min 8 chars, 1 uppercase, 1 number)")}
+              placeholder={t(
+                "settings.newPassword",
+                "New password (min 8 chars, 1 uppercase, 1 number)"
+              )}
               className="w-full px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-white text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue"
             />
             <input
@@ -323,20 +555,66 @@ export default function SettingsPage() {
             {newPassword.length > 0 && (
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-xs">
-                  <Check size={12} className={newPassword.length >= 8 ? "text-green-400" : "text-stellar-muted/40"} />
-                  <span className={newPassword.length >= 8 ? "text-green-400" : "text-stellar-muted/40"}>At least 8 characters</span>
+                  <Check
+                    size={12}
+                    className={
+                      newPassword.length >= 8 ? "text-green-400" : "text-stellar-muted/40"
+                    }
+                  />
+                  <span
+                    className={
+                      newPassword.length >= 8 ? "text-green-400" : "text-stellar-muted/40"
+                    }
+                  >
+                    At least 8 characters
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <Check size={12} className={/[A-Z]/.test(newPassword) ? "text-green-400" : "text-stellar-muted/40"} />
-                  <span className={/[A-Z]/.test(newPassword) ? "text-green-400" : "text-stellar-muted/40"}>One uppercase letter</span>
+                  <Check
+                    size={12}
+                    className={
+                      /[A-Z]/.test(newPassword) ? "text-green-400" : "text-stellar-muted/40"
+                    }
+                  />
+                  <span
+                    className={
+                      /[A-Z]/.test(newPassword) ? "text-green-400" : "text-stellar-muted/40"
+                    }
+                  >
+                    One uppercase letter
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <Check size={12} className={/\d/.test(newPassword) ? "text-green-400" : "text-stellar-muted/40"} />
-                  <span className={/\d/.test(newPassword) ? "text-green-400" : "text-stellar-muted/40"}>One number</span>
+                  <Check
+                    size={12}
+                    className={
+                      /\d/.test(newPassword) ? "text-green-400" : "text-stellar-muted/40"
+                    }
+                  />
+                  <span
+                    className={/\d/.test(newPassword) ? "text-green-400" : "text-stellar-muted/40"}
+                  >
+                    One number
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <Check size={12} className={newPassword === confirmNewPassword && confirmNewPassword.length > 0 ? "text-green-400" : "text-stellar-muted/40"} />
-                  <span className={newPassword === confirmNewPassword && confirmNewPassword.length > 0 ? "text-green-400" : "text-stellar-muted/40"}>Passwords match</span>
+                  <Check
+                    size={12}
+                    className={
+                      newPassword === confirmNewPassword && confirmNewPassword.length > 0
+                        ? "text-green-400"
+                        : "text-stellar-muted/40"
+                    }
+                  />
+                  <span
+                    className={
+                      newPassword === confirmNewPassword && confirmNewPassword.length > 0
+                        ? "text-green-400"
+                        : "text-stellar-muted/40"
+                    }
+                  >
+                    Passwords match
+                  </span>
                 </div>
               </div>
             )}
@@ -364,6 +642,15 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* API Keys Link */}
+        <button
+          onClick={() => navigate("/api-keys")}
+          className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5 transition-colors text-sm"
+        >
+          <Key size={16} />
+          {t("settings.manageApiKeys", "Manage API Keys")}
+        </button>
+
         {/* Logout */}
         <button
           onClick={() => setShowLogoutConfirm(true)}
@@ -377,11 +664,32 @@ export default function SettingsPage() {
       {/* PIN Modal */}
       {showPin && (
         <PinModal
-          title={t("settings.enterPinToReveal", "Enter PIN to reveal secret key")}
+          title={
+            pinAction === "mnemonic"
+              ? t("settings.enterPinToRevealMnemonic", "Enter PIN to reveal recovery phrase")
+              : t("settings.enterPinToReveal", "Enter PIN to reveal secret key")
+          }
           onSubmit={async (pin) => {
             await unlock(pin);
-            const sk = getSecretKey();
-            setRevealedKey(sk);
+            if (pinAction === "mnemonic") {
+              // Get mnemonic from localStorage (encrypted, stored by wallet store)
+              const encryptedMnemonic = localStorage.getItem(
+                `mnemonic_${active?.id}`
+              );
+              if (encryptedMnemonic) {
+                // Decrypt using the crypto module
+                const { decryptSecret } = await import("../lib/crypto");
+                const mnemonic = await decryptSecret(encryptedMnemonic, pin);
+                setRevealedMnemonic(mnemonic);
+              } else {
+                toast.error(
+                  t("settings.noMnemonicFound", "No recovery phrase found for this wallet.")
+                );
+              }
+            } else {
+              const sk = getSecretKey();
+              setRevealedKey(sk);
+            }
             setShowPin(false);
           }}
           onCancel={() => setShowPin(false)}
@@ -401,7 +709,10 @@ export default function SettingsPage() {
               {t("settings.logout", "Sign Out")}
             </h3>
             <p className="text-stellar-muted text-sm text-center">
-              {t("settings.logoutConfirm", "You will be signed out. Your wallet keys remain encrypted on this device. You can sign back in anytime.")}
+              {t(
+                "settings.logoutConfirm",
+                "You will be signed out. Your wallet keys remain encrypted on this device. You can sign back in anytime."
+              )}
             </p>
             <div className="flex gap-3">
               <button

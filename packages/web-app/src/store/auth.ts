@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { authApi, setTokens, clearTokens, getAccessToken, userWalletApi } from "../lib/api";
+import { authApi, setTokens, clearTokens, getAccessToken, userWalletApi, signingApi } from "../lib/api";
 import { useWalletStore } from "./wallet";
 
 export interface User {
@@ -26,6 +26,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   serverWallets: ServerWallet[];
+  signingMode: "self" | "delegated";
 
   register: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
@@ -41,6 +42,15 @@ interface AuthState {
   removeWallet: (id: number) => Promise<void>;
 }
 
+async function fetchSigningMode(): Promise<"self" | "delegated"> {
+  try {
+    const mode = await signingApi.getMode();
+    return mode;
+  } catch {
+    return "self";
+  }
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -48,6 +58,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       serverWallets: [],
+      signingMode: "self",
 
       register: async (email, password, firstName, lastName) => {
         set({ isLoading: true });
@@ -58,6 +69,7 @@ export const useAuthStore = create<AuthState>()(
             user: res.user,
             isAuthenticated: true,
             isLoading: false,
+            signingMode: "self",
           });
         } catch (err) {
           set({ isLoading: false });
@@ -70,12 +82,13 @@ export const useAuthStore = create<AuthState>()(
         try {
           const res = await authApi.login({ email, password });
           setTokens(res.accessToken, res.refreshToken);
+          const mode = await fetchSigningMode();
           set({
             user: res.user,
             isAuthenticated: true,
             isLoading: false,
+            signingMode: mode,
           });
-          // Load server wallets then sync to local wallet store
           await get().loadWallets();
           await useWalletStore.getState().syncFromServer();
         } catch (err) {
@@ -94,6 +107,7 @@ export const useAuthStore = create<AuthState>()(
           user: null,
           isAuthenticated: false,
           serverWallets: [],
+          signingMode: "self",
         });
       },
 
@@ -101,12 +115,17 @@ export const useAuthStore = create<AuthState>()(
         if (!getAccessToken()) return;
         try {
           const res = await authApi.me();
-          set({ user: res.user, isAuthenticated: true, serverWallets: res.wallets || [] });
-          // Sync wallets from server on session restore
+          const mode = await fetchSigningMode();
+          set({
+            user: res.user,
+            isAuthenticated: true,
+            serverWallets: res.wallets || [],
+            signingMode: mode,
+          });
           await useWalletStore.getState().syncFromServer();
         } catch {
           clearTokens();
-          set({ user: null, isAuthenticated: false, serverWallets: [] });
+          set({ user: null, isAuthenticated: false, serverWallets: [], signingMode: "self" });
         }
       },
 
@@ -152,6 +171,7 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         isAuthenticated: state.isAuthenticated,
         serverWallets: state.serverWallets,
+        signingMode: state.signingMode,
       }),
     }
   )

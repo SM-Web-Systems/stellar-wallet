@@ -9,7 +9,9 @@ import {
   Home,
   History as HistoryIcon,
   Settings as SettingsIcon,
+  Key,
 } from "lucide-react";
+
 import { useAuthStore } from "../store/auth";
 import { useWalletStore } from "../store/wallet";
 import AccountSwitcher from "./AccountSwitcher";
@@ -36,6 +38,7 @@ export default function Layout() {
     { to: "/swap", label: t("nav.swap"), icon: ArrowLeftRight },
     { to: "/history", label: t("nav.history"), icon: HistoryIcon },
     { to: "/settings", label: t("nav.settings"), icon: SettingsIcon },
+    { to: "/api-keys", label: t("nav.apiKeys", "API Keys"), icon: Key },
   ];
 
   return (

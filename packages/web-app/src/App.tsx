@@ -15,6 +15,7 @@ import ReceivePage from "./pages/Receive";
 import SwapPage from "./pages/Swap";
 import HistoryPage from "./pages/History";
 import SettingsPage from "./pages/Settings";
+import ApiKeysPage from "./pages/ApiKeys";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -72,6 +73,7 @@ export default function App() {
         <Route path="/swap" element={<SwapPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/api-keys" element={<ApiKeysPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
