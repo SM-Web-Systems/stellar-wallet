@@ -23,12 +23,14 @@ import {
   User,
   Wallet,
   Shield,
+  RefreshCw,
 } from "lucide-react-native";
 import { useWalletStore } from "../src/shared/store/wallet";
 import { useAuthStore } from "../src/shared/store/auth";
 import PinModal from "../src/components/PinModal";
 import { ShieldCheck } from "lucide-react-native";
 import * as SecureStore from "expo-secure-store";
+import { signingApi } from "../src/shared/lib/api";
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -316,6 +318,9 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* Signing Mode */}
+      <SigningModeToggle />
+
       {/* Actions */}
       <View style={styles.section}>
         <TouchableOpacity style={styles.actionBtn} onPress={handleLock}>
@@ -344,6 +349,146 @@ export default function SettingsScreen() {
         title={t("pin.enterToProceed")}
       />
     </ScrollView>
+  );
+}
+
+function SigningModeToggle() {
+  const { t } = useTranslation();
+  const { signingMode } = useAuthStore();
+  const [loading, setLoading] = useState(false);
+
+  const currentMode = signingMode || "self";
+
+  const handleToggle = async (mode: "self" | "delegated") => {
+    if (mode === currentMode) return;
+
+    if (mode === "delegated") {
+      Alert.alert(
+        t("settings.delegatedWarningTitle", "Enable Delegated Signing?"),
+        t(
+          "settings.delegatedWarningMessage",
+          "Your secret key stored on the server will be used to sign transactions. This is convenient but less secure than self-custody. Only enable this if you trust the server."
+        ),
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("common.confirm", "Enable"),
+            style: "destructive",
+            onPress: () => switchMode(mode),
+          },
+        ]
+      );
+    } else {
+      switchMode(mode);
+    }
+  };
+
+  const switchMode = async (mode: "self" | "delegated") => {
+    setLoading(true);
+    try {
+      await signingApi.setMode(mode);
+      useAuthStore.setState({ signingMode: mode });
+      Alert.alert(
+        t("common.success"),
+        mode === "delegated"
+          ? t(
+              "settings.delegatedEnabled",
+              "Delegated signing enabled. The server will sign transactions for you."
+            )
+          : t(
+              "settings.selfEnabled",
+              "Self-custody enabled. You sign transactions locally."
+            )
+      );
+    } catch (err: any) {
+      Alert.alert(
+        t("common.error"),
+        err.message || "Failed to update signing mode"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>
+        {t("settings.signingMode", "Signing Mode")}
+      </Text>
+      <View style={styles.card}>
+        {loading && (
+          <ActivityIndicator
+            size="small"
+            color="#8b5cf6"
+            style={{ marginBottom: 12 }}
+          />
+        )}
+        <View style={styles.networkRow}>
+          <TouchableOpacity
+            style={[
+              styles.networkBtn,
+              { flexDirection: "row", gap: 6, justifyContent: "center" },
+              currentMode === "self" && styles.networkBtnActive,
+            ]}
+            onPress={() => handleToggle("self")}
+            disabled={loading}
+          >
+            <Shield
+              size={16}
+              color={currentMode === "self" ? "#8b5cf6" : "#9ca3af"}
+            />
+            <Text
+              style={[
+                styles.networkBtnText,
+                currentMode === "self" && styles.networkBtnTextActive,
+              ]}
+            >
+              {t("settings.selfCustody", "Self-Custody")}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.networkBtn,
+              { flexDirection: "row", gap: 6, justifyContent: "center" },
+              currentMode === "delegated" && styles.networkBtnActive,
+            ]}
+            onPress={() => handleToggle("delegated")}
+            disabled={loading}
+          >
+            <RefreshCw
+              size={16}
+              color={currentMode === "delegated" ? "#8b5cf6" : "#9ca3af"}
+            />
+            <Text
+              style={[
+                styles.networkBtnText,
+                currentMode === "delegated" && styles.networkBtnTextActive,
+              ]}
+            >
+              {t("settings.delegated", "Delegated")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <Text
+          style={{
+            color: "#6b7280",
+            fontSize: 12,
+            marginTop: 10,
+            lineHeight: 18,
+          }}
+        >
+          {currentMode === "self"
+            ? t(
+                "settings.selfCustodyDesc",
+                "Transactions are signed locally on your device using your secret key."
+              )
+            : t(
+                "settings.delegatedDesc",
+                "Transactions are signed by the server. More convenient, but requires trusting the server with your key."
+              )}
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -430,7 +575,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: { color: "#fff", fontSize: 18, fontWeight: "700" },
   section: { paddingHorizontal: 16, marginTop: 20 },
-  sectionTitle: { color: "#9ca3af", fontSize: 13, fontWeight: "600", marginBottom: 8, textTransform: "uppercase" },
+  sectionTitle: {
+    color: "#9ca3af",
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 8,
+    textTransform: "uppercase",
+  },
   card: { backgroundColor: "#1e293b", borderRadius: 12, padding: 16 },
   row: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
   rowText: { flex: 1, marginLeft: 12 },

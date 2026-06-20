@@ -139,3 +139,26 @@ export const trustlineApi = {
       body: JSON.stringify({ publicKey, assetCode, assetIssuer }),
     }).then(r => r.json()),
 };
+
+export const signingApi = {
+  getMode: () =>
+    request("/api/v1/user/signing-mode").then((data) => data.signingMode as "self" | "delegated"),
+
+  setMode: (mode: "self" | "delegated") =>
+    request("/api/v1/user/signing-mode", {
+      method: "PATCH",
+      body: JSON.stringify({ mode }),
+    }),
+
+  sign: (xdr: string, networkPassphrase: string) =>
+    request("/api/v1/transactions/sign", {
+      method: "POST",
+      body: JSON.stringify({ xdr, networkPassphrase }),
+    }),
+
+  signAndSubmit: (xdr: string, networkPassphrase: string) =>
+    request("/api/v1/transactions/sign-and-submit", {
+      method: "POST",
+      body: JSON.stringify({ xdr, networkPassphrase }),
+    }),
+};

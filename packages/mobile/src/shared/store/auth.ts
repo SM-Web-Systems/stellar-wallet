@@ -36,6 +36,8 @@ interface AuthState {
   lock: () => void;
   unlock: (pin: string) => boolean;
   clearPin: () => void;
+
+  signingMode?: "self" | "delegated";
 }
 
 function hashPin(pin: string): string {
@@ -136,7 +138,14 @@ export const useAuthStore = create<AuthState>()(
           const data = await apiRequest("/api/v1/auth/me", {
             headers: { Authorization: `Bearer ${accessToken}` },
           });
-          set({ user: data, isAuthenticated: true });
+          let signingMode: "self" | "delegated" = "self";
+          try {
+            const modeRes = await apiRequest("/api/v1/user/signing-mode", {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            signingMode = modeRes.signingMode || "self";
+          } catch {}
+          set({ user: data, isAuthenticated: true, signingMode });
           // Sync wallets from server
           await useWalletStore.getState().syncFromServer(accessToken);
         } catch {
@@ -147,7 +156,14 @@ export const useAuthStore = create<AuthState>()(
               const data = await apiRequest("/api/v1/auth/me", {
                 headers: { Authorization: `Bearer ${token}` },
               });
-              set({ user: data, isAuthenticated: true });
+              let signingMode: "self" | "delegated" = "self";
+              try {
+                const modeRes = await apiRequest("/api/v1/user/signing-mode", {
+                  headers: { Authorization: `Bearer ${token}` },
+                });
+                signingMode = modeRes.signingMode || "self";
+              } catch {}
+              set({ user: data, isAuthenticated: true, signingMode });
               await useWalletStore.getState().syncFromServer(token);
             } catch {
               set({ isAuthenticated: false, accessToken: null, refreshToken: null, user: null });
@@ -226,6 +242,7 @@ export const useAuthStore = create<AuthState>()(
         pinHash: state.pinHash,
         hasPin: state.hasPin,
         isLocked: state.isLocked,
+        signingMode: state.signingMode,
       }),
     }
   )
