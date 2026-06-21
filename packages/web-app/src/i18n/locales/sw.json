@@ -33,7 +33,8 @@
     "receive": "Pokea",
     "swap": "Badilisha",
     "history": "Historia",
-    "settings": "Mipangilio"
+    "settings": "Mipangilio",
+    "help": "Msaada"
   },
   "auth": {
     "welcomeBack": "Karibu Tena",
@@ -73,7 +74,15 @@
     "passwordsMismatch": "Nenosiri hazifanani",
     "loginFailed": "Kuingia kumeshindwa",
     "registerFailed": "Usajili umeshindwa",
-    "registerSubtitle": "Jiunge na Mkoba wa Stellar"
+    "registerSubtitle": "Jiunge na Mkoba wa Stellar",
+    "forgotPassword": "Umesahau nenosiri",
+    "forgotPasswordDesc": "Weka barua pepe yako na tutakutumia kiungo cha kuweka upya",
+    "sendResetLink": "Tuma kiungo",
+    "sending": "Inatuma...",
+    "resetEmailSent": "Barua pepe imetumwa",
+    "resetEmailSentDesc": "Angalia kisanduku chako cha barua pepe",
+    "resetRequestFailed": "Ombi la kuweka upya limeshindikana",
+    "backToLogin": "Rudi kwenye kuingia"
   },
   "onboarding": {
     "title": "Mkoba wa Stellar",
@@ -264,7 +273,7 @@
     "updatePassword": "Sasisha Nenosiri",
     "passwordChanged": "Nenosiri limebadilishwa kwa mafanikio",
     "passwordChangeFailed": "Imeshindwa kubadilisha nenosiri",
-        "profileUpdated": "Wasifu umesasishwa",
+    "profileUpdated": "Wasifu umesasishwa",
     "profileUpdateFailed": "Imeshindwa kusasisha wasifu",
     "publicKey": "Ufunguo wa Umma",
     "lockApp": "Funga Programu",
@@ -298,5 +307,10 @@
     "mismatch": "PIN hazifanani",
     "tooManyAttempts": "Majaribio mengi yameshindwa. Unaweza kuondoka na kuingia tena.",
     "confirm": "Thibitisha"
+  },
+  "help": {
+    "title": "Msaada na Maswali",
+    "subtitle": "Pata majibu ya maswali ya kawaida kuhusu Amma Wallet",
+    "moreHelp": "Unahitaji msaada zaidi?"
   }
 }

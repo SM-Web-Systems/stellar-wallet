@@ -139,6 +139,10 @@ export const tokenApi = {
     if (params.verified) p.set("verified", "true");
     return request<{ tokens: any[]; pagination: { total: number; limit: number; offset: number; hasMore: boolean } }>(`/api/v1/tokens?${p.toString()}`);
   },
+  priceHistory: (code: string, issuer: string, resolution = "86400000", limit = 30) =>
+    request<{ candles: Array<{ timestamp: number; open: string; high: string; low: string; close: string; volume: string; tradeCount: number }>; resolution: string; baseAsset: string; counterAsset: string }>(
+      `/api/v1/tokens/${encodeURIComponent(code)}/${encodeURIComponent(issuer)}/price-history?resolution=${resolution}&limit=${limit}`
+    ),
   detail: (code: string, issuer: string) =>
     request<any>(`/api/v1/tokens/${encodeURIComponent(code)}/${encodeURIComponent(issuer)}`),
   userTokens: (publicKey: string) =>
@@ -312,4 +316,14 @@ export const twoFaApi = {
           method: "POST",
           body: JSON.stringify({}),
         }),
+};
+
+export const contactsApi = {
+  list: () => request<any[]>("/api/v1/contacts"),
+  add: (data: { name: string; address: string; memo?: string; memoType?: string; notes?: string }) =>
+    request<any>("/api/v1/contacts", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: number, data: { name?: string; memo?: string; memoType?: string; notes?: string }) =>
+    request<any>("/api/v1/contacts/" + id, { method: "PATCH", body: JSON.stringify(data) }),
+  remove: (id: number) =>
+    request<any>("/api/v1/contacts/" + id, { method: "DELETE" }),
 };

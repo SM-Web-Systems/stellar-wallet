@@ -33,7 +33,8 @@
     "receive": "استقبال",
     "swap": "مبادلة",
     "history": "السجل",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "help": "المساعدة"
   },
   "auth": {
     "welcomeBack": "مرحباً بعودتك",
@@ -73,7 +74,15 @@
     "passwordsMismatch": "كلمات المرور غير متطابقة",
     "loginFailed": "فشل تسجيل الدخول",
     "registerFailed": "فشل التسجيل",
-    "registerSubtitle": "انضم إلى محفظة Stellar"
+    "registerSubtitle": "انضم إلى محفظة Stellar",
+    "forgotPassword": "نسيت كلمة المرور",
+    "forgotPasswordDesc": "أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة التعيين",
+    "sendResetLink": "إرسال رابط إعادة التعيين",
+    "sending": "جاري الإرسال...",
+    "resetEmailSent": "تم إرسال البريد",
+    "resetEmailSentDesc": "تحقق من بريدك للحصول على رابط إعادة التعيين",
+    "resetRequestFailed": "فشل طلب إعادة التعيين",
+    "backToLogin": "العودة لتسجيل الدخول"
   },
   "onboarding": {
     "title": "محفظة Stellar",
@@ -298,5 +307,10 @@
     "mismatch": "رموز PIN غير متطابقة",
     "tooManyAttempts": "محاولات فاشلة كثيرة. يمكنك تسجيل الخروج وتسجيل الدخول مرة أخرى.",
     "confirm": "تأكيد"
+  },
+  "help": {
+    "title": "المساعدة والأسئلة الشائعة",
+    "subtitle": "اعثر على إجابات للأسئلة الشائعة حول محفظة أما",
+    "moreHelp": "هل تحتاج المزيد من المساعدة؟"
   }
 }

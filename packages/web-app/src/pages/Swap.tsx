@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { tokenApi, swapApi } from "../lib/api";
 import TokenIcon from "../components/TokenIcon";
 import PinModal from "../components/PinModal";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import * as StellarSdk from "@stellar/stellar-sdk";
 import { calculatePlatformFee } from "../lib/stellar";
 

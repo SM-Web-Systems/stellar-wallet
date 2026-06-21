@@ -33,7 +33,8 @@
     "receive": "Yamukela",
     "swap": "Tjhintjha",
     "history": "Umlando",
-    "settings": "Iinlungiselelo"
+    "settings": "Iinlungiselelo",
+    "help": "Help & FAQ"
   },
   "auth": {
     "welcomeBack": "Wamukelekile Godu",
@@ -73,7 +74,15 @@
     "passwordsMismatch": "Amaphasiwedi awafani",
     "loginFailed": "Ukungena kuhlulekile",
     "registerFailed": "Ukubhalisa kuhlulekile",
-    "registerSubtitle": "Hlanganyela ne-Wallet ye-Stellar"
+    "registerSubtitle": "Hlanganyela ne-Wallet ye-Stellar",
+    "forgotPassword": "Ukhohlwe iphasiwedi",
+    "forgotPasswordDesc": "Enter your email and we will send you a reset link",
+    "sendResetLink": "Send Reset Link",
+    "sending": "Sending...",
+    "resetEmailSent": "Email Sent",
+    "resetEmailSentDesc": "Check your inbox for the password reset link",
+    "resetRequestFailed": "Reset request failed",
+    "backToLogin": "Back to Login"
   },
   "onboarding": {
     "title": "I-Wallet ye-Stellar",
@@ -282,7 +291,7 @@
     "rename": "Thiya kabutja",
     "deleteConfirm": "Susa le wallet?",
     "active": "Iyasebenza"
-      },
+  },
   "pin": {
     "createTitle": "Yenza I-PIN",
     "createSubtitle": "Beka i-PIN yamadigithi ayi-4-6 ukuvikela i-wallet yakho",
@@ -298,5 +307,10 @@
     "mismatch": "Ama-PIN awafani",
     "tooManyAttempts": "Imizamo eminengi ehlulekile. Ungaphuma bese ungena godu.",
     "confirm": "Qinisekisa"
+  },
+  "help": {
+    "title": "Help & FAQ",
+    "subtitle": "Find answers to common questions about Amma Wallet",
+    "moreHelp": "Need more help?"
   }
 }

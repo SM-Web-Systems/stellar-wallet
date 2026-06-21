@@ -283,6 +283,18 @@ export const emailCodes = pgTable(
   ]
 );
 
+export const addressBook = pgTable("address_book", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  userId: bigint("user_id", { mode: "number" }).notNull(),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  memo: text("memo"),
+  memoType: text("memo_type"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const tokensRelations = relations(tokens, ({ many }) => ({
   contractTokens: many(contractTokens),
   userTokens: many(userTokens),

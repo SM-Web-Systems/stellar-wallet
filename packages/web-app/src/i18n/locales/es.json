@@ -33,7 +33,8 @@
     "receive": "Recibir",
     "swap": "Intercambiar",
     "history": "Historial",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "help": "Ayuda y FAQ"
   },
   "auth": {
     "welcomeBack": "Bienvenido de Nuevo",
@@ -73,7 +74,15 @@
     "passwordsMismatch": "Las contraseñas no coinciden",
     "loginFailed": "Error al iniciar sesión",
     "registerFailed": "Error al registrarse",
-    "registerSubtitle": "Únete a Billetera Stellar"
+    "registerSubtitle": "Únete a Billetera Stellar",
+    "forgotPassword": "Contraseña olvidada",
+    "forgotPasswordDesc": "Ingresa tu correo y te enviaremos un enlace de restablecimiento",
+    "sendResetLink": "Enviar enlace",
+    "sending": "Enviando...",
+    "resetEmailSent": "Correo enviado",
+    "resetEmailSentDesc": "Revisa tu bandeja de entrada para el enlace de restablecimiento",
+    "resetRequestFailed": "Error al solicitar restablecimiento",
+    "backToLogin": "Volver al inicio de sesión"
   },
   "onboarding": {
     "title": "Billetera Stellar",
@@ -298,5 +307,10 @@
     "mismatch": "Los PINs no coinciden",
     "tooManyAttempts": "Demasiados intentos fallidos. Puedes cerrar sesión e iniciar nuevamente.",
     "confirm": "Confirmar"
+  },
+  "help": {
+    "title": "Ayuda y FAQ",
+    "subtitle": "Encuentra respuestas a preguntas comunes sobre Amma Wallet",
+    "moreHelp": "Necesitas mas ayuda?"
   }
 }

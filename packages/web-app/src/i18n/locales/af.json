@@ -33,7 +33,8 @@
     "receive": "Ontvang",
     "swap": "Ruil",
     "history": "Geskiedenis",
-    "settings": "Instellings"
+    "settings": "Instellings",
+    "help": "Hulp"
   },
   "auth": {
     "welcomeBack": "Welkom Terug",
@@ -73,7 +74,15 @@
     "passwordsMismatch": "Wagwoorde stem nie ooreen nie",
     "loginFailed": "Aanmelding het misluk",
     "registerFailed": "Registrasie het misluk",
-    "registerSubtitle": "Sluit aan by Stellar Beursie"
+    "registerSubtitle": "Sluit aan by Stellar Beursie",
+    "forgotPassword": "Wagwoord vergeet",
+    "forgotPasswordDesc": "Voer jou e-pos in en ons stuur jou n herstelskakel",
+    "sendResetLink": "Stuur herstelskakel",
+    "sending": "Stuur...",
+    "resetEmailSent": "E-pos gestuur",
+    "resetEmailSentDesc": "Kyk in jou inkassie vir die herstelskakel",
+    "resetRequestFailed": "Herstelversoek het misluk",
+    "backToLogin": "Terug na aanmelding"
   },
   "onboarding": {
     "title": "Stellar Beursie",
@@ -298,5 +307,10 @@
     "mismatch": "PINs stem nie ooreen nie",
     "tooManyAttempts": "Te veel mislukte pogings. Jy kan afmeld en weer aanmeld.",
     "confirm": "Bevestig"
+  },
+  "help": {
+    "title": "Hulp en FAQ",
+    "subtitle": "Vind antwoorde op algemene vrae oor Amma Wallet",
+    "moreHelp": "Meer hulp nodig?"
   }
 }

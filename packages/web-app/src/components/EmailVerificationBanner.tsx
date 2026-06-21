@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Mail, X, Loader2 } from "lucide-react";
 import { useAuthStore } from "../store/auth";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 

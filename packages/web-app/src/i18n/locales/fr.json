@@ -33,7 +33,8 @@
     "receive": "Recevoir",
     "swap": "Échanger",
     "history": "Historique",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "help": "Aide et FAQ"
   },
   "auth": {
     "welcomeBack": "Bon Retour",
@@ -73,7 +74,15 @@
     "passwordsMismatch": "Les mots de passe ne correspondent pas",
     "loginFailed": "Échec de la connexion",
     "registerFailed": "Échec de l'inscription",
-    "registerSubtitle": "Rejoignez Portefeuille Stellar"
+    "registerSubtitle": "Rejoignez Portefeuille Stellar",
+    "forgotPassword": "Mot de passe oublié",
+    "forgotPasswordDesc": "Entrez votre email et nous vous enverrons un lien de réinitialisation",
+    "sendResetLink": "Envoyer le lien",
+    "sending": "Envoi en cours...",
+    "resetEmailSent": "Email envoyé",
+    "resetEmailSentDesc": "Vérifiez votre boîte de réception pour le lien de réinitialisation",
+    "resetRequestFailed": "Échec de la demande de réinitialisation",
+    "backToLogin": "Retour à la connexion"
   },
   "onboarding": {
     "title": "Portefeuille Stellar",
@@ -298,5 +307,10 @@
     "mismatch": "Les PINs ne correspondent pas",
     "tooManyAttempts": "Trop de tentatives échouées. Vous pouvez vous déconnecter et vous reconnecter.",
     "confirm": "Confirmer"
+  },
+  "help": {
+    "title": "Aide et FAQ",
+    "subtitle": "Trouvez des réponses aux questions fréquentes sur Amma Wallet",
+    "moreHelp": "Besoin de plus d aide?"
   }
 }

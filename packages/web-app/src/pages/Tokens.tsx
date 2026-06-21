@@ -9,7 +9,7 @@ import {
 import { tokenApi } from "../lib/api";
 import { useBalances } from "../hooks/useBalances";
 import TokenIcon from "../components/TokenIcon";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 50;
 

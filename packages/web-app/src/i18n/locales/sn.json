@@ -33,7 +33,8 @@
     "receive": "Gamuchira",
     "swap": "Chinja",
     "history": "Nhoroondo",
-    "settings": "Zvigadziriso"
+    "settings": "Zvigadziriso",
+    "help": "Help & FAQ"
   },
   "auth": {
     "welcomeBack": "Titambire Zvakare",
@@ -73,7 +74,15 @@
     "passwordsMismatch": "Mapasiwedhi haafanani",
     "loginFailed": "Kupinda kwakundikana",
     "registerFailed": "Kunyoresa kwakundikana",
-    "registerSubtitle": "Bata ne-Wallet ye-Stellar"
+    "registerSubtitle": "Bata ne-Wallet ye-Stellar",
+    "forgotPassword": "Ndakanganwa password",
+    "forgotPasswordDesc": "Enter your email and we will send you a reset link",
+    "sendResetLink": "Send Reset Link",
+    "sending": "Sending...",
+    "resetEmailSent": "Email Sent",
+    "resetEmailSentDesc": "Check your inbox for the password reset link",
+    "resetRequestFailed": "Reset request failed",
+    "backToLogin": "Back to Login"
   },
   "onboarding": {
     "title": "Wallet ye-Stellar",
@@ -298,5 +307,10 @@
     "mismatch": "Ma-PIN haafanani",
     "tooManyAttempts": "Maedzo akawanda akundikana. Unogona kubuda wopinda zvakare.",
     "confirm": "Simbisa"
+  },
+  "help": {
+    "title": "Help & FAQ",
+    "subtitle": "Find answers to common questions about Amma Wallet",
+    "moreHelp": "Need more help?"
   }
 }

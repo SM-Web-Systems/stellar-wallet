@@ -6,6 +6,7 @@ import { useWalletStore } from "../store/wallet";
 import { buildTrustlineTx } from "../lib/stellar";
 import TokenIcon from "../components/TokenIcon";
 import OrderbookDepth from "../components/OrderbookDepth";
+import PriceChart from "../components/PriceChart";
 import LiquidityPools from "../components/LiquidityPools";
 import PinModal from "../components/PinModal";
 import { useState } from "react";
@@ -508,8 +509,13 @@ export default function TokenDetailPage() {
       </div>
 
       {/* Orderbook & Pools — only if backend provided them */}
-      {token.assetType !== "native" && token.orderbook && (
-        <OrderbookDepth orderbook={token.orderbook} assetCode={token.assetCode} />
+      {token.assetType !== "native" && (
+        <>
+          <PriceChart code={token.assetCode} issuer={token.assetIssuer || "native"} />
+          {token.orderbook && (
+            <OrderbookDepth orderbook={token.orderbook} assetCode={token.assetCode} />
+          )}
+        </>
       )}
       {token.liquidityPools && token.liquidityPools.length > 0 && (
         <LiquidityPools pools={token.liquidityPools} />

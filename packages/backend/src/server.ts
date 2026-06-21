@@ -18,6 +18,7 @@ import { twoFaRoutes } from "./routes/two-fa";
 import { walletRoutes } from "./routes/wallets";
 import { passwordResetRoutes } from "./routes/password-reset";
 import { trustlineRoutes } from "./routes/trustlines";
+import { addressBookRoutes } from "./routes/contacts";
 import StellarHDWallet from "stellar-hd-wallet";
 import { db, schema } from "./db";
 import { eq, and } from "drizzle-orm";
@@ -80,6 +81,7 @@ async function bootstrap() {
         { name: "2FA", description: "Two-factor authentication setup and management" },
         { name: "Wallets", description: "Multi-wallet management" },
         { name: "API Keys", description: "API key management" },
+        { name: "Contacts", description: "Address book management" },
       ],
     },
   });
@@ -137,6 +139,7 @@ async function bootstrap() {
   app.register(walletRoutes);
   app.register(passwordResetRoutes);
   app.register(trustlineRoutes);
+  app.register(addressBookRoutes);
   app.register(fastifyStatic, {
     root: path.resolve(__dirname, "../assets/icons"),
     prefix: "/assets/icons/",
@@ -399,6 +402,133 @@ async function bootstrap() {
       );
       if (!token) return { error: "Token not found" };
       return token;
+    }
+  );
+
+
+  // ─── Price History (Trade Aggregations from Horizon) ───
+  app.get(
+    "/api/v1/tokens/:code/:issuer/price-history",
+    {
+      schema: {
+        tags: ["Tokens"],
+        summary: "Get token price history (OHLCV from Horizon trade aggregations)",
+        params: {
+          type: "object",
+          properties: {
+            code: { type: "string" },
+            issuer: { type: "string", description: 'Use "native" for XLM' },
+          },
+          required: ["code", "issuer"],
+        },
+        querystring: {
+          type: "object",
+          properties: {
+            resolution: {
+              type: "string",
+              enum: ["3600000", "86400000", "604800000"],
+              default: "86400000",
+              description: "Candle resolution in ms: 1h=3600000, 1d=86400000, 1w=604800000",
+            },
+            limit: { type: "integer", default: 30, minimum: 1, maximum: 200 },
+            counterCode: { type: "string", default: "USDC" },
+            counterIssuer: { type: "string" },
+          },
+        },
+        response: {
+          200: {
+            description: "Price history data points",
+            type: "object",
+            properties: {
+              candles: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    timestamp: { type: "number" },
+                    open: { type: "string" },
+                    high: { type: "string" },
+                    low: { type: "string" },
+                    close: { type: "string" },
+                    volume: { type: "string" },
+                    tradeCount: { type: "number" },
+                  },
+                },
+              },
+              resolution: { type: "string" },
+              baseAsset: { type: "string" },
+              counterAsset: { type: "string" },
+            },
+          },
+          400: { type: "object", properties: { error: { type: "string" } } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { code, issuer } = request.params as any;
+      const { resolution, limit, counterCode, counterIssuer } = request.query as any;
+
+      const res_ms = resolution || "86400000";
+      const lim = Math.min(parseInt(limit) || 30, 200);
+
+      // Build Horizon trade_aggregations URL
+      const horizonUrl = config.HORIZON_URL || "https://horizon-testnet.stellar.org";
+      const params = new URLSearchParams();
+      params.set("resolution", res_ms);
+      params.set("limit", String(lim));
+      params.set("order", "desc");
+
+      // Base asset
+      if (code === "XLM" || issuer === "native") {
+        params.set("base_asset_type", "native");
+      } else {
+        const assetType = code.length <= 4 ? "credit_alphanum4" : "credit_alphanum12";
+        params.set("base_asset_type", assetType);
+        params.set("base_asset_code", code);
+        params.set("base_asset_issuer", issuer);
+      }
+
+      // Counter asset (default USDC on testnet)
+      const cCode = counterCode || "USDC";
+      const cIssuer = counterIssuer || "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5";
+      if (cCode === "XLM") {
+        params.set("counter_asset_type", "native");
+      } else {
+        const cType = cCode.length <= 4 ? "credit_alphanum4" : "credit_alphanum12";
+        params.set("counter_asset_type", cType);
+        params.set("counter_asset_code", cCode);
+        params.set("counter_asset_issuer", cIssuer);
+      }
+
+      try {
+        const url = horizonUrl + "/trade_aggregations?" + params.toString();
+        const res = await fetch(url);
+        if (!res.ok) {
+          const text = await res.text();
+          return reply.status(400).send({ error: "Horizon error: " + text.substring(0, 200) });
+        }
+        const data = await res.json();
+        const records = data._embedded?.records || [];
+
+        const candles = records.map((r: any) => ({
+          timestamp: parseInt(r.timestamp),
+          open: r.open,
+          high: r.high,
+          low: r.low,
+          close: r.close,
+          volume: r.base_volume,
+          tradeCount: parseInt(r.trade_count),
+        })).reverse(); // oldest first for charting
+
+        return {
+          candles,
+          resolution: res_ms,
+          baseAsset: code + (issuer && issuer !== "native" ? "-" + issuer.substring(0, 4) : ""),
+          counterAsset: cCode,
+        };
+      } catch (err: any) {
+        return reply.status(400).send({ error: err.message });
+      }
     }
   );
 

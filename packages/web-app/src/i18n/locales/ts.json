@@ -33,7 +33,8 @@
     "receive": "Amukela",
     "swap": "Cinca",
     "history": "Matimu",
-    "settings": "Switirhisiwa"
+    "settings": "Switirhisiwa",
+    "help": "Help & FAQ"
   },
   "auth": {
     "welcomeBack": "U Amukelekile Nakambe",
@@ -73,7 +74,15 @@
     "passwordsMismatch": "Tiphasiwedi a ti fani",
     "loginFailed": "Ku nghena ku tsandzekile",
     "registerFailed": "Ku tsarisa ku tsandzekile",
-    "registerSubtitle": "Hlangana na Wallet ya Stellar"
+    "registerSubtitle": "Hlangana na Wallet ya Stellar",
+    "forgotPassword": "Rivaliwe password",
+    "forgotPasswordDesc": "Enter your email and we will send you a reset link",
+    "sendResetLink": "Send Reset Link",
+    "sending": "Sending...",
+    "resetEmailSent": "Email Sent",
+    "resetEmailSentDesc": "Check your inbox for the password reset link",
+    "resetRequestFailed": "Reset request failed",
+    "backToLogin": "Back to Login"
   },
   "onboarding": {
     "title": "Wallet ya Stellar",
@@ -298,5 +307,10 @@
     "mismatch": "Ti-PIN a ti fani",
     "tooManyAttempts": "Minringanyeto yo tala leyi tsandzekeke. U nga huma u nghena nakambe.",
     "confirm": "Tiyisisa"
+  },
+  "help": {
+    "title": "Help & FAQ",
+    "subtitle": "Find answers to common questions about Amma Wallet",
+    "moreHelp": "Need more help?"
   }
 }
