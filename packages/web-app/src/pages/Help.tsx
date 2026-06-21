@@ -139,6 +139,46 @@ export default function HelpPage() {
       question: "I see zero balances after switching networks",
       answer: "Testnet and mainnet are completely separate networks. Wallets and balances on testnet do not exist on mainnet and vice versa. Make sure you are on the correct network in Settings under Advanced Settings."
     },
+    {
+      category: "wallets",
+      question: "How do I use the address book?",
+      answer: "Go to the Contacts page from the sidebar. Click Add Contact and enter a name, Stellar address, and optional memo and notes. Your contacts are private to your account. You can click the send icon next to any contact to start a payment pre-filled with their address, or click the copy icon to copy their address to your clipboard."
+    },
+    {
+      category: "tokens",
+      question: "How do I read the price chart?",
+      answer: "On any token detail page, you will see a price chart showing the token\'s value over time against USDC. Use the interval buttons (1W, 1M, 3M, 1Y) to change the time range. The chart shows the closing price as a colored area: green when the price is up over the period, red when it is down. Hover over the chart to see exact prices and dates. The percentage change is displayed next to the current price."
+    },
+    {
+      category: "tokens",
+      question: "Why does a token show no trade data?",
+      answer: "Some tokens on testnet have very low or zero trading activity. The price chart requires actual trades to have occurred between the token and USDC on the Stellar DEX. If no trades exist for a pair, the chart will display a message saying no trade data is available. This is more common on testnet than mainnet."
+    },
+    {
+      category: "getting-started",
+      question: "How do I switch between dark and light theme?",
+      answer: "Click the sun or moon icon in the sidebar (desktop) or the top header bar (mobile). The theme switches instantly and your preference is saved automatically. Dark mode uses a deep purple palette, while light mode uses a clean white and gray design."
+    },
+    {
+      category: "getting-started",
+      question: "Is the wallet available on mobile?",
+      answer: "Amma Wallet is fully responsive and works on any mobile browser. On smaller screens, the sidebar becomes a slide-out menu accessible via the hamburger icon in the top-left corner. All features including sending, swapping, and managing tokens work on mobile."
+    },
+    {
+      category: "getting-started",
+      question: "What languages are supported?",
+      answer: "Amma Wallet supports 18 languages: English, French, Spanish, Portuguese, Arabic (with right-to-left layout), Chinese, Swahili, Afrikaans, Zulu, Xhosa, Sotho, Tswana, Northern Sotho, Tsonga, Swati, Venda, Ndebele, and Shona. Change your language from the language switcher in the Settings page."
+    },
+    {
+      category: "security",
+      question: "What are the notification alerts?",
+      answer: "The bell icon in the sidebar shows your in-app notifications. Notifications include security alerts, transaction confirmations, and system messages. A red badge shows the number of unread notifications. Click the bell to open the notification panel where you can read, dismiss, or clear all notifications. Notifications are stored locally and persist across sessions."
+    },
+    {
+      category: "troubleshooting",
+      question: "The app looks broken on my phone",
+      answer: "Make sure you are using a modern browser (Chrome, Safari, Firefox, or Edge). Try refreshing the page. If the sidebar is stuck open, tap the X icon or tap outside the menu to close it. If problems persist, clear your browser cache and reload."
+    },
   ];
 
   const categories = [

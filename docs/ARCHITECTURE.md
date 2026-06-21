@@ -3,14 +3,18 @@
 ## System Overview
 
 ```mermaid
-graph LR
-    A[Browser - React SPA] --> B[Cloudflare CDN]
-    B --> C[Nginx - SSL port 443]
-    C --> D[Fastify API - port 3001]
-    D --> E[PostgreSQL - port 5432]
-    D --> F[Stellar Horizon]
-    D --> G[StellarExpert API]
+graph TD
+    A[Browser / Mobile] -->|HTTPS| B[Cloudflare CDN]
+    B --> C[Nginx Reverse Proxy]
+    C -->|Static Files| D[React SPA - Vite Build]
+    C -->|/api /docs /health| E[Fastify API :3001]
+    E --> F[(PostgreSQL 16)]
+    E --> G[Stellar Horizon Testnet]
+    E --> H[StellarExpert API]
+    E --> I[Gmail SMTP :587]
 ```
+
+The system runs on a single AWS EC2 instance (ARM64, Ubuntu 24.04) in the af-south-1 (Cape Town) region. Cloudflare handles DNS and CDN. Nginx terminates SSL via Let's Encrypt and serves the React SPA static files directly while proxying API requests to the Fastify server on port 3001. The backend communicates with PostgreSQL for persistent storage, Stellar Horizon for blockchain operations, StellarExpert for token metadata enrichment, and Gmail SMTP for transactional emails.
 
 ## Authentication Flow
 
@@ -18,81 +22,71 @@ graph LR
 sequenceDiagram
     participant U as User
     participant F as Frontend
-    participant A as API
-    participant DB as PostgreSQL
+    participant A as Fastify API
+    participant D as PostgreSQL
+    participant T as Turnstile
 
-    U->>F: Enter email + password
-    F->>A: POST /auth/login + Turnstile token
-    A->>A: Verify Turnstile
-    A->>DB: Lookup user, verify bcrypt hash
-    alt 2FA Enabled
-        A->>F: twoFaRequired: true
-        U->>F: Enter 2FA code
-        F->>A: POST /auth/login + twoFaToken
-        A->>DB: Verify 2FA code
+    U->>F: Submit email + password
+    F->>T: Verify Turnstile token
+    T-->>F: Token valid
+    F->>A: POST /api/v1/auth/login
+    A->>D: Find user by email
+    A->>A: bcrypt.compare(password, hash)
+    alt 2FA enabled
+        A-->>F: 2FA challenge (requiresTwoFactor: true)
+        U->>F: Enter TOTP / email code
+        F->>A: POST /api/v1/auth/login + twoFactorCode
+        A->>A: Verify TOTP or email code
     end
-    A->>DB: Store refresh token
-    A->>F: accessToken + refreshToken
+    A->>D: Create refresh token (7 day expiry)
+    A-->>F: accessToken (15 min) + refreshToken
     F->>F: Store in Zustand + localStorage
 ```
 
-## Transaction Flow (Delegated Mode)
+Registration follows a similar flow with email verification. A verification token is emailed to the user, and the account remains unverified until they click the link. Password reset uses a separate token with a 1-hour expiry. Rate limiting applies 10 requests per 5 minutes on all auth endpoints and 100 requests per minute globally.
+
+## Transaction Signing
 
 ```mermaid
 sequenceDiagram
     participant U as User
     participant F as Frontend
-    participant A as API
-    participant H as Horizon
+    participant A as Fastify API
+    participant H as Stellar Horizon
 
-    U->>F: Initiate send/swap
-    F->>F: Build transaction XDR
-    F->>A: POST /transactions/sign-and-submit + PIN
-    A->>A: Verify JWT, load active wallet
-    A->>A: Decrypt secret with PIN
-    alt Swap Operation
-        A->>A: Inject platform fee operation
+    alt Delegated Mode
+        U->>F: Confirm transaction + enter PIN
+        F->>A: POST /api/v1/transactions/sign-and-submit (XDR + PIN)
+        A->>A: Decrypt wallet secret with PIN
+        A->>A: Sign XDR with secret key
+        A->>A: Optional fee-bump with platform wallet
+        A->>H: Submit signed transaction
+        H-->>A: Transaction result
+        A-->>F: hash + ledger + success
+    else Self-Custody Mode
+        U->>F: Confirm transaction
+        F->>F: Sign XDR locally with secret key
+        F->>A: POST /api/v1/transactions/submit (signed XDR)
+        A->>H: Submit to Horizon
+        H-->>A: Transaction result
+        A-->>F: hash + ledger + success
     end
-    A->>A: Sign transaction
-    A->>A: Wrap in fee bump (optional)
-    A->>H: Submit transaction
-    H->>A: Transaction result
-    A->>F: success + result
 ```
 
-## Transaction Flow (Self-Custody Mode)
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant F as Frontend
-    participant A as API
-    participant H as Horizon
-
-    U->>F: Initiate send/swap
-    F->>A: Build transaction (swap/quote)
-    A->>F: Unsigned XDR
-    F->>F: Sign locally with secret key
-    F->>A: POST /transactions/submit (signed XDR)
-    A->>H: Submit transaction
-    H->>A: Transaction result
-    A->>F: success + result
-```
+In delegated mode the user's wallet secret is stored encrypted with their PIN using AES-256. The secret is only decrypted momentarily during signing and never logged or cached. In self-custody mode the secret key exists only in the browser and the server never sees it.
 
 ## Token Enrichment Pipeline
 
 ```mermaid
-graph TD
-    A[Server Startup] --> B[Horizon Discovery]
-    B --> C[Fetch 200 latest assets]
-    C --> D[StellarExpert Enrichment]
-    D --> E[Fetch ratings, trustlines, domains - 500 per run]
-    E --> F[TOML Image Sync]
-    F --> G[Resolve icons from issuer TOML files]
-    G --> H[Icon Resolver]
-    H --> I[Download and cache from CryptoLogos/CMC]
-    I --> J[Database Updated]
+flowchart LR
+    A[Horizon API] -->|Discover assets| B[Token Indexer Job]
+    C[StellarExpert API] -->|Ratings, trustlines, volume| B
+    B -->|Upsert| D[(tokens table)]
+    D -->|TOML URLs| E[Icon Resolver]
+    E -->|Download & cache| F[Local icon storage]
 ```
+
+The token indexer runs on backend startup. It first discovers assets from Stellar Horizon, then enriches each token with metadata from StellarExpert (ratings, trustline counts, trade counts, volume, home domain). The enricher is network-aware, querying the testnet or public StellarExpert endpoint based on the STELLAR_NETWORK configuration. It paginates through up to 500 tokens per run. After enrichment, the icon resolver fetches token logos from stellar.toml files and caches them locally.
 
 ## Database Schema
 
@@ -104,25 +98,34 @@ erDiagram
     users ||--o{ password_reset_tokens : has
     users ||--o{ email_codes : has
     users ||--o{ api_keys : has
+    users ||--o{ address_book : has
+    tokens ||--o{ contract_tokens : has
+    tokens ||--o{ user_tokens : has
+    user_wallets ||--o{ user_tokens : has
 
     users {
         bigint id PK
-        text email
+        text email UK
         text password_hash
         text first_name
         text last_name
-        boolean is_email_verified
-        text signing_mode
+        boolean email_verified
+        text two_fa_secret
+        text two_fa_method
         text preferred_network
+        text signing_mode
+        timestamptz created_at
     }
 
     user_wallets {
         bigint id PK
         bigint user_id FK
         text public_key
+        text encrypted_secret
         text name
         boolean is_active
-        text encrypted_secret
+        text network
+        timestamptz created_at
     }
 
     tokens {
@@ -132,42 +135,33 @@ erDiagram
         text asset_type
         text toml_name
         text home_domain
-        text rating_average
+        text toml_image
+        numeric rating_average
+        numeric volume_7d
         integer trustline_count
-        text volume_7d
+        integer trade_count
         boolean is_verified
+        timestamptz created_at
+    }
+
+    address_book {
+        bigint id PK
+        bigint user_id FK
+        text name
+        text address
+        text memo
+        text memo_type
+        text notes
+        timestamptz created_at
     }
 ```
 
+Additional tables include refresh_tokens (JWT refresh token storage with expiry and revocation), email_verification_tokens, password_reset_tokens (1-hour expiry), email_codes (for 2FA email verification), api_keys (hashed keys with optional expiry), contract_tokens (Soroban SAC contract mappings), user_tokens (per-user token preferences and favorites), tx_history (cached transaction records), liquidity_pools, and sync_state (cursor tracking for token enrichment).
+
 ## Security Architecture
 
-Authentication:
-- Passwords hashed with bcrypt (12 rounds)
-- JWT access tokens: 15-minute expiry, signed with HS256
-- JWT refresh tokens: 7-day expiry, stored in DB, single-use rotation
-- Logout revokes refresh token; password change revokes all tokens
-
-2FA Methods:
-- TOTP -- standard authenticator app (Google Authenticator, Authy)
-- Email -- 6-digit code sent via SMTP, 10-minute expiry
-- Static Code -- pre-shared code hashed with SHA-256
-- Backup Codes -- 10 one-time codes, hashed, removed after use
-
-Wallet Security (Delegated Mode):
-- Wallet secret encrypted with user PIN before storage
-- PIN never stored; used only at signing time to decrypt
-- Decryption failure returns 403 (invalid PIN)
-- Secret key material held in memory only during signing operation
-
-Rate Limiting:
-- Global: 100 requests per minute per IP
-- Auth endpoints: 10 per 5 minutes
-- Based on X-Forwarded-For header (behind Nginx/Cloudflare)
+Authentication uses bcrypt with 12 salt rounds for password hashing. JWT access tokens expire after 15 minutes and refresh tokens after 7 days with automatic rotation. Two-factor authentication supports three methods: TOTP (authenticator apps like Google Authenticator), email codes (6-digit codes sent via SMTP), and static backup codes (generated on 2FA setup). Wallet secrets in delegated mode are encrypted with the user's PIN using AES-256-GCM and are only decrypted during transaction signing. Rate limiting enforces 100 requests per minute globally and 10 requests per 5 minutes on authentication endpoints. CORS is configured with an explicit origin allowlist. Cloudflare Turnstile protects registration and login forms from automated abuse.
 
 ## Frontend Architecture
 
-Code Splitting: All page components lazy-loaded via React.lazy(). Vendor chunks split for stellar SDK (256KB gz), react (67KB gz), icons, query, i18n, polyfills. Initial load approximately 170KB gzipped.
-
-State Management: Zustand for auth and wallet state. React Query for server state (tokens, balances, history).
-
-Routing: React Router v7 with layout components. Protected routes require authentication.
+The React SPA uses code splitting with React.lazy to keep the initial bundle small. Vendor dependencies are split into separate chunks: vendor-react (210 KB), vendor-stellar (971 KB, loaded only when needed), vendor-icons, vendor-query, and vendor-i18n. The initial page load is approximately 170 KB gzipped. State management uses Zustand with three persisted stores (auth, wallet, notifications) and one non-persisted store (theme reads from localStorage). Server state is managed by TanStack React Query with automatic cache invalidation. Routing uses React Router v7 with protected route wrappers that redirect unauthenticated users to the login page. The Sonner library provides toast notifications throughout the application.

@@ -1,89 +1,61 @@
 # Amma Wallet
 
-A full-featured Stellar blockchain wallet with web interface, supporting both self-custody and delegated signing modes.
+A full-featured Stellar blockchain wallet with a modern web interface, self-custody and delegated signing modes, token discovery, DEX trading, and multi-language support.
 
-Live: https://ammawallet.com
-API Docs: https://ammawallet.com/docs
+**Live:** [https://ammawallet.com](https://ammawallet.com)
+**API Docs:** [https://ammawallet.com/docs](https://ammawallet.com/docs)
 
 ---
 
-## Overview
+## Project Overview
 
-Amma Wallet provides a secure, user-friendly interface for interacting with the Stellar network. It supports multi-wallet management, token discovery, trustline management, swaps via the Stellar DEX, two-factor authentication, and both self-custody and server-side (delegated) transaction signing.
+Amma Wallet is a monorepo with two packages. The backend is a Fastify REST API built with Node.js, TypeScript, PostgreSQL 16 via Drizzle ORM, and the Stellar SDK, serving 54 API endpoints. The frontend is a React 19 SPA built with Vite 6, Tailwind CSS 4, Zustand for state management, TanStack React Query, Recharts for price charts, and i18next supporting 18 languages. Infrastructure runs on AWS EC2 (ARM64) with Nginx, Let's Encrypt SSL, and Cloudflare DNS.
 
-## Project Structure
+## Architecture
 
-The project is a monorepo with two packages:
+```mermaid
+graph TD
+    A[Browser / Mobile] -->|HTTPS| B[Cloudflare CDN]
+    B --> C[Nginx Reverse Proxy]
+    C -->|Static Files| D[React SPA]
+    C -->|/api /docs| E[Fastify API :3001]
+    E --> F[(PostgreSQL 16)]
+    E --> G[Stellar Horizon]
+    E --> H[StellarExpert API]
+```
 
-- packages/backend -- Fastify REST API (Node.js + TypeScript)
-  - src/config -- Environment configuration
-  - src/db -- Drizzle ORM schema and migrations
-  - src/jobs -- Token indexer, scheduled tasks
-  - src/lib -- Utilities (email, encryption, icon resolver, liquifier)
-  - src/middleware -- Auth middleware, Turnstile verification
-  - src/modules -- Business logic (tokens, swap services)
-  - src/routes -- Route handlers (auth, wallets, 2FA, trustlines, password-reset)
-  - src/server.ts -- Main server entry point with all route definitions
-
-- packages/web-app -- React SPA (Vite + TypeScript + Tailwind CSS)
-  - src/components -- Reusable UI components
-  - src/hooks -- Custom React hooks
-  - src/lib -- API client, utilities
-  - src/pages -- Page components (lazy-loaded)
-  - src/store -- Zustand state management
-
-- docs/ -- Project documentation
-
-## Tech Stack
-
-Backend: Node.js 20+, Fastify 5, TypeScript, PostgreSQL 16, Drizzle ORM, Stellar SDK, JWT auth, PM2
-Frontend: React 19, Vite 6, Tailwind CSS 4, Zustand, TanStack React Query, i18next
-Infrastructure: AWS EC2 (ARM64), Nginx, Lets Encrypt SSL, Cloudflare DNS
+The backend package lives in packages/backend and contains the API server entry point (server.ts), database schema (db/), background jobs (jobs/), business logic modules (modules/), route handlers (routes/), middleware for JWT auth and Turnstile verification, and utility libraries for email, encryption, icon resolution, and the Stellar client. The frontend package lives in packages/web-app and contains lazy-loaded page components, reusable UI components (PriceChart, OrderbookDepth, NotificationBell, ThemeToggle, AccountSwitcher), Zustand stores for auth, wallet, theme, and notifications, 18 locale files for internationalization, and the API client library. Project documentation lives in the docs/ folder.
 
 ## Features
 
-Wallet Management: Create and manage multiple Stellar wallets. HD wallet support (BIP39 mnemonic phrases). Import wallets via secret key or mnemonic. Switch between active wallets.
+**Wallet Management** — Create multiple Stellar wallets with HD (BIP-39) mnemonic support. Import existing wallets via secret key or mnemonic. Switch, rename, or delete wallets. Choose self-custody mode (keys never leave the browser) or delegated mode (PIN-encrypted server signing).
 
-Signing Modes: Self-Custody mode signs transactions locally in the browser so keys never leave the device. Delegated mode signs transactions server-side with PIN-encrypted secrets, enabling advanced features like automatic fee handling.
+**Token Discovery & Charts** — Browse 340+ tokens with server-side pagination (50 per page). Sort by trust score, name, volume, or holder count. Search by code, name, or domain. Token detail pages include OHLCV price charts with 1W/1M/3M/1Y intervals powered by Horizon trade aggregations, orderbook depth visualization, and liquidity pool information.
 
-Token and Asset Management: Browse 340+ tokens with server-side pagination (50 per page). Sort by trust score, name, volume, or holder count. Search tokens by code, name, or domain. Token metadata enriched from Stellar Expert (ratings, trustlines, trade counts). Add and remove trustlines from the token detail page. Favorite tokens for quick access.
+**Trading** — Swap tokens via the Stellar DEX with automatic path-finding. View price impact, exchange rates, and fees before confirming. Platform fee is configurable and applied on swaps only.
 
-Trading: Swap tokens via Stellar DEX path payments. Real-time quotes with best-path routing. Platform fee (configurable percentage) applied only on swap operations.
+**Address Book** — Personal contact list per account. Save Stellar addresses with names, memos, and notes. Quick-send and copy actions. Contacts are isolated per user with no cross-account leakage.
 
-Security: Email verification on signup. Two-factor authentication (TOTP, email, static codes). Rate limiting (100 req/min global, 10/5min on auth endpoints). CORS protection with origin allowlist. Cloudflare Turnstile on login and register. JWT refresh token rotation with revocation. PIN-encrypted wallet secrets in delegated mode.
+**Security** — Email verification on signup, password reset flow with expiring tokens, two-factor authentication (TOTP authenticator, email codes, or backup codes), rate limiting (100 req/min global, 10/5min on auth), Cloudflare Turnstile on registration and login, JWT refresh token rotation with revocation, and PIN-encrypted wallet secrets in delegated mode.
 
-Platform Operations: Auto-liquifier converts non-XLM platform fees to XLM every 6 hours. Admin endpoints for manual liquification and balance monitoring. Token indexer syncs from Horizon and Stellar Expert on startup.
+**Notifications** — In-app notification center with bell icon and persistent storage via Zustand. Supports info, success, warning, and error types with mark-read, clear-all, and click-through navigation.
+
+**Appearance** — Dark and light theme with CSS custom properties and instant toggle. Mobile-responsive design with hamburger menu and slide-out drawer. 18 languages including English, French, Spanish, Portuguese, Arabic (RTL), Chinese, Swahili, and 11 South African languages.
+
+**Platform Operations** — Auto-liquifier converts non-XLM platform fees to XLM every 6 hours. Admin endpoints for manual liquification and balance checks. Token indexer syncs from Horizon and enriches metadata from StellarExpert on startup. Swagger/OpenAPI documentation for all 54 endpoints.
 
 ## Getting Started
 
-Prerequisites: Node.js 20+, PostgreSQL 16+, npm 10+
-
-Installation:
-  1. Clone the repository
-  2. cd packages/backend and run npm install
-  3. cd packages/web-app and run npm install
-  4. Copy .env.example to .env and configure (see docs/DEPLOYMENT.md)
-  5. Run npx drizzle-kit push to set up the database
-  6. Start backend: pm2 start "npx tsx src/server.ts" --name amma-backend
-  7. Build frontend: cd packages/web-app and npm run build
-  8. Serve dist/ folder via Nginx
+Prerequisites are Node.js 20+, PostgreSQL 16+, and npm 10+. Clone the repository, then install dependencies in both packages/backend and packages/web-app with npm install. Copy .env.example to .env in the backend package and configure your database URL, JWT secrets, Stellar network settings, and SMTP credentials (see docs/DEPLOYMENT.md for all variables). Run npx drizzle-kit push to create the database schema. Start the backend with pm2 start "npx tsx src/server.ts" --name amma-backend. Build the frontend with npm run build in the web-app package, then serve the dist/ folder via Nginx.
 
 ## API Documentation
 
-Interactive Swagger UI available at /docs when the backend is running.
-Full reference: https://ammawallet.com/docs
-
-Key endpoint categories: Auth, Wallets, Tokens, Trustlines, Swap, Transactions, 2FA, Admin
-
-See docs/API.md for the full API reference.
+Interactive Swagger UI is available at [https://ammawallet.com/docs](https://ammawallet.com/docs) with all 54 endpoints documented. Key endpoint categories are Auth (register, login, refresh, logout, profile), Wallets (create, list, rename, delete, switch), Tokens (list, search, detail, price history, favorites), Trustlines (add, remove), Swap (quote, execute), Transactions (history, sign-and-submit), Contacts (CRUD), 2FA (setup, verify, disable), API Keys (create, list, revoke), and Admin (liquify, platform balance). See docs/API.md for the complete reference.
 
 ## Documentation
 
-- docs/ARCHITECTURE.md -- System architecture and data flow
-- docs/MOSCOW.md -- Feature prioritization (MoSCoW method)
-- docs/API.md -- Complete API reference
-- docs/DEPLOYMENT.md -- Deployment and operations guide
+The docs/ folder contains ARCHITECTURE.md covering system design with Mermaid diagrams for auth flow, transaction signing, token enrichment pipeline, and database schema. MOSCOW.md has the MoSCoW feature prioritization with current status. API.md is the complete REST API reference with example requests and responses. DEPLOYMENT.md covers production setup including environment variables, Nginx configuration, SSL, backups, and monitoring. The in-app Help page at /help provides a user-facing FAQ with 19 items across 6 categories.
 
 ## License
 
-Proprietary -- SM Web Systems. All rights reserved.
+Proprietary — SM Web Systems. All rights reserved.
