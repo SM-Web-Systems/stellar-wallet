@@ -1,23 +1,24 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./store/auth";
 import { useWalletStore } from "./store/wallet";
 import Layout from "./components/Layout";
-import LoginPage from "./pages/Login";
-import RegisterPage from "./pages/Register";
-import VerifyEmailPage from "./pages/VerifyEmail";
-import ResetPasswordPage from "./pages/ResetPassword";
-import ForgotPasswordPage from "./pages/ForgotPassword";
-import OnboardingPage from "./pages/Onboarding";
-import DashboardPage from "./pages/Dashboard";
-import TokensPage from "./pages/Tokens";
-import TokenDetailPage from "./pages/TokenDetail";
-import SendPage from "./pages/Send";
-import ReceivePage from "./pages/Receive";
-import SwapPage from "./pages/Swap";
-import HistoryPage from "./pages/History";
-import SettingsPage from "./pages/Settings";
-import ApiKeysPage from "./pages/ApiKeys";
+const LoginPage = lazy(() => import("./pages/Login"));
+const RegisterPage = lazy(() => import("./pages/Register"));
+const VerifyEmailPage = lazy(() => import("./pages/VerifyEmail"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPassword"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPassword"));
+const OnboardingPage = lazy(() => import("./pages/Onboarding"));
+const DashboardPage = lazy(() => import("./pages/Dashboard"));
+const TokensPage = lazy(() => import("./pages/Tokens"));
+const TokenDetailPage = lazy(() => import("./pages/TokenDetail"));
+const SendPage = lazy(() => import("./pages/Send"));
+const ReceivePage = lazy(() => import("./pages/Receive"));
+const SwapPage = lazy(() => import("./pages/Swap"));
+const HistoryPage = lazy(() => import("./pages/History"));
+const SettingsPage = lazy(() => import("./pages/Settings"));
+const ApiKeysPage = lazy(() => import("./pages/ApiKeys"));
+const HelpPage = lazy(() => import("./pages/Help"));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -44,7 +45,8 @@ export default function App() {
   }, []);
 
   return (
-    <Routes>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div></div>}>
+          <Routes>
       {/* Public auth routes */}
       <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
       <Route path="/register" element={<AuthRoute><RegisterPage /></AuthRoute>} />
@@ -78,9 +80,11 @@ export default function App() {
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/api-keys" element={<ApiKeysPage />} />
+        <Route path="/help" element={<HelpPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+          </Suspense>
   );
 }

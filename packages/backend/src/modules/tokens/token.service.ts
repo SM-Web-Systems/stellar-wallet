@@ -93,50 +93,75 @@ export class TokenService {
 
   // ─── Enrich from StellarExpert ───
   async enrichFromStellarExpert() {
-    const cursor = await getSyncCursor("token-sync:expert:cursor");
+    let cursor = await getSyncCursor("token-sync:expert:cursor");
+    let totalEnriched = 0;
+    const maxPages = 10; // Up to 500 tokens per run
 
+    for (let page = 0; page < maxPages; page++) {
     const res = await fetch(
-      `https://api.stellar.expert/explorer/public/asset?order=desc&sort=rating&limit=50&cursor=${cursor}`
+      `https://api.stellar.expert/explorer/${config.STELLAR_NETWORK === "testnet" ? "testnet" : "public"}/asset?order=desc&sort=rating&limit=50&cursor=${cursor}`
     );
     const data = await res.json();
 
     for (const record of data._embedded.records) {
-      const [code, issuerWithFlag] = record.asset.split("-");
-      const issuer = issuerWithFlag?.split("-")[0];
-      if (!issuer) continue;
+      const parts = record.asset.split("-");
+      const code = parts[0];
+      const issuer = parts.length > 1 ? parts[1] : null;
 
-      await db
-        .update(tokens)
-        .set({
-          homeDomain: record.domain || undefined,
-          tomlName: record.tomlInfo?.name || undefined,
-          tomlOrg: record.tomlInfo?.orgName || undefined,
-          ratingAge: record.rating?.age,
-          ratingTrades: record.rating?.trades,
-          ratingPayments: record.rating?.payments,
-          ratingTrustlines: record.rating?.trustlines,
-          ratingVolume: record.rating?.volume7d,
-          ratingLiquidity: record.rating?.liquidity,
-          ratingInterop: record.rating?.interop,
-          ratingAverage: record.rating?.average?.toString(),
-          tradeCount: record.trades,
-          paymentCount: record.payments,
-          totalSupply: record.supply?.toString(),
-          lastSyncedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(
-          and(eq(tokens.assetCode, code), eq(tokens.assetIssuer, issuer))
-        );
+      // Extract trustline count from array or number
+      const tlCount = Array.isArray(record.trustlines)
+        ? record.trustlines[0]
+        : (typeof record.trustlines === "number" ? record.trustlines : 0);
+
+      // Extract rating trustlines (it's a number in the rating object)
+      const ratingTl = typeof record.rating?.trustlines === "number"
+        ? record.rating.trustlines : 0;
+
+      const updateData: any = {
+        homeDomain: record.domain || undefined,
+        tomlName: record.tomlInfo?.name || undefined,
+        tomlOrg: record.tomlInfo?.orgName || undefined,
+        ratingAge: record.rating?.age || 0,
+        ratingTrades: record.rating?.activity || record.rating?.trades || 0,
+        ratingPayments: record.rating?.payments || 0,
+        ratingTrustlines: ratingTl,
+        ratingVolume: record.rating?.volume7d || 0,
+        ratingLiquidity: record.rating?.liquidity || 0,
+        ratingInterop: record.rating?.interop || 0,
+        ratingAverage: record.rating?.average?.toString(),
+        tradeCount: record.trades || 0,
+        paymentCount: record.payments || 0,
+        totalSupply: record.supply?.toString(),
+        trustlineCount: tlCount,
+        volume7d: record.volume7d?.toString() || "0",
+        lastSyncedAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      if (issuer) {
+        await db.update(tokens).set(updateData)
+          .where(and(eq(tokens.assetCode, code), eq(tokens.assetIssuer, issuer)));
+      } else {
+        // Native asset (XLM) — match by code + native type
+        await db.update(tokens).set(updateData)
+          .where(and(eq(tokens.assetCode, code), eq(tokens.assetType, "native")));
+      }
     }
 
+    totalEnriched += data._embedded.records.length;
+    
     if (data._embedded.records.length > 0) {
       const last = data._embedded.records.at(-1);
+      cursor = last.paging_token.toString();
       await setSyncCursor(
         "token-sync:expert:cursor",
-        last.paging_token.toString()
+        cursor
       );
     }
+    
+    if (data._embedded.records.length < 50) break; // No more pages
+    }
+    console.log("[token-enricher] Enriched " + totalEnriched + " tokens from StellarExpert");
   }
 
   // ─── Search tokens (with pagination metadata) ───

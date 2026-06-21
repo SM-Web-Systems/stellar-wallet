@@ -130,6 +130,15 @@ export const tokenApi = {
   featured: () => request<any[]>("/api/v1/tokens/featured"),
   search: (query: string, sortBy = "rating", limit = 50) =>
     request<any[]>(`/api/v1/tokens?query=${encodeURIComponent(query)}&sortBy=${sortBy}&limit=${limit}`),
+  list: (params: { sortBy?: string; limit?: number; offset?: number; query?: string; verified?: boolean } = {}) => {
+    const p = new URLSearchParams();
+    if (params.query) p.set("query", params.query);
+    if (params.sortBy) p.set("sortBy", params.sortBy);
+    if (params.limit) p.set("limit", String(params.limit));
+    if (params.offset) p.set("offset", String(params.offset));
+    if (params.verified) p.set("verified", "true");
+    return request<{ tokens: any[]; pagination: { total: number; limit: number; offset: number; hasMore: boolean } }>(`/api/v1/tokens?${p.toString()}`);
+  },
   detail: (code: string, issuer: string) =>
     request<any>(`/api/v1/tokens/${encodeURIComponent(code)}/${encodeURIComponent(issuer)}`),
   userTokens: (publicKey: string) =>

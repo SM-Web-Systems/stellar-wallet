@@ -9,6 +9,7 @@ import {
   LogOut,
   Home,
   History as HistoryIcon,
+  HelpCircle,
   Settings as SettingsIcon,
   Key,
 } from "lucide-react";
@@ -40,6 +41,7 @@ export default function Layout() {
     { to: "/history", label: t("nav.history"), icon: HistoryIcon },
     { to: "/settings", label: t("nav.settings"), icon: SettingsIcon },
     { to: "/api-keys", label: t("nav.apiKeys", "API Keys"), icon: Key },
+    { to: "/help", label: t("nav.help", "Help & FAQ"), icon: HelpCircle },
   ];
 
   return (

@@ -127,7 +127,7 @@ export async function resolveIcon(
     }
   }
 
-  console.warn(`[icon-resolver] No icon found for ${code}`);
+  // Silent: no icon for this token
   return null;
 }
 
@@ -154,7 +154,7 @@ export async function syncAllIcons(): Promise<void> {
   for (const token of missing) {
     // Skip tokens with no asset code — can't resolve an icon without it
     if (!token.assetCode) {
-      console.warn(`[icon-resolver] Skipping token id=${token.id}: no assetCode`);
+      // console.warn(`[icon-resolver] Skipping token id=${token.id}: no assetCode`);
       continue;
     }
 

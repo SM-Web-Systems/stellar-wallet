@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   Key,
+  ChevronDown,
 } from "lucide-react";
 import NetworkSwitcher from "../components/NetworkSwitcher";
 import TwoFaSettings from "../components/TwoFaSettings";
@@ -36,6 +37,7 @@ export default function SettingsPage() {
 
   const { user, logout: authLogout, changePassword, updateProfile } = useAuthStore();
   const signingMode = useAuthStore((s) => s.signingMode);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const active = accounts.find((a) => a.id === activeAccountId);
   const publicKey = active?.publicKey || "";
@@ -289,12 +291,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <div>
-          <label className="block text-sm text-stellar-muted mb-3">
-            {t("settings.network", "Network")}
-          </label>
-          <NetworkSwitcher />
-        </div>
+
 
         <div>
           <label className="block text-sm text-stellar-muted mb-1">
@@ -319,60 +316,81 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Signing Mode */}
+      {/* Advanced Settings */}
       <div className="bg-stellar-card border border-stellar-border rounded-2xl p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-stellar-muted uppercase tracking-wider">
-          {t("settings.signingMode", "Signing Mode")}
-        </h2>
+        <button
+          onClick={() => setAdvancedOpen(!advancedOpen)}
+          className="flex items-center justify-between w-full"
+        >
+          <h2 className="text-sm font-semibold text-stellar-muted uppercase tracking-wider">
+            {t("settings.advanced", "Advanced Settings")}
+          </h2>
+          <ChevronDown
+            size={18}
+            className={`text-stellar-muted transition-transform ${advancedOpen ? "rotate-180" : ""}`}
+          />
+        </button>
 
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => handleSigningModeToggle("self")}
-            disabled={signingLoading}
-            className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-colors ${
-              signingMode === "self"
-                ? "border-stellar-blue bg-stellar-blue/10 text-white"
-                : "border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <Shield size={24} />
-            <span className="text-sm font-medium">
-              {t("settings.selfCustody", "Self-Custody")}
-            </span>
-          </button>
-          <button
-            onClick={() => handleSigningModeToggle("delegated")}
-            disabled={signingLoading}
-            className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-colors ${
-              signingMode === "delegated"
-                ? "border-stellar-purple bg-stellar-purple/10 text-white"
-                : "border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <RefreshCw size={24} />
-            <span className="text-sm font-medium">
-              {t("settings.delegated", "Delegated")}
-            </span>
-          </button>
-        </div>
+        {advancedOpen && (
+          <div className="space-y-6 pt-2">
+            {/* Signing Mode */}
+            <div className="space-y-3">
+              <label className="block text-sm text-stellar-muted">
+                {t("settings.signingMode", "Signing Mode")}
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => handleSigningModeToggle("self")}
+                  disabled={signingLoading}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-colors ${
+                    signingMode === "self"
+                      ? "border-stellar-blue bg-stellar-blue/10 text-white"
+                      : "border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Shield size={24} />
+                  <span className="text-sm font-medium">
+                    {t("settings.selfCustody", "Self-Custody")}
+                  </span>
+                </button>
+                <button
+                  onClick={() => handleSigningModeToggle("delegated")}
+                  disabled={signingLoading}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-colors ${
+                    signingMode === "delegated"
+                      ? "border-stellar-purple bg-stellar-purple/10 text-white"
+                      : "border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <RefreshCw size={24} />
+                  <span className="text-sm font-medium">
+                    {t("settings.delegated", "Delegated")}
+                  </span>
+                </button>
+              </div>
+              {signingLoading && (
+                <div className="flex items-center justify-center py-1">
+                  <Loader2 size={16} className="animate-spin text-stellar-muted" />
+                </div>
+              )}
+              <p className="text-xs text-stellar-muted">
+                {signingMode === "delegated"
+                  ? t("settings.delegatedDesc", "Transactions are signed server-side. Convenient but requires trust in our server.")
+                  : t("settings.selfCustodyDesc", "Transactions are signed locally on your device. Most secure option.")}
+              </p>
+            </div>
 
-        {signingLoading && (
-          <div className="flex items-center justify-center py-1">
-            <Loader2 size={16} className="animate-spin text-stellar-muted" />
+            <div className="border-t border-stellar-border" />
+
+            {/* Network Selection */}
+            <div className="space-y-3">
+              <label className="block text-sm text-stellar-muted">
+                {t("settings.network", "Network")}
+              </label>
+              <NetworkSwitcher />
+            </div>
           </div>
         )}
-
-        <p className="text-xs text-stellar-muted">
-          {signingMode === "delegated"
-            ? t(
-                "settings.delegatedDesc",
-                "Transactions are signed server-side. Convenient but requires trust in our server."
-              )
-            : t(
-                "settings.selfCustodyDesc",
-                "Transactions are signed locally on your device. Most secure option."
-              )}
-        </p>
       </div>
 
       {/* Language */}

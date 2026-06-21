@@ -195,7 +195,7 @@ export const users = pgTable(
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-    signingMode: text("signing_mode").default("self"), // 'self' | 'delegated'
+    signingMode: text("signing_mode").default("delegated"), // 'self' | 'delegated'
     twoFaSecret: text("two_fa_secret"),
     twoFaEnabled: boolean("two_fa_enabled").default(false),
     twoFaMethod: text("two_fa_method").default("none"), // 'none' | 'totp'

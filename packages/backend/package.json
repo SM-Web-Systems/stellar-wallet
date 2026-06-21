@@ -22,11 +22,10 @@
     "@stellar/typescript-wallet-sdk": "^1.7.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^16.6.1",
-    "drizzle-orm": "^0.38.0",
+    "drizzle-orm": "^0.45.2",
     "fastify": "^5.2.0",
     "jsonwebtoken": "^9.0.3",
-    "mercurius": "^15.0.0",
-    "nodemailer": "^8.0.1",
+    "nodemailer": "^9.0.1",
     "postgres": "^3.4.8",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
@@ -38,8 +37,8 @@
     "@types/node": "^22.19.21",
     "@types/nodemailer": "^7.0.11",
     "@types/qrcode": "^1.5.6",
-    "drizzle-kit": "^0.30.0",
-    "tsx": "^4.21.0",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.22.4",
     "typescript": "^5.7.0"
   }
 }

@@ -1,87 +1,49 @@
 import { useState, useMemo, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import {
+  Search, Star, Shield, List, Plus, X,
+  Loader2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
+} from "lucide-react";
 import { tokenApi } from "../lib/api";
 import { useBalances } from "../hooks/useBalances";
 import TokenIcon from "../components/TokenIcon";
-import { Search, Star, Loader2, Globe, List, Plus, Shield, X } from "lucide-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
-function formatRating(val: any): string {
-  if (val == null) return "\u2014";
-  const n = Number(val);
-  return isNaN(n) ? "\u2014" : n.toFixed(1);
+const PAGE_SIZE = 50;
+
+function formatRating(v: any) {
+  if (v == null) return "—";
+  const n = Number(v);
+  return isNaN(n) ? "—" : n.toFixed(1);
 }
 
-function normalizeToken(t: any) {
+function normalizeToken(raw: any) {
+  if (!raw) return raw;
   return {
-    assetCode: t.assetCode ?? t.asset_code ?? "",
-    assetIssuer: t.assetIssuer ?? t.asset_issuer ?? "",
-    assetType: t.assetType ?? t.asset_type ?? "",
-    tomlName: t.tomlName ?? t.toml_name ?? "",
-    tomlImage: t.tomlImage ?? t.toml_image ?? "",
-    image: t.image ?? "",
-    domain: t.domain ?? t.homeDomain ?? "",
-    isVerified: t.isVerified ?? t.is_verified ?? false,
-    isFeatured: t.isFeatured ?? t.is_featured ?? false,
-    ratingAverage: t.ratingAverage ?? t.rating_average ?? null,
-    trustlinesFunded: t.trustlinesFunded ?? t.trustlines_funded ?? null,
-    source: t.source ?? "local",
+    ...raw,
+    image: raw.tomlImage || raw.image || "",
+    isFeatured: raw.isFeatured ?? false,
   };
 }
 
-function unwrap(raw: any): any[] {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw;
-  if (Array.isArray(raw.data)) return raw.data;
-  if (Array.isArray(raw.tokens)) return raw.tokens;
-  return [];
-}
-
-async function fetchStellarExpertDirectory(): Promise<any[]> {
-  const API_BASE = import.meta.env.VITE_API_URL || "";
-  const res = await fetch(`${API_BASE}/api/v1/tokens/directory?order=desc&limit=500`);
-  if (!res.ok) return [];
-  const data = await res.json();
-  const records = data._embedded?.records || [];
-
-  return records.filter((r: any) => r.asset !== "XLM").map((r: any) => {
-    const raw = r.asset || "";
-    const firstDash = raw.indexOf("-");
-    const lastDash = raw.lastIndexOf("-");
-    const code = firstDash > 0 ? raw.substring(0, firstDash) : raw;
-    const issuer =
-      firstDash > 0 && lastDash > firstDash
-        ? raw.substring(firstDash + 1, lastDash)
-        : firstDash > 0
-        ? raw.substring(firstDash + 1)
-        : "";
-    return {
-      assetCode: code,
-      assetIssuer: issuer,
-      assetType: issuer === "" ? "native" : "credit_alphanum4",
-      tomlName: r.tomlInfo?.name || r.tomlInfo?.orgName || "",
-      tomlImage: r.tomlInfo?.image || "",
-      image: r.tomlInfo?.image || "",
-      domain: r.domain || "",
-      isVerified: (r.rating?.average ?? 0) >= 6,
-      isFeatured: false,
-      ratingAverage: r.rating?.average ?? null,
-      trustlinesFunded: r.trustlines?.funded ?? null,
-      source: "stellar_expert",
-    };
-  });
-}
-
-type TabFilter = "all" | "featured" | "explore" | "trusted";
+type SortField = "rating" | "name" | "volume" | "trustlines";
+type SortDir = "asc" | "desc";
+type TabFilter = "all" | "featured" | "trusted";
 
 export default function TokensPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  // ── Pagination & sort state ──
+  const [page, setPage] = useState(0);
+  const [sortField, setSortField] = useState<SortField>("rating");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [query, setQuery] = useState("");
-  const [sortBy, setSortBy] = useState("rating");
   const [tab, setTab] = useState<TabFilter>("all");
+
+  // ── Add-token search state ──
   const [showAddToken, setShowAddToken] = useState(false);
   const [tokenSearch, setTokenSearch] = useState("");
   const [searching, setSearching] = useState(false);
@@ -93,46 +55,41 @@ export default function TokensPage() {
     return new Set(balances.map((b: any) => `${b.assetCode}-${b.assetIssuer || "native"}`));
   }, [balances]);
 
-  const {
-    data: featuredRaw,
-    isLoading: loadingFeatured,
-    error: featuredError,
-  } = useQuery({ queryKey: ["tokens-featured"], queryFn: tokenApi.featured });
+  // ── Map sortField to backend sortBy ──
+  const backendSortBy = useMemo(() => {
+    // Backend sorts are always desc except name which is asc
+    // We handle direction via the field choice
+    return sortField;
+  }, [sortField]);
 
+  // ── Server-side paginated query ──
   const {
-    data: searchRaw,
-    isLoading: loadingSearch,
-    error: searchError,
+    data: serverData,
+    isLoading,
+    error,
+    isFetching,
   } = useQuery({
-    queryKey: ["tokens-search", query, sortBy],
-    queryFn: () => tokenApi.search(query, sortBy),
-    enabled: query.length > 0,
+    queryKey: ["tokens-list", backendSortBy, page, query, tab],
+    queryFn: () =>
+      tokenApi.list({
+        sortBy: backendSortBy,
+        limit: PAGE_SIZE,
+        offset: page * PAGE_SIZE,
+        query: query || undefined,
+        verified: tab === "featured" ? true : undefined,
+      }),
+    placeholderData: (prev) => prev, // keep previous data while loading
+    staleTime: 30_000,
   });
 
-  const {
-    data: directoryTokens = [],
-    isLoading: loadingDirectory,
-  } = useQuery({
-    queryKey: ["stellar-expert-directory"],
-    queryFn: fetchStellarExpertDirectory,
-    staleTime: 5 * 60_000,
-  });
+  const tokens = useMemo(
+    () => (serverData?.tokens || []).map(normalizeToken),
+    [serverData]
+  );
+  const pagination = serverData?.pagination || { total: 0, limit: PAGE_SIZE, offset: 0, hasMore: false };
+  const totalPages = Math.max(1, Math.ceil(pagination.total / PAGE_SIZE));
 
-  const featuredTokens = unwrap(featuredRaw).map(normalizeToken);
-  const searchTokens = unwrap(searchRaw).map(normalizeToken);
-
-  const allTokens = useMemo(() => {
-    const map = new Map<string, any>();
-    featuredTokens.forEach((tk) => map.set(`${tk.assetCode}-${tk.assetIssuer}`, tk));
-    directoryTokens.forEach((tk: any) => {
-      const key = `${tk.assetCode}-${tk.assetIssuer}`;
-      if (!map.has(key)) map.set(key, tk);
-    });
-    const merged = Array.from(map.values());
-    merged.sort((a, b) => (Number(b.ratingAverage) || 0) - (Number(a.ratingAverage) || 0));
-    return merged;
-  }, [featuredTokens, directoryTokens]);
-
+  // ── Trusted tokens (from balances, client-side) ──
   const trustedTokens = useMemo(() => {
     if (!balances) return [];
     return balances.map((b: any) => ({
@@ -152,47 +109,32 @@ export default function TokensPage() {
     }));
   }, [balances]);
 
-  const displayTokens = useMemo(() => {
-    if (query.length > 0) {
-      const q = query.toLowerCase();
-      const dirMatches = directoryTokens.filter(
-        (tk: any) =>
-          tk.assetCode.toLowerCase().includes(q) ||
-          tk.tomlName.toLowerCase().includes(q) ||
-          tk.domain.toLowerCase().includes(q)
-      );
-      const map = new Map<string, any>();
-      searchTokens.forEach((tk) => map.set(`${tk.assetCode}-${tk.assetIssuer}`, tk));
-      dirMatches.forEach((tk: any) => {
-        const key = `${tk.assetCode}-${tk.assetIssuer}`;
-        if (!map.has(key)) map.set(key, tk);
-      });
-      return Array.from(map.values());
-    }
-    switch (tab) {
-      case "featured":
-        return featuredTokens;
-      case "explore": {
-        const fKeys = new Set(featuredTokens.map((tk) => `${tk.assetCode}-${tk.assetIssuer}`));
-        return directoryTokens.filter((tk: any) => !fKeys.has(`${tk.assetCode}-${tk.assetIssuer}`));
-      }
-      case "trusted":
-        return trustedTokens;
-      default:
-        return allTokens;
-    }
-  }, [query, tab, searchTokens, featuredTokens, directoryTokens, allTokens, trustedTokens]);
+  // ── Display tokens ──
+  const displayTokens = tab === "trusted" ? trustedTokens : tokens;
 
-  const isLoading = query.length > 0 ? loadingSearch : loadingFeatured || loadingDirectory;
-  const error = query.length > 0 ? searchError : featuredError;
+  // ── Sort header click handler ──
+  const handleSort = (field: SortField) => {
+    if (field === sortField) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortField(field);
+      setSortDir(field === "name" ? "asc" : "desc");
+    }
+    setPage(0);
+  };
 
-  // Smart token search handler
+  // ── Sort indicator ──
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ChevronDown size={14} className="text-stellar-muted/30" />;
+    return sortDir === "desc"
+      ? <ChevronDown size={14} className="text-stellar-blue" />
+      : <ChevronUp size={14} className="text-stellar-blue" />;
+  };
+
+  // ── Smart token search (Add Token panel) ──
   const handleTokenSearch = useCallback(async (searchQuery: string) => {
     setTokenSearch(searchQuery);
-    if (searchQuery.length < 2) {
-      setSearchResults([]);
-      return;
-    }
+    if (searchQuery.length < 2) { setSearchResults([]); return; }
     setSearching(true);
     try {
       const data = await tokenApi.searchAssets(searchQuery, 20);
@@ -212,20 +154,31 @@ export default function TokensPage() {
     );
   };
 
-  const tabs: { key: TabFilter; icon: any; label: string; count: number }[] = [
-    { key: "all", icon: List, label: t("tokens.allTokens", "All Tokens"), count: allTokens.length },
-    { key: "featured", icon: Star, label: t("tokens.featured", "Featured"), count: featuredTokens.length },
-    { key: "trusted", icon: Shield, label: t("tokens.trusted", "Trusted"), count: trustedTokens.length },
-    { key: "explore", icon: Globe, label: t("tokens.explore", "Explore"), count: directoryTokens.length },
+  // ── Search with debounce reset ──
+  const handleQueryChange = (val: string) => {
+    setQuery(val);
+    setPage(0);
+  };
+
+  const handleTabChange = (key: TabFilter) => {
+    setTab(key);
+    setPage(0);
+  };
+
+  const tabs: { key: TabFilter; icon: any; label: string }[] = [
+    { key: "all", icon: List, label: t("tokens.allTokens", "All Tokens") },
+    { key: "featured", icon: Star, label: t("tokens.featured", "Featured") },
+    { key: "trusted", icon: Shield, label: t("tokens.trusted", "Trusted") },
   ];
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">{t("tokens.title")}</h1>
           <p className="text-sm text-stellar-muted mt-1">
-            {allTokens.length} {t("tokens.tokensAvailable", "tokens available")}
+            {pagination.total.toLocaleString()} {t("tokens.tokensAvailable", "tokens available")}
           </p>
         </div>
         <button
@@ -237,7 +190,7 @@ export default function TokensPage() {
         </button>
       </div>
 
-      {/* Smart Token Search */}
+      {/* Smart Token Search (Add Token) */}
       {showAddToken && (
         <div className="bg-stellar-card border border-stellar-border rounded-xl p-6 space-y-4">
           <h3 className="text-white font-medium">{t("tokens.findToken", "Find a Token")}</h3>
@@ -258,8 +211,6 @@ export default function TokensPage() {
               <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-stellar-blue" />
             )}
           </div>
-
-          {/* Search Results */}
           {searchResults.length > 0 && (
             <div className="space-y-1 max-h-80 overflow-y-auto">
               {searchResults.map((tk) => {
@@ -269,9 +220,7 @@ export default function TokensPage() {
                     key={`${tk.assetCode}-${tk.assetIssuer}`}
                     onClick={() => {
                       navigate(`/tokens/${encodeURIComponent(tk.assetCode)}/${encodeURIComponent(tk.assetIssuer || "native")}`);
-                      setShowAddToken(false);
-                      setTokenSearch("");
-                      setSearchResults([]);
+                      setShowAddToken(false); setTokenSearch(""); setSearchResults([]);
                     }}
                     className="w-full flex items-center justify-between bg-stellar-bg border border-stellar-border rounded-lg px-4 py-3 hover:border-stellar-blue/50 transition-colors text-left"
                   >
@@ -280,22 +229,12 @@ export default function TokensPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-white text-sm">{tk.assetCode}</span>
-                          {tk.isVerified && (
-                            <span className="text-[9px] px-1 py-0.5 rounded bg-stellar-success/20 text-stellar-success font-medium">
-                              VERIFIED
-                            </span>
-                          )}
-                          {isTrusted && (
-                            <span className="text-[9px] px-1 py-0.5 rounded bg-stellar-blue/20 text-stellar-blue font-medium">
-                              TRUSTED
-                            </span>
-                          )}
+                          {tk.isVerified && <span className="text-[9px] px-1 py-0.5 rounded bg-stellar-success/20 text-stellar-success font-medium">VERIFIED</span>}
+                          {isTrusted && <span className="text-[9px] px-1 py-0.5 rounded bg-stellar-blue/20 text-stellar-blue font-medium">TRUSTED</span>}
                         </div>
                         <p className="text-xs text-stellar-muted">
                           {tk.tomlName || tk.domain || ""}
-                          {tk.assetIssuer && (
-                            <span className="ml-1 font-mono">{tk.assetIssuer.slice(0, 8)}...{tk.assetIssuer.slice(-4)}</span>
-                          )}
+                          {tk.assetIssuer && <span className="ml-1 font-mono">{tk.assetIssuer.slice(0, 8)}...{tk.assetIssuer.slice(-4)}</span>}
                         </p>
                       </div>
                     </div>
@@ -306,19 +245,13 @@ export default function TokensPage() {
                           <span className="text-xs text-white">{formatRating(tk.ratingAverage)}</span>
                         </div>
                       )}
-                      {tk.trustlinesFunded && (
-                        <p className="text-[10px] text-stellar-muted">
-                          {Number(tk.trustlinesFunded).toLocaleString()} holders
-                        </p>
-                      )}
-                      <p className="text-[9px] text-stellar-muted/50 uppercase">{tk.source}</p>
+                      {tk.trustlinesFunded && <p className="text-[10px] text-stellar-muted">{Number(tk.trustlinesFunded).toLocaleString()} holders</p>}
                     </div>
                   </button>
                 );
               })}
             </div>
           )}
-
           {tokenSearch.length >= 2 && !searching && searchResults.length === 0 && (
             <p className="text-sm text-stellar-muted text-center py-4">
               {t("tokens.noAssetsFound", "No assets found for")} "{tokenSearch}"
@@ -327,54 +260,47 @@ export default function TokensPage() {
         </div>
       )}
 
-      {/* Search + Sort */}
+      {/* Search + Tabs */}
       <div className="flex gap-3">
         <div className="relative flex-1">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-stellar-muted" />
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("tokens.searchPlaceholder")}
+            onChange={(e) => handleQueryChange(e.target.value)}
+            placeholder={t("tokens.searchPlaceholder", "Search tokens...")}
             className="w-full pl-10 pr-4 py-3 rounded-lg bg-stellar-card border border-stellar-border text-white placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
           />
         </div>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          className="px-4 py-3 rounded-lg bg-stellar-card border border-stellar-border text-white focus:outline-none focus:border-stellar-blue"
-        >
-          <option value="rating">{t("tokens.sortRating")}</option>
-          <option value="volume">{t("tokens.sortVolume")}</option>
-          <option value="trustlines">{t("tokens.sortTrustlines")}</option>
-          <option value="name">{t("tokens.sortName")}</option>
-        </select>
       </div>
 
       {/* Tabs */}
-      {query.length === 0 && (
-        <div className="flex gap-2 flex-wrap">
-          {tabs.map(({ key, icon: Icon, label, count }) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                tab === key
-                  ? "bg-stellar-blue/20 text-stellar-blue border border-stellar-blue/40"
-                  : "bg-stellar-card border border-stellar-border text-stellar-muted hover:text-white hover:border-stellar-blue/30"
-              }`}
-            >
-              <Icon size={16} />
-              {label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                tab === key ? "bg-stellar-blue/30 text-stellar-blue" : "bg-stellar-border text-stellar-muted"
-              }`}>
-                {count}
+      <div className="flex gap-2 flex-wrap">
+        {tabs.map(({ key, icon: Icon, label }) => (
+          <button
+            key={key}
+            onClick={() => handleTabChange(key)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              tab === key
+                ? "bg-stellar-blue/20 text-stellar-blue border border-stellar-blue/40"
+                : "bg-stellar-card border border-stellar-border text-stellar-muted hover:text-white hover:border-stellar-blue/30"
+            }`}
+          >
+            <Icon size={16} />
+            {label}
+            {tab === key && tab !== "trusted" && (
+              <span className="text-xs px-1.5 py-0.5 rounded-full bg-stellar-blue/30 text-stellar-blue">
+                {pagination.total.toLocaleString()}
               </span>
-            </button>
-          ))}
-        </div>
-      )}
+            )}
+            {tab === key && tab === "trusted" && (
+              <span className="text-xs px-1.5 py-0.5 rounded-full bg-stellar-blue/30 text-stellar-blue">
+                {trustedTokens.length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
 
       {/* Error */}
       {error && (
@@ -385,17 +311,43 @@ export default function TokensPage() {
         </div>
       )}
 
+      {/* Sortable Table Header */}
+      {tab !== "trusted" && (
+        <div className="grid grid-cols-12 gap-2 px-5 py-2 text-xs text-stellar-muted uppercase tracking-wider">
+          <div className="col-span-5">
+            <button onClick={() => handleSort("name")} className="flex items-center gap-1 hover:text-white transition-colors">
+              {t("tokens.name", "Token")} <SortIcon field="name" />
+            </button>
+          </div>
+          <div className="col-span-2 text-right">
+            <button onClick={() => handleSort("rating")} className="flex items-center gap-1 ml-auto hover:text-white transition-colors">
+              {t("tokens.trustScore", "Trust Score")} <SortIcon field="rating" />
+            </button>
+          </div>
+          <div className="col-span-3 text-right">
+            <button onClick={() => handleSort("volume")} className="flex items-center gap-1 ml-auto hover:text-white transition-colors">
+              {t("tokens.volume", "Volume 7d")} <SortIcon field="volume" />
+            </button>
+          </div>
+          <div className="col-span-2 text-right">
+            <button onClick={() => handleSort("trustlines")} className="flex items-center gap-1 ml-auto hover:text-white transition-colors">
+              {t("tokens.holders", "Holders")} <SortIcon field="trustlines" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Token List */}
-      {isLoading ? (
+      {isLoading && !serverData ? (
         <div className="flex justify-center py-12">
           <Loader2 className="animate-spin text-stellar-muted" size={32} />
         </div>
       ) : displayTokens.length === 0 && !error ? (
         <p className="text-stellar-muted text-center py-12">
-          {query ? t("tokens.noSearchResults", { query }) : t("tokens.noFeatured")}
+          {query ? t("tokens.noSearchResults", { query }) : t("tokens.noFeatured", "No tokens found")}
         </p>
       ) : (
-        <div className="space-y-2">
+        <div className={`space-y-1 ${isFetching ? "opacity-60" : ""} transition-opacity`}>
           {displayTokens.map((tk) => {
             const isTrusted = trustedKeys.has(`${tk.assetCode}-${tk.assetIssuer || "native"}`);
             const bal = getBalance(tk.assetCode, tk.assetIssuer);
@@ -403,57 +355,48 @@ export default function TokensPage() {
               <Link
                 key={`${tk.assetCode}-${tk.assetIssuer}`}
                 to={`/tokens/${encodeURIComponent(tk.assetCode)}/${encodeURIComponent(tk.assetIssuer || "native")}`}
-                className={`flex items-center justify-between bg-stellar-card border rounded-xl px-5 py-4 hover:border-stellar-blue/50 transition-colors ${
+                className={`grid grid-cols-12 gap-2 items-center bg-stellar-card border rounded-xl px-5 py-3 hover:border-stellar-blue/50 transition-colors ${
                   isTrusted ? "border-stellar-blue/30" : "border-stellar-border"
                 }`}
               >
-                <div className="flex items-center gap-4">
-                  <TokenIcon code={tk.assetCode} image={tk.image || tk.tomlImage} size={36} />
-                  <div>
+                {/* Token info */}
+                <div className="col-span-5 flex items-center gap-3 min-w-0">
+                  <TokenIcon code={tk.assetCode} image={tk.image || tk.tomlImage} size={32} />
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-white">{tk.assetCode}</p>
-                      {tk.isVerified && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-stellar-success/20 text-stellar-success font-medium">
-                          {t("tokens.verified", "Verified").toUpperCase()}
-                        </span>
-                      )}
-                      {tk.isFeatured && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-400/20 text-yellow-400 font-medium">
-                          FEATURED
-                        </span>
-                      )}
-                      {isTrusted && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-stellar-blue/20 text-stellar-blue font-medium flex items-center gap-0.5">
-                          <Shield size={8} /> TRUSTED
-                        </span>
-                      )}
+                      <p className="font-medium text-white text-sm truncate">{tk.assetCode}</p>
+                      {tk.isVerified && <span className="text-[9px] px-1 py-0.5 rounded bg-stellar-success/20 text-stellar-success font-medium shrink-0">VERIFIED</span>}
+                      {isTrusted && <span className="text-[9px] px-1 py-0.5 rounded bg-stellar-blue/20 text-stellar-blue font-medium shrink-0">TRUSTED</span>}
                     </div>
-                    <p className="text-xs text-stellar-muted">
-                      {tk.tomlName || tk.domain || t("common.unknown")}
-                    </p>
+                    <p className="text-xs text-stellar-muted truncate">{tk.tomlName || tk.homeDomain || tk.domain || ""}</p>
                   </div>
                 </div>
-                <div className="text-right">
+                {/* Trust score */}
+                <div className="col-span-2 text-right">
+                  <div className="flex items-center gap-1 justify-end">
+                    <Star size={12} className="text-yellow-400" />
+                    <span className="text-sm text-white">{formatRating(tk.ratingAverage)}</span>
+                  </div>
+                </div>
+                {/* Volume */}
+                <div className="col-span-3 text-right">
                   {bal ? (
-                    <>
-                      <p className="text-sm font-mono text-white">
-                        {parseFloat(bal.balance).toLocaleString(undefined, { maximumFractionDigits: 7 })}
-                      </p>
-                      <p className="text-xs text-stellar-muted">{tk.assetCode}</p>
-                    </>
+                    <p className="text-sm font-mono text-white">
+                      {parseFloat(bal.balance).toLocaleString(undefined, { maximumFractionDigits: 4 })} <span className="text-stellar-muted text-xs">{tk.assetCode}</span>
+                    </p>
                   ) : (
-                    <>
-                      <div className="flex items-center gap-1">
-                        <Star size={14} className="text-yellow-400" />
-                        <span className="text-sm text-white">{formatRating(tk.ratingAverage)}</span>
-                      </div>
-                      <p className="text-xs text-stellar-muted">
-                        {tk.trustlinesFunded
-                          ? `${Number(tk.trustlinesFunded).toLocaleString()} holders`
-                          : ""}
-                      </p>
-                    </>
+                    <p className="text-sm text-stellar-muted font-mono">
+                      {tk.volume7d ? Number(tk.volume7d).toLocaleString(undefined, { maximumFractionDigits: 0 }) : "—"}
+                    </p>
                   )}
+                </div>
+                {/* Holders */}
+                <div className="col-span-2 text-right">
+                  <p className="text-sm text-stellar-muted">
+                    {tk.trustlineCount || tk.trustlinesFunded
+                      ? Number(tk.trustlineCount || tk.trustlinesFunded).toLocaleString()
+                      : "—"}
+                  </p>
                 </div>
               </Link>
             );
@@ -461,12 +404,61 @@ export default function TokensPage() {
         </div>
       )}
 
-      {!isLoading && !error && (
+      {/* Pagination */}
+      {tab !== "trusted" && totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-xs text-stellar-muted">
+            {t("common.showing", "Showing")} {(page * PAGE_SIZE + 1).toLocaleString()}–{Math.min((page + 1) * PAGE_SIZE, pagination.total).toLocaleString()} {t("common.of", "of")} {pagination.total.toLocaleString()}
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="p-2 rounded-lg bg-stellar-card border border-stellar-border text-stellar-muted hover:text-white hover:border-stellar-blue/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            {/* Page numbers */}
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+              let pageNum: number;
+              if (totalPages <= 7) {
+                pageNum = i;
+              } else if (page < 3) {
+                pageNum = i;
+              } else if (page > totalPages - 4) {
+                pageNum = totalPages - 7 + i;
+              } else {
+                pageNum = page - 3 + i;
+              }
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setPage(pageNum)}
+                  className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
+                    pageNum === page
+                      ? "bg-stellar-blue text-white"
+                      : "bg-stellar-card border border-stellar-border text-stellar-muted hover:text-white hover:border-stellar-blue/30"
+                  }`}
+                >
+                  {pageNum + 1}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={!pagination.hasMore}
+              className="p-2 rounded-lg bg-stellar-card border border-stellar-border text-stellar-muted hover:text-white hover:border-stellar-blue/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Trusted tab showing count */}
+      {tab === "trusted" && (
         <p className="text-xs text-stellar-muted text-center">
-          {t("common.showing", {
-            count: displayTokens.length,
-            item: displayTokens.length !== 1 ? t("common.tokens") : t("common.token"),
-          })}
+          {trustedTokens.length} {t("tokens.trustedAssets", "trusted assets in your wallet")}
         </p>
       )}
     </div>

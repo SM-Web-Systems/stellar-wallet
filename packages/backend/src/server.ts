@@ -193,11 +193,36 @@ async function bootstrap() {
         },
         response: {
           200: {
-            description: "Token search results",
+            description: "Token search results with pagination",
             type: "object",
             properties: {
-              tokens: { type: "array", items: { type: "object", properties: { assetCode: { type: "string" }, assetIssuer: { type: "string" }, tomlName: { type: "string" }, isVerified: { type: "boolean" } } } },
-              total: { type: "number" },
+              tokens: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: true,
+                  properties: {
+                    assetCode: { type: "string" },
+                    assetIssuer: { type: "string" },
+                    tomlName: { type: "string" },
+                    isVerified: { type: "boolean" },
+                    ratingAverage: { type: "string", nullable: true },
+                    volume7d: { type: "string", nullable: true },
+                    trustlineCount: { type: "integer", nullable: true },
+                    homeDomain: { type: "string", nullable: true },
+                    tomlImage: { type: "string", nullable: true },
+                  },
+                },
+              },
+              pagination: {
+                type: "object",
+                properties: {
+                  total: { type: "integer" },
+                  limit: { type: "integer" },
+                  offset: { type: "integer" },
+                  hasMore: { type: "boolean" },
+                },
+              },
             },
           },
         },
@@ -504,18 +529,66 @@ async function bootstrap() {
         return { error: "publicKey and quote are required" };
       }
 
-      const xdr = await swapService.buildSwapTransaction(
+      let xdr = await swapService.buildSwapTransaction(
         publicKey,
         quote,
         slippageBps || 100
       );
 
+      const networkPassphrase = config.STELLAR_NETWORK === "testnet"
+        ? "Test SDF Network ; September 2015"
+        : "Public Global Stellar Network ; September 2015";
+
+      // Inject platform fee on swaps for ALL users (self-mode pays fee on swaps)
+      const feePercent = config.PLATFORM_FEE_PERCENT || 0;
+      const platformWallet = config.PLATFORM_WALLET;
+      let feeInfo: any = null;
+
+      if (feePercent > 0 && platformWallet && xdr) {
+        try {
+          const { stellarClient: sc } = await import("./lib/stellar-client");
+          const tx = StellarSdk.TransactionBuilder.fromXDR(xdr, networkPassphrase);
+          const ops = (tx as any).operations || [];
+          const account = await sc.horizon.loadAccount(publicKey);
+          const builder = new StellarSdk.TransactionBuilder(account, {
+            fee: (tx as any).fee || StellarSdk.BASE_FEE,
+            networkPassphrase,
+          });
+
+          // Re-add original ops
+          for (const op of ops) {
+            builder.addOperation(StellarSdk.Operation.fromXDRObject(op.toXDRObject()));
+          }
+
+          // Calculate fee from path payment amount and add fee payment op
+          for (const op of ops) {
+            if ((op.type === "pathPaymentStrictSend" || op.type === "pathPaymentStrictReceive") && op.sendAmount) {
+              const amount = parseFloat(op.sendAmount || op.amount || "0");
+              const feeAmount = (amount * feePercent / 100).toFixed(7);
+              if (parseFloat(feeAmount) > 0.0000001) {
+                builder.addOperation(
+                  StellarSdk.Operation.payment({
+                    destination: platformWallet,
+                    asset: op.sendAsset || op.asset,
+                    amount: feeAmount,
+                  })
+                );
+                feeInfo = { feePercent, feeAmount, asset: op.sendAsset?.getCode?.() || "XLM" };
+              }
+            }
+          }
+
+          builder.setTimeout(300);
+          xdr = builder.build().toXDR();
+        } catch (feeErr: any) {
+          console.warn("[swap/build] Fee injection failed, returning without fee:", feeErr.message);
+        }
+      }
+
       return {
         xdr,
-        networkPassphrase:
-          config.STELLAR_NETWORK === "testnet"
-            ? "Test SDF Network ; September 2015"
-            : "Public Global Stellar Network ; September 2015",
+        networkPassphrase,
+        fee: feeInfo,
       };
     }
   );
@@ -837,7 +910,8 @@ async function bootstrap() {
             const ops = tx.operations || [];
             const feeOps: any[] = [];
             for (const op of ops) {
-              if ((op.type === "payment" || op.type === "pathPaymentStrictSend" || op.type === "pathPaymentStrictReceive") && op.amount) {
+              // Only charge platform fee on swaps (path payments), not on direct transfers
+              if ((op.type === "pathPaymentStrictSend" || op.type === "pathPaymentStrictReceive") && op.amount) {
                 const amount = parseFloat(op.amount);
                 const feeAmount = (amount * feePercent / 100).toFixed(7);
                 if (parseFloat(feeAmount) > 0.0000001) {
@@ -1435,10 +1509,7 @@ async function bootstrap() {
           },
           required: ["query"],
         },
-        response: {
-          200: { description: "Asset search results from local DB + StellarExpert", type: "array", items: { type: "object", properties: { assetCode: { type: "string" }, assetIssuer: { type: "string" }, assetType: { type: "string" }, tomlName: { type: "string" }, domain: { type: "string" }, isVerified: { type: "boolean" }, source: { type: "string", enum: ["local", "stellar_expert"] } }, additionalProperties: true } },
-          400: { type: "object", properties: { error: { type: "string" } } },
-        },
+        // Response schema removed — dynamic shape from multiple sources
       },
     },
     async (request, reply) => {
