@@ -5,6 +5,8 @@ import { useWalletStore } from "./store/wallet";
 import Layout from "./components/Layout";
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/Register";
+import VerifyEmailPage from "./pages/VerifyEmail";
+import ResetPasswordPage from "./pages/ResetPassword";
 import ForgotPasswordPage from "./pages/ForgotPassword";
 import OnboardingPage from "./pages/Onboarding";
 import DashboardPage from "./pages/Dashboard";
@@ -46,6 +48,8 @@ export default function App() {
       {/* Public auth routes */}
       <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
       <Route path="/register" element={<AuthRoute><RegisterPage /></AuthRoute>} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/reset-password" element={<AuthRoute><ResetPasswordPage /></AuthRoute>} />
       <Route path="/forgot-password" element={<AuthRoute><ForgotPasswordPage /></AuthRoute>} />
 
       {/* Onboarding — requires auth but no wallet yet */}

@@ -14,6 +14,7 @@ import { SwapService } from "./modules/swap/swap.service";
 import { runTokenIndexer } from "./jobs/token-indexer";
 import { syncTomlImages } from "./lib/toml-sync.js";
 import { authRoutes } from "./routes/auth";
+import { twoFaRoutes } from "./routes/two-fa";
 import { walletRoutes } from "./routes/wallets";
 import { passwordResetRoutes } from "./routes/password-reset";
 import { trustlineRoutes } from "./routes/trustlines";
@@ -22,6 +23,7 @@ import { db, schema } from "./db";
 import { eq, and } from "drizzle-orm";
 import { authMiddleware } from "./middleware/auth";
 import { apiKeyMiddleware } from "./lib/api-key";
+import { decryptSecret } from "./lib/decrypt-secret";
 
 const app = Fastify({ logger: true });
 const tokenService = new TokenService();
@@ -75,6 +77,8 @@ async function bootstrap() {
         { name: "Transactions", description: "Transaction submission and history" },
         { name: "Keypair", description: "Keypair generation and derivation" },
         { name: "Signing", description: "Delegated signing mode" },
+        { name: "2FA", description: "Two-factor authentication setup and management" },
+        { name: "Wallets", description: "Multi-wallet management" },
         { name: "API Keys", description: "API key management" },
       ],
     },
@@ -129,6 +133,7 @@ async function bootstrap() {
   });
 
   app.register(authRoutes);
+  app.register(twoFaRoutes);
   app.register(walletRoutes);
   app.register(passwordResetRoutes);
   app.register(trustlineRoutes);
@@ -186,6 +191,16 @@ async function bootstrap() {
             offset: { type: "integer", default: 0 },
           },
         },
+        response: {
+          200: {
+            description: "Token search results",
+            type: "object",
+            properties: {
+              tokens: { type: "array", items: { type: "object", properties: { assetCode: { type: "string" }, assetIssuer: { type: "string" }, tomlName: { type: "string" }, isVerified: { type: "boolean" } } } },
+              total: { type: "number" },
+            },
+          },
+        },
       },
     },
     async (request) => {
@@ -206,6 +221,9 @@ async function bootstrap() {
       schema: {
         tags: ["Tokens"],
         summary: "Get featured tokens",
+        response: {
+          200: { description: "Featured token list", type: "array", items: { type: "object", properties: { assetCode: { type: "string" }, assetIssuer: { type: "string" }, tomlName: { type: "string" } } } },
+        },
       },
     },
     async () => {
@@ -229,6 +247,11 @@ async function bootstrap() {
             issuer: { type: "string" },
           },
           required: ["code", "issuer"],
+        },
+        response: {
+          200: { description: "StellarExpert asset data", type: "object", additionalProperties: true },
+          400: { type: "object", properties: { error: { type: "string" } } },
+          502: { type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
@@ -268,7 +291,7 @@ async function bootstrap() {
     {
       schema: {
         tags: ["Tokens"],
-        summary: "StellarExpert asset directory proxy",
+        summary: "StellarExpert asset directory proxy (paginated)",
         querystring: {
           type: "object",
           properties: {
@@ -276,23 +299,48 @@ async function bootstrap() {
             order: { type: "string", default: "desc" },
           },
         },
+        response: {
+          200: { description: "Asset directory records", type: "object", properties: { _embedded: { type: "object", properties: { records: { type: "array", items: { type: "object", additionalProperties: true } } } }, total: { type: "number" } } },
+          502: { type: "object", properties: { error: { type: "string" } } },
+        },
       },
     },
     async (request, reply) => {
-      const { limit, order } = request.query as {
-        limit?: string;
-        order?: string;
-      };
+      const { limit, order } = request.query as { limit?: string; order?: string };
+      const targetCount = Math.min(parseInt(limit || "200"), 500);
+      const allRecords: any[] = [];
+      let cursor = "";
+      const perPage = 50;
+
       try {
-        const res = await fetch(
-          `https://api.stellar.expert/explorer/public/asset?order=${order || "desc"}&limit=${limit || "200"}`
-        );
-        if (!res.ok)
-          return reply
-            .status(res.status)
-            .send({ error: "Failed to fetch directory" });
-        const data = await res.json();
-        return reply.send(data);
+        while (allRecords.length < targetCount) {
+          let url = "https://api.stellar.expert/explorer/public/asset?order=" + (order || "desc") + "&limit=" + perPage;
+          if (cursor) {
+            url += "&cursor=" + cursor;
+          }
+          const res = await fetch(url);
+          if (!res.ok) break;
+          const data = await res.json();
+          const records = data._embedded?.records || [];
+          if (records.length === 0) break;
+          allRecords.push(...records);
+
+          // Extract cursor from next link
+          const nextHref = data._links?.next?.href || "";
+          const cursorMatch = nextHref.match(/cursor=(\d+)/);
+          if (cursorMatch) {
+            cursor = cursorMatch[1];
+          } else {
+            break;
+          }
+        }
+
+        return reply.send({
+          _embedded: {
+            records: allRecords.slice(0, targetCount),
+          },
+          total: allRecords.length,
+        });
       } catch (err: any) {
         return reply.status(502).send({ error: err.message });
       }
@@ -312,6 +360,9 @@ async function bootstrap() {
             issuer: { type: "string", description: 'Use "native" for XLM' },
           },
           required: ["code", "issuer"],
+        },
+        response: {
+          200: { description: "Token detail", type: "object", properties: { assetCode: { type: "string" }, assetIssuer: { type: "string" }, tomlName: { type: "string" }, balance: { type: "string" }, isVerified: { type: "boolean" } }, additionalProperties: true },
         },
       },
     },
@@ -339,6 +390,9 @@ async function bootstrap() {
           },
           required: ["publicKey"],
         },
+        response: {
+          200: { description: "User token balances", type: "array", items: { type: "object", properties: { assetCode: { type: "string" }, assetIssuer: { type: "string" }, balance: { type: "string" } }, additionalProperties: true } },
+        },
       },
     },
     async (request) => {
@@ -364,6 +418,9 @@ async function bootstrap() {
             tokenId: { type: "integer" },
           },
           required: ["publicKey", "tokenId"],
+        },
+        response: {
+          200: { description: "Favorite toggle result", type: "object", properties: { isFavorite: { type: "boolean" } }, additionalProperties: true },
         },
       },
     },
@@ -394,6 +451,9 @@ async function bootstrap() {
             direction: { type: "string", enum: ["send", "receive"], default: "send" },
           },
           required: ["fromCode", "toCode", "amount"],
+        },
+        response: {
+          200: { description: "Best swap quote", type: "object", properties: { fromAsset: { type: "string" }, toAsset: { type: "string" }, fromAmount: { type: "string" }, toAmount: { type: "string" }, path: { type: "array", items: { type: "object" } }, rate: { type: "string" } }, additionalProperties: true },
         },
       },
     },
@@ -431,6 +491,9 @@ async function bootstrap() {
             slippageBps: { type: "integer", default: 100 },
           },
           required: ["publicKey", "quote"],
+        },
+        response: {
+          200: { description: "Unsigned swap XDR", type: "object", properties: { xdr: { type: "string", description: "Unsigned transaction XDR" }, networkPassphrase: { type: "string" } } },
         },
       },
     },
@@ -474,6 +537,9 @@ async function bootstrap() {
           },
           required: ["publicKey"],
         },
+        response: {
+          200: { description: "Stellar account info", type: "object", properties: { publicKey: { type: "string" }, balances: { type: "array", items: { type: "object", additionalProperties: true } }, sequence: { type: "string" }, subentryCount: { type: "number" } } },
+        },
       },
     },
     async (request) => {
@@ -506,6 +572,9 @@ async function bootstrap() {
             publicKey: { type: "string" },
           },
           required: ["publicKey"],
+        },
+        response: {
+          200: { description: "Friendbot funding result", type: "object", properties: { success: { type: "boolean" }, data: { type: "object", additionalProperties: true } } },
         },
       },
     },
@@ -545,6 +614,9 @@ async function bootstrap() {
           },
           required: ["signedXdr"],
         },
+        response: {
+          200: { description: "Submission result", type: "object", properties: { success: { type: "boolean" }, result: { type: "object", additionalProperties: true } } },
+        },
       },
     },
     async (request) => {
@@ -582,10 +654,18 @@ async function bootstrap() {
           },
           required: ["xdr"],
         },
+        response: {
+          200: { description: "Signed transaction", type: "object", properties: { signedXdr: { type: "string", description: "Signed transaction XDR" }, networkPassphrase: { type: "string" } } },
+          400: { type: "object", properties: { error: { type: "string" } } },
+          403: { type: "object", properties: { error: { type: "string" } } },
+          404: { type: "object", properties: { error: { type: "string" } } },
+          500: { type: "object", properties: { error: { type: "string" } } },
+        },
       },
     },
     async (request, reply) => {
       const userId = request.user!.userId;
+      console.log("[sign-and-submit] userId:", userId);
       const { xdr, networkPassphrase: clientPassphrase } = request.body as {
         xdr: string;
         networkPassphrase?: string;
@@ -673,16 +753,25 @@ async function bootstrap() {
           properties: {
             xdr: { type: "string" },
             networkPassphrase: { type: "string" },
+            pin: { type: "string", description: "PIN to decrypt wallet secret" },
           },
           required: ["xdr"],
+        },
+        response: {
+          200: { description: "Sign and submit result", type: "object", properties: { success: { type: "boolean" }, result: { type: "object", additionalProperties: true }, fee: { type: "object", nullable: true, properties: { feePercent: { type: "number" }, platformWallet: { type: "string" }, feeOperations: { type: "array", items: { type: "object" } } } }, feeBumped: { type: "boolean" } } },
+          400: { type: "object", properties: { error: { type: "string" } } },
+          403: { type: "object", properties: { error: { type: "string" } } },
+          500: { type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
     async (request, reply) => {
       const userId = request.user!.userId;
-      const { xdr, networkPassphrase: clientPassphrase } = request.body as {
+      console.log("[sign-and-submit] userId:", userId);
+      const { xdr, networkPassphrase: clientPassphrase, pin } = request.body as {
         xdr: string;
         networkPassphrase?: string;
+        pin?: string;
       };
 
       if (!xdr) {
@@ -713,6 +802,7 @@ async function bootstrap() {
           )
           .limit(1);
 
+        console.log("[sign-and-submit] wallet:", wallet?.publicKey, "hasSecret:", !!wallet?.encryptedSecret);
         if (!wallet || !wallet.encryptedSecret) {
           return reply
             .status(400)
@@ -734,17 +824,162 @@ async function bootstrap() {
           });
         }
 
-        const keypair = StellarSdk.Keypair.fromSecret(wallet.encryptedSecret);
-        tx.sign(keypair);
+        // ── Platform Fee Injection ──
+        const feePercent = config.PLATFORM_FEE_PERCENT || 0;
+        const platformWallet = config.PLATFORM_WALLET;
+        const platformSecret = config.PLATFORM_SECRET;
+        let finalTx = tx;
+        let feeDetails: any = null;
+
+        if (feePercent > 0 && platformWallet && platformSecret && !(tx instanceof StellarSdk.FeeBumpTransaction)) {
+          try {
+            // Calculate fees from payment operations
+            const ops = tx.operations || [];
+            const feeOps: any[] = [];
+            for (const op of ops) {
+              if ((op.type === "payment" || op.type === "pathPaymentStrictSend" || op.type === "pathPaymentStrictReceive") && op.amount) {
+                const amount = parseFloat(op.amount);
+                const feeAmount = (amount * feePercent / 100).toFixed(7);
+                if (parseFloat(feeAmount) > 0.0000001) {
+                  // Reduce original amount by fee (fee taken WITHIN amount)
+                  const netAmount = (amount - parseFloat(feeAmount)).toFixed(7);
+                  feeOps.push({
+                    asset: op.asset,
+                    amount: feeAmount,
+                    originalAmount: op.amount,
+                    netAmount,
+                    opIndex: ops.indexOf(op),
+                  });
+                }
+              }
+            }
+
+            if (feeOps.length > 0) {
+              // Rebuild transaction with fee operations appended
+              const account = await stellarClient.stellar.loadAccount(wallet.publicKey);
+              const builder = new StellarSdk.TransactionBuilder(account, {
+                fee: tx.fee,
+                networkPassphrase: passphrase,
+              });
+
+              // Re-add original operations with adjusted amounts
+              for (let i = 0; i < ops.length; i++) {
+                const feeOp = feeOps.find(f => f.opIndex === i);
+                if (feeOp) {
+                  // Rebuild this op with reduced amount
+                  const op = ops[i];
+                  if (op.type === "payment") {
+                    builder.addOperation(StellarSdk.Operation.payment({
+                      destination: op.destination,
+                      asset: op.asset,
+                      amount: feeOp.netAmount,
+                      source: op.source || undefined,
+                    }));
+                  } else if (op.type === "pathPaymentStrictSend") {
+                    builder.addOperation(StellarSdk.Operation.pathPaymentStrictSend({
+                      sendAsset: op.sendAsset,
+                      sendAmount: feeOp.netAmount,
+                      destination: op.destination,
+                      destAsset: op.destAsset,
+                      destMin: op.destMin,
+                      path: op.path || [],
+                      source: op.source || undefined,
+                    }));
+                  } else {
+                    builder.addOperation(StellarSdk.Operation.fromXDRObject(op.toXDRObject()));
+                  }
+                } else {
+                  builder.addOperation(StellarSdk.Operation.fromXDRObject(op.toXDRObject()));
+                }
+              }
+
+              // Add platform fee operations
+              for (const feeOp of feeOps) {
+                builder.addOperation(
+                  StellarSdk.Operation.payment({
+                    destination: platformWallet,
+                    asset: feeOp.asset,
+                    amount: feeOp.amount,
+                  })
+                );
+              }
+
+              builder.setTimeout(300);
+              finalTx = builder.build();
+
+              feeDetails = {
+                feePercent,
+                feeOperations: feeOps.map(f => ({
+                  asset: f.asset.isNative() ? "XLM" : f.asset.getCode(),
+                  amount: f.amount,
+                  originalAmount: f.originalAmount,
+                })),
+                platformWallet,
+              };
+            }
+          } catch (feeErr: any) {
+            console.warn("Fee injection failed, submitting without fee:", feeErr.message);
+            // Continue without fee — don't block the user's transaction
+          }
+        }
+
+        // Sign with user's key
+        // Decrypt the wallet secret using PIN
+        let secretKey: string;
+        try {
+          if (pin) {
+            secretKey = await decryptSecret(wallet.encryptedSecret!, pin);
+          } else {
+            // Try as raw secret (backward compat)
+            secretKey = wallet.encryptedSecret!;
+          }
+        } catch (decryptErr: any) {
+          console.error("[sign-and-submit] DECRYPT ERROR:", decryptErr.message, decryptErr.stack?.split("\n").slice(0,3).join(" | "));
+          return reply.status(403).send({ error: "Invalid PIN — could not decrypt wallet: " + decryptErr.message });
+        }
+        const keypair = StellarSdk.Keypair.fromSecret(secretKey);
+        finalTx.sign(keypair);
+
+        // If we added fee ops, also sign with platform key
+        if (feeDetails && platformSecret) {
+          try {
+            const platformKeypair = StellarSdk.Keypair.fromSecret(platformSecret);
+            finalTx.sign(platformKeypair);
+          } catch (e: any) {
+            console.warn("Platform signing failed:", e.message);
+          }
+        }
+
+        // Wrap in FeeBumpTransaction — platform pays the Stellar network fee
+        let txToSubmit: any = finalTx;
+        if (platformSecret) {
+          try {
+            const platformKeypair = StellarSdk.Keypair.fromSecret(platformSecret);
+            const feeBump = StellarSdk.TransactionBuilder.buildFeeBumpTransaction(
+              platformKeypair,       // fee source — platform pays
+              StellarSdk.BASE_FEE,   // max fee per operation
+              finalTx,               // inner transaction (already signed)
+              passphrase
+            );
+            feeBump.sign(platformKeypair);
+            txToSubmit = feeBump;
+            console.log("[delegated] Fee bump applied — platform pays network fee");
+          } catch (fbErr: any) {
+            console.warn("[delegated] Fee bump failed, submitting as-is:", fbErr.message);
+            // Fall back to user-paid fee if fee bump fails
+          }
+        }
 
         const result = await stellarClient.wallet
           .stellar()
           .submitTransaction(
-            stellarClient.stellar.decodeTransaction(tx.toXDR())
+            stellarClient.stellar.decodeTransaction(txToSubmit.toXDR())
           );
 
-        return { success: true, result };
+        return { success: true, result, fee: feeDetails, feeBumped: txToSubmit !== finalTx };
       } catch (error: any) {
+        console.error("[sign-and-submit] ERROR:", error.message, error.stack?.split("\n").slice(0,3).join(" | "));
+        console.error("[sign-and-submit] FULL ERROR:", error.message, "\n", error.stack);
         return reply.status(500).send({
           error: error.message || "Failed to sign and submit",
         });
@@ -766,6 +1001,10 @@ async function bootstrap() {
             mode: { type: "string", enum: ["self", "delegated"] },
           },
           required: ["mode"],
+        },
+        response: {
+          200: { description: "Updated signing mode", type: "object", properties: { signingMode: { type: "string", enum: ["self", "delegated"] } } },
+          400: { type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
@@ -816,6 +1055,9 @@ async function bootstrap() {
         tags: ["Signing"],
         summary: "Get current signing mode",
         security: [{ bearerAuth: [] }],
+        response: {
+          200: { description: "Current signing mode", type: "object", properties: { signingMode: { type: "string", enum: ["self", "delegated"] } } },
+        },
       },
     },
     async (request) => {
@@ -851,6 +1093,10 @@ async function bootstrap() {
             limit: { type: "string", default: "20" },
             cursor: { type: "string" },
           },
+        },
+        response: {
+          200: { description: "Transaction history", type: "object", properties: { records: { type: "array", items: { type: "object", properties: { id: { type: "string" }, type: { type: "string" }, createdAt: { type: "string" }, transactionHash: { type: "string" }, from: { type: "string" }, to: { type: "string" }, amount: { type: "string" }, assetCode: { type: "string" } } } }, nextCursor: { type: "string", nullable: true } } },
+          500: { type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
@@ -914,6 +1160,9 @@ async function bootstrap() {
       schema: {
         tags: ["Keypair"],
         summary: "Generate a random Stellar keypair",
+        response: {
+          200: { description: "Random keypair", type: "object", properties: { publicKey: { type: "string", description: "Stellar public key (G...)" }, secretKey: { type: "string", description: "Stellar secret key (S...)" } } },
+        },
       },
     },
     async () => {
@@ -934,6 +1183,10 @@ async function bootstrap() {
             secret: { type: "string" },
           },
           required: ["secret"],
+        },
+        response: {
+          200: { description: "Derived public key", type: "object", properties: { publicKey: { type: "string" } } },
+          400: { type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
@@ -961,6 +1214,10 @@ async function bootstrap() {
             mnemonic: { type: "string" },
           },
           required: ["mnemonic"],
+        },
+        response: {
+          200: { description: "Validation result", type: "object", properties: { valid: { type: "boolean" } } },
+          400: { type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
@@ -991,6 +1248,10 @@ async function bootstrap() {
             accountIndex: { type: "integer", default: 0 },
           },
           required: ["mnemonic"],
+        },
+        response: {
+          200: { description: "Derived keypair from mnemonic", type: "object", properties: { publicKey: { type: "string" }, secretKey: { type: "string" }, accountIndex: { type: "number" } } },
+          400: { type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
@@ -1041,6 +1302,10 @@ async function bootstrap() {
           },
           required: ["name"],
         },
+        response: {
+          200: { description: "Created API key (shown once)", type: "object", properties: { id: { type: "number" }, name: { type: "string" }, key: { type: "string", description: "Full API key — store securely, shown only once" }, createdAt: { type: "string", format: "date-time" }, message: { type: "string" } } },
+          400: { type: "object", properties: { error: { type: "string" } } },
+        },
       },
     },
     async (request, reply) => {
@@ -1081,6 +1346,9 @@ async function bootstrap() {
         tags: ["API Keys"],
         summary: "List your API keys",
         security: [{ bearerAuth: [] }],
+        response: {
+          200: { description: "List of API keys (key truncated)", type: "array", items: { type: "object", properties: { id: { type: "number" }, name: { type: "string" }, keyPreview: { type: "string" }, isActive: { type: "boolean" }, lastUsedAt: { type: "string", format: "date-time", nullable: true }, createdAt: { type: "string", format: "date-time" } } } },
+        },
       },
     },
     async (request) => {
@@ -1120,6 +1388,10 @@ async function bootstrap() {
           },
           required: ["id"],
         },
+        response: {
+          200: { description: "Key revoked", type: "object", properties: { success: { type: "boolean" }, message: { type: "string" } } },
+          404: { type: "object", properties: { error: { type: "string" } } },
+        },
       },
     },
     async (request, reply) => {
@@ -1145,9 +1417,236 @@ async function bootstrap() {
     }
   );
 
+
+  // ──────────────────────────────────────────
+  // STELLAR EXPERT ASSET SEARCH PROXY
+  // ──────────────────────────────────────────
+  app.get(
+    "/api/v1/tokens/search-assets",
+    {
+      schema: {
+        tags: ["Tokens"],
+        summary: "Search assets by code/name via StellarExpert + local DB",
+        querystring: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "Asset code or name to search" },
+            limit: { type: "string", default: "20" },
+          },
+          required: ["query"],
+        },
+        response: {
+          200: { description: "Asset search results from local DB + StellarExpert", type: "array", items: { type: "object", properties: { assetCode: { type: "string" }, assetIssuer: { type: "string" }, assetType: { type: "string" }, tomlName: { type: "string" }, domain: { type: "string" }, isVerified: { type: "boolean" }, source: { type: "string", enum: ["local", "stellar_expert"] } }, additionalProperties: true } },
+          400: { type: "object", properties: { error: { type: "string" } } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { query, limit } = request.query as { query: string; limit?: string };
+      if (!query || query.length < 1) {
+        return reply.status(400).send({ error: "Query is required" });
+      }
+
+      const results: any[] = [];
+      const seen = new Set<string>();
+
+      // 1. Search local DB first
+      try {
+        const local = await tokenService.search({ query, limit: parseInt(limit || "20") });
+        const localTokens = Array.isArray(local) ? local : (local as any).tokens || [];
+        for (const t of localTokens) {
+          const key = `${t.assetCode}-${t.assetIssuer}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            results.push({
+              assetCode: t.assetCode,
+              assetIssuer: t.assetIssuer || "",
+              assetType: t.assetType || "credit_alphanum4",
+              tomlName: t.tomlName || "",
+              tomlImage: t.tomlImage || t.image || "",
+              domain: t.homeDomain || "",
+              isVerified: t.isVerified || false,
+              ratingAverage: t.ratingAverage || null,
+              trustlinesFunded: t.fundedTrustlines || null,
+              source: "local",
+            });
+          }
+        }
+      } catch {}
+
+      // 2. Search StellarExpert
+      try {
+        const res = await fetch(
+          `https://api.stellar.expert/explorer/public/asset?search=${encodeURIComponent(query)}&limit=${limit || "20"}&order=desc`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const records = data._embedded?.records || [];
+          for (const r of records) {
+            const raw = r.asset || "";
+            const firstDash = raw.indexOf("-");
+            const lastDash = raw.lastIndexOf("-");
+            const code = firstDash > 0 ? raw.substring(0, firstDash) : raw;
+            const issuer = firstDash > 0 && lastDash > firstDash
+              ? raw.substring(firstDash + 1, lastDash)
+              : firstDash > 0 ? raw.substring(firstDash + 1) : "";
+            const key = `${code}-${issuer}`;
+            if (!seen.has(key) && code !== "XLM") {
+              seen.add(key);
+              results.push({
+                assetCode: code,
+                assetIssuer: issuer,
+                assetType: "credit_alphanum4",
+                tomlName: r.tomlInfo?.name || r.tomlInfo?.orgName || "",
+                tomlImage: r.tomlInfo?.image || "",
+                domain: r.domain || "",
+                isVerified: (r.rating?.average ?? 0) >= 6,
+                ratingAverage: r.rating?.average ?? null,
+                trustlinesFunded: r.trustlines?.funded ?? null,
+                source: "stellar_expert",
+              });
+            }
+          }
+        }
+      } catch {}
+
+      // 3. Search Horizon assets
+      try {
+        const horizonUrl = config.HORIZON_URL || "https://horizon.stellar.org";
+        const res = await fetch(
+          `${horizonUrl}/assets?asset_code=${encodeURIComponent(query.toUpperCase())}&limit=10`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const records = data._embedded?.records || [];
+          for (const r of records) {
+            const key = `${r.asset_code}-${r.asset_issuer}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              results.push({
+                assetCode: r.asset_code,
+                assetIssuer: r.asset_issuer,
+                assetType: r.asset_type,
+                tomlName: "",
+                tomlImage: "",
+                domain: r._links?.toml?.href ? new URL(r._links.toml.href).hostname : "",
+                isVerified: false,
+                ratingAverage: null,
+                trustlinesFunded: r.num_accounts || null,
+                source: "horizon",
+              });
+            }
+          }
+        }
+      } catch {}
+
+      return { results, total: results.length };
+    }
+  );
+
   // ═══════════════════════════════════════
   // Start
   // ═══════════════════════════════════════
+  
+  // ═══════════════════════════════════════
+  // Admin: Auto-Liquifier
+  // ═══════════════════════════════════════
+  app.post(
+    "/api/v1/admin/liquify",
+    {
+      preHandler: authMiddleware,
+      schema: {
+        tags: ["Admin"],
+        summary: "Convert all non-XLM platform fees to XLM via DEX",
+        description: "Triggers the auto-liquifier to swap all non-XLM tokens in the platform wallet to XLM. Admin only.",
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              converted: { type: "array", items: { type: "object", properties: { asset: { type: "string" }, amount: { type: "string" }, xlmReceived: { type: "string" }, txHash: { type: "string" } } } },
+              skipped: { type: "array", items: { type: "string" } },
+              errors: { type: "array", items: { type: "string" } },
+              cleanedTrustlines: { type: "array", items: { type: "string" } },
+            },
+          },
+          403: { type: "object", properties: { error: { type: "string" } } },
+        },
+      },
+    },
+    async (request, reply) => {
+      // Admin check — only user ID 1 (you)
+      const userId = request.user!.userId;
+      if (userId !== 1) {
+        return reply.status(403).send({ error: "Admin access required" });
+      }
+
+      console.log("[admin] Liquifier triggered by user", userId);
+      const result = await liquifyPlatformFees();
+      const cleanedTrustlines = await cleanupEmptyTrustlines();
+
+      return { ...result, cleanedTrustlines };
+    }
+  );
+
+  app.get(
+    "/api/v1/admin/platform-balance",
+    {
+      preHandler: authMiddleware,
+      schema: {
+        tags: ["Admin"],
+        summary: "Get platform wallet balances",
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              publicKey: { type: "string" },
+              balances: { type: "array", items: { type: "object", properties: { asset: { type: "string" }, balance: { type: "string" }, issuer: { type: "string" } } } },
+              totalNonXlm: { type: "number" },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const userId = request.user!.userId;
+      if (userId !== 1) {
+        return reply.status(403).send({ error: "Admin access required" });
+      }
+
+      try {
+        const { stellarClient } = await import("./lib/stellar-client");
+        const account = await stellarClient.horizon.loadAccount(config.PLATFORM_WALLET);
+        const balances = account.balances.map((b: any) => ({
+          asset: b.asset_type === "native" ? "XLM" : b.asset_code,
+          balance: b.balance,
+          issuer: b.asset_issuer || "",
+        }));
+        const totalNonXlm = balances.filter((b: any) => b.asset !== "XLM" && parseFloat(b.balance) > 0).length;
+        return { publicKey: config.PLATFORM_WALLET, balances, totalNonXlm };
+      } catch (err: any) {
+        return reply.status(500).send({ error: err.message });
+      }
+    }
+  );
+
+  // Auto-liquifier scheduled task — runs every 6 hours
+  setInterval(async () => {
+    try {
+      console.log("[liquifier] Scheduled run starting...");
+      const result = await liquifyPlatformFees();
+      if (result.converted.length > 0) {
+        console.log(`[liquifier] Converted ${result.converted.length} asset(s)`);
+        await cleanupEmptyTrustlines();
+      } else {
+        console.log("[liquifier] No assets to convert");
+      }
+    } catch (err: any) {
+      console.error("[liquifier] Scheduled run failed:", err.message);
+    }
+  }, 6 * 60 * 60 * 1000); // Every 6 hours
+
   await app.listen({ port: config.PORT, host: "0.0.0.0" });
   syncTomlImages().catch(console.error);
   console.log(

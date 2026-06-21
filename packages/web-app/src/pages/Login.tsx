@@ -4,12 +4,17 @@ import { useAuthStore } from "../store/auth";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react";
+import { Turnstile } from "../components/Turnstile";
 
 export default function LoginPage() {
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [twoFaRequired, setTwoFaRequired] = useState(false);
+  const [twoFaToken, setTwoFaToken] = useState("");
+  const [twoFaMethod, setTwoFaMethod] = useState("");
   const login = useAuthStore((s) => s.login);
   const isLoading = useAuthStore((s) => s.isLoading);
   const navigate = useNavigate();
@@ -17,12 +22,24 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return toast.error(t("auth.fillAllFields"));
+    if (!turnstileToken && !twoFaRequired) return toast.error("Please complete the human verification");
     try {
-      await login(email, password);
+      await login(email, password, turnstileToken, twoFaToken || undefined);
       toast.success(t("auth.welcomeMessage"));
       navigate("/dashboard");
     } catch (err: any) {
-      toast.error(err.message || t("auth.loginFailed"));
+      if (err.message?.startsWith("2FA_REQUIRED")) {
+        const method = err.message.split(":")[1] || "totp";
+        setTwoFaRequired(true);
+        setTwoFaMethod(method);
+        toast.info(
+          method === "email" ? "A verification code was sent to your email"
+          : method === "static" ? "Enter one of your backup codes"
+          : "Enter the code from your authenticator app"
+        );
+      } else {
+        toast.error(err.message || t("auth.loginFailed"));
+      }
     }
   };
 
@@ -78,9 +95,35 @@ export default function LoginPage() {
             </Link>
           </div>
 
+          {/* 2FA Code Input */}
+          {twoFaRequired && (
+            <div className="space-y-2">
+              <label className="block text-sm text-stellar-muted">2FA Verification Code</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={8}
+                value={twoFaToken}
+                onChange={(e) => setTwoFaToken(e.target.value.replace(/[^0-9A-Za-z]/g, ""))}
+                placeholder={twoFaMethod === "email" ? "Enter email code" : twoFaMethod === "static" ? "Enter your security code" : "Enter 6-digit code or backup code"}
+                className="w-full px-4 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-white placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue text-center text-lg tracking-widest"
+                autoFocus
+              />
+              <p className="text-xs text-stellar-muted text-center">
+                {twoFaMethod === "email" ? "Check your email for a 6-digit code" : twoFaMethod === "static" ? "Enter one of your 8-character backup codes" : "Enter code from your authenticator app, or an 8-character backup code"}
+              </p>
+            </div>
+          )}
+
+          <Turnstile
+            siteKey="0x4AAAAAADoSgI6oaunSiUOl"
+            onVerify={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken("")}
+          />
+
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || !turnstileToken}
             className="w-full py-3 rounded-lg bg-stellar-blue text-white font-medium hover:bg-stellar-purple transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isLoading ? (

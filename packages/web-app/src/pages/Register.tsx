@@ -4,6 +4,7 @@ import { useAuthStore } from "../store/auth";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Eye, EyeOff, Mail, Lock, User, Loader2, Check, X } from "lucide-react";
+import { Turnstile } from "../components/Turnstile";
 
 export default function RegisterPage() {
   const { t } = useTranslation();
@@ -13,6 +14,7 @@ export default function RegisterPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const register = useAuthStore((s) => s.register);
   const isLoading = useAuthStore((s) => s.isLoading);
   const navigate = useNavigate();
@@ -30,8 +32,9 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!email) return toast.error(t("auth.fillAllFields"));
     if (!allValid) return toast.error(t("auth.fixPasswordReqs"));
+    if (!turnstileToken) return toast.error("Please complete the human verification");
     try {
-      await register(email, password, firstName || undefined, lastName || undefined);
+      await register(email, password, firstName || undefined, lastName || undefined, turnstileToken);
       toast.success(t("auth.accountCreated"));
       navigate("/dashboard");
     } catch (err: any) {
@@ -140,9 +143,15 @@ export default function RegisterPage() {
             ))}
           </div>
 
+          <Turnstile
+            siteKey="0x4AAAAAADoSgI6oaunSiUOl"
+            onVerify={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken("")}
+          />
+
           <button
             type="submit"
-            disabled={isLoading || !allValid}
+            disabled={isLoading || !allValid || !turnstileToken}
             className="w-full py-3 rounded-lg bg-stellar-blue text-white font-medium hover:bg-stellar-purple transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isLoading ? (

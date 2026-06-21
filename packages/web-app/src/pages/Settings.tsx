@@ -23,6 +23,7 @@ import {
   Key,
 } from "lucide-react";
 import NetworkSwitcher from "../components/NetworkSwitcher";
+import TwoFaSettings from "../components/TwoFaSettings";
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -385,7 +386,12 @@ export default function SettingsPage() {
           {t("settings.security", "Security")}
         </h2>
 
-        {/* Reveal Secret Key */}
+        {/* Two-Factor Authentication */}
+          <TwoFaSettings />
+
+          <div className="border-t border-stellar-border" />
+
+          {/* Reveal Secret Key */}
         {!revealedKey ? (
           <button
             onClick={handleRevealSecret}

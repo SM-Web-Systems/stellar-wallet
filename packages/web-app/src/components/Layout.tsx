@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import EmailVerificationBanner from "./EmailVerificationBanner";
 import {
   Coins,
   Send,
@@ -90,6 +91,7 @@ export default function Layout() {
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-5xl mx-auto p-8">
+          <EmailVerificationBanner />
           <Outlet />
         </div>
       </main>

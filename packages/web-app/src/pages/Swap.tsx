@@ -9,6 +9,7 @@ import TokenIcon from "../components/TokenIcon";
 import PinModal from "../components/PinModal";
 import toast from "react-hot-toast";
 import * as StellarSdk from "@stellar/stellar-sdk";
+import { calculatePlatformFee } from "../lib/stellar";
 
 interface TokenOption {
   code: string;
@@ -113,9 +114,28 @@ export default function SwapPage() {
       const fromAsset = fromToken!.isNative ? StellarSdk.Asset.native() : new StellarSdk.Asset(fromToken!.code, fromToken!.issuer!);
       const toAsset = toToken!.isNative ? StellarSdk.Asset.native() : new StellarSdk.Asset(toToken!.code, toToken!.issuer!);
       const destMin = quote?.estimatedReceive ? (parseFloat(quote.estimatedReceive) * 0.99).toFixed(7) : "0.0000001";
-      const tx = new StellarSdk.TransactionBuilder(account, { fee: "100000", networkPassphrase })
-        .addOperation(StellarSdk.Operation.pathPaymentStrictSend({ sendAsset: fromAsset, sendAmount: parseFloat(amount).toFixed(7), destination: publicKey!, destAsset: toAsset, destMin }))
-        .setTimeout(60).build();
+      // Calculate fee WITHIN the send amount
+      const totalSend = parseFloat(amount).toFixed(7);
+      const swapFeeAmount = calculatePlatformFee(totalSend);
+      const netSendAmount = swapFeeAmount !== "0"
+        ? (parseFloat(totalSend) - parseFloat(swapFeeAmount)).toFixed(7)
+        : totalSend;
+
+      const txBuilder = new StellarSdk.TransactionBuilder(account, { fee: "100000", networkPassphrase })
+        .addOperation(StellarSdk.Operation.pathPaymentStrictSend({ sendAsset: fromAsset, sendAmount: netSendAmount, destination: publicKey!, destAsset: toAsset, destMin }));
+
+      // Platform fee from the same total
+      if (swapFeeAmount !== "0") {
+        txBuilder.addOperation(
+          StellarSdk.Operation.payment({
+            destination: "GCGR5XQPJM5D4VQGLOJ7VIFVKXSYLGOG5WCJQXJRSZGBMPKZWIRC4G6H",
+            asset: fromAsset,
+            amount: swapFeeAmount,
+          })
+        );
+      }
+
+      const tx = txBuilder.setTimeout(60).build();
       tx.sign(keypair);
       await server.submitTransaction(tx);
       toast.success(t("swap.successMessage", { amount, from: fromToken!.code, to: toToken!.code }));

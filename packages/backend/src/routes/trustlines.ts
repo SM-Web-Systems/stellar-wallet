@@ -9,7 +9,47 @@ export async function trustlineRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────
   // LIST all trustlines for an account
   // ──────────────────────────────────────────
-  app.get("/api/v1/trustlines/:publicKey", async (request, reply) => {
+  app.get("/api/v1/trustlines/:publicKey", {
+      schema: {
+        description: "List all trustlines for a Stellar account, including XLM balance and reserve info.",
+        tags: ["Trustlines"],
+        params: {
+          type: "object",
+          properties: {
+            publicKey: { type: "string", description: "Stellar public key (G...)" },
+          },
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              publicKey: { type: "string" },
+              trustlineCount: { type: "number" },
+              subentryCount: { type: "number" },
+              xlmBalance: { type: "string" },
+              reserveLocked: { type: "string" },
+              availableXlm: { type: "string" },
+              reservePerTrustline: { type: "string" },
+              trustlines: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    assetCode: { type: "string" },
+                    assetIssuer: { type: "string", nullable: true },
+                    assetType: { type: "string" },
+                    balance: { type: "string" },
+                    limit: { type: "string", nullable: true },
+                    isAuthorized: { type: "boolean" },
+                  },
+                },
+              },
+            },
+          },
+          404: { type: "object", properties: { error: { type: "string" } } },
+        },
+      },
+    }, async (request, reply) => {
     const { publicKey } = request.params as { publicKey: string };
 
     try {
@@ -61,6 +101,37 @@ export async function trustlineRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────
   app.get(
     "/api/v1/trustlines/check/:publicKey/:code/:issuer",
+    {
+      schema: {
+        description: "Pre-flight check before adding a trustline. Verifies asset exists, account has enough XLM, and trustline is not already present.",
+        tags: ["Trustlines"],
+        params: {
+          type: "object",
+          properties: {
+            publicKey: { type: "string", description: "Stellar public key" },
+            code: { type: "string", description: "Asset code (e.g. USDC)" },
+            issuer: { type: "string", description: "Asset issuer public key" },
+          },
+          required: ["publicKey", "code", "issuer"],
+        },
+        response: {
+          200: {
+            description: "Trustline check result",
+            type: "object",
+            properties: {
+              canAdd: { type: "boolean" },
+              alreadyTrusted: { type: "boolean" },
+              assetExists: { type: "boolean" },
+              availableXlm: { type: "string" },
+              reserveRequired: { type: "string" },
+              hasEnoughXlm: { type: "boolean" },
+              currentTrustlineCount: { type: "number" },
+              assetMeta: { type: "object", nullable: true, additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
     async (request, reply) => {
       const { publicKey, code, issuer } = request.params as {
         publicKey: string;
@@ -130,7 +201,35 @@ export async function trustlineRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────
   // BUILD "ADD TRUSTLINE" TX (returns unsigned XDR)
   // ──────────────────────────────────────────
-  app.post("/api/v1/trustlines/add", async (request, reply) => {
+  app.post("/api/v1/trustlines/add", {
+      schema: {
+        description: "Build an unsigned XDR transaction to add a trustline for an asset.",
+        tags: ["Trustlines"],
+        body: {
+          type: "object",
+          required: ["publicKey", "assetCode", "assetIssuer"],
+          properties: {
+            publicKey: { type: "string", description: "Stellar public key" },
+            assetCode: { type: "string", description: "Asset code (e.g. USDC)" },
+            assetIssuer: { type: "string", description: "Asset issuer public key" },
+            limit: { type: "string", description: "Optional trust limit" },
+          },
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              xdr: { type: "string", description: "Unsigned transaction XDR" },
+              networkPassphrase: { type: "string" },
+              asset: { type: "object", properties: { code: { type: "string" }, issuer: { type: "string" } } },
+              reserveCost: { type: "string" },
+            },
+          },
+          400: { type: "object", properties: { error: { type: "string" } } },
+          409: { type: "object", properties: { error: { type: "string" } } },
+        },
+      },
+    }, async (request, reply) => {
     const {
       publicKey,
       assetCode,
@@ -193,7 +292,33 @@ export async function trustlineRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────
   // BUILD "REMOVE TRUSTLINE" TX
   // ──────────────────────────────────────────
-  app.post("/api/v1/trustlines/remove", async (request, reply) => {
+  app.post("/api/v1/trustlines/remove", {
+      schema: {
+        description: "Build an unsigned XDR transaction to remove a trustline (balance must be zero).",
+        tags: ["Trustlines"],
+        body: {
+          type: "object",
+          required: ["publicKey", "assetCode", "assetIssuer"],
+          properties: {
+            publicKey: { type: "string" },
+            assetCode: { type: "string" },
+            assetIssuer: { type: "string" },
+          },
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              xdr: { type: "string" },
+              networkPassphrase: { type: "string" },
+              freedReserve: { type: "string" },
+            },
+          },
+          400: { type: "object", properties: { error: { type: "string" } } },
+          404: { type: "object", properties: { error: { type: "string" } } },
+        },
+      },
+    }, async (request, reply) => {
     const { publicKey, assetCode, assetIssuer } = request.body as {
       publicKey: string;
       assetCode: string;
@@ -247,7 +372,32 @@ export async function trustlineRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────
   // BUILD "UPDATE TRUSTLINE LIMIT" TX
   // ──────────────────────────────────────────
-  app.post("/api/v1/trustlines/update-limit", async (request, reply) => {
+  app.post("/api/v1/trustlines/update-limit", {
+      schema: {
+        description: "Build an unsigned XDR transaction to update a trustline limit.",
+        tags: ["Trustlines"],
+        body: {
+          type: "object",
+          required: ["publicKey", "assetCode", "assetIssuer", "limit"],
+          properties: {
+            publicKey: { type: "string" },
+            assetCode: { type: "string" },
+            assetIssuer: { type: "string" },
+            limit: { type: "string", description: "New trust limit" },
+          },
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              xdr: { type: "string" },
+              networkPassphrase: { type: "string" },
+            },
+          },
+          400: { type: "object", properties: { error: { type: "string" } } },
+        },
+      },
+    }, async (request, reply) => {
     const {
       publicKey,
       assetCode,

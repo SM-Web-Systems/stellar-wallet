@@ -20,6 +20,7 @@ interface ApiKey {
   id: number;
   name: string;
   key: string;
+  keyPreview?: string;
   isActive: boolean;
   lastUsedAt: string | null;
   createdAt: string;
@@ -39,15 +40,23 @@ export default function ApiKeysPage() {
 
   const loadKeys = useCallback(async () => {
     try {
-        const data: any = await apiKeyApi.list();
-        const keysList: ApiKey[] = Array.isArray(data) ? data : Array.isArray(data?.keys) ? data.keys : [];
-        setKeys(keysList);
+      const data: any = await apiKeyApi.list();
+      const keysList: ApiKey[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.keys)
+        ? data.keys
+        : [];
+      setKeys(keysList);
     } catch (err: any) {
-        toast.error(err.message || t("apiKeys.loadError", "Failed to load API keys"));
+      if (err.message?.includes("401") || err.message?.includes("token") || err.message?.includes("Token")) {
+        toast.error(t("apiKeys.loginRequired", "Please log in to manage API keys"));
+        return;
+      }
+      toast.error(err.message || t("apiKeys.loadError", "Failed to load API keys"));
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-    }, [t]);
+  }, [t]);
 
   useEffect(() => {
     loadKeys();
@@ -82,7 +91,7 @@ export default function ApiKeysPage() {
     setRevoking(id);
     try {
       await apiKeyApi.revoke(id);
-      setKeys((prev) => prev.filter((k) => k.id !== id));
+      setKeys((prev: ApiKey[]) => prev.filter((k: ApiKey) => k.id !== id));
       toast.success(t("apiKeys.revoked", "API key revoked"));
     } catch (err: any) {
       toast.error(err.message || t("apiKeys.revokeError", "Failed to revoke API key"));
@@ -110,9 +119,11 @@ export default function ApiKeysPage() {
   };
 
   const maskKey = (key: string) => {
-    if (key.length <= 12) return key;
+    if (!key || key.length <= 12) return key || "••••••••";
     return key.slice(0, 8) + "••••••••" + key.slice(-4);
   };
+
+  const getKeyDisplay = (apiKey: ApiKey) => apiKey.key || apiKey.keyPreview || "";
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -122,10 +133,7 @@ export default function ApiKeysPage() {
             {t("apiKeys.title", "API Keys")}
           </h1>
           <p className="text-sm text-stellar-muted mt-1">
-            {t(
-              "apiKeys.description",
-              "Create and manage API keys to access the Amma Wallet API programmatically."
-            )}
+            {t("apiKeys.description", "Create and manage API keys to access the Amma Wallet API programmatically.")}
           </p>
         </div>
         {!showCreateForm && !newlyCreatedKey && (
@@ -151,10 +159,7 @@ export default function ApiKeysPage() {
                 {t("apiKeys.keyCreated", "Your API Key Has Been Created")}
               </h3>
               <p className="text-sm text-green-300/80">
-                {t(
-                  "apiKeys.copyWarning",
-                  "Copy this key now. You won't be able to see the full key again after closing this banner."
-                )}
+                {t("apiKeys.copyWarning", "Copy this key now. You won't be able to see the full key again after closing this banner.")}
               </p>
             </div>
           </div>
@@ -193,10 +198,7 @@ export default function ApiKeysPage() {
             {t("apiKeys.createTitle", "Create New API Key")}
           </h2>
           <p className="text-sm text-stellar-muted">
-            {t(
-              "apiKeys.createDesc",
-              "Give your key a descriptive name so you can identify it later (e.g. 'My Trading Bot', 'Portfolio Tracker')."
-            )}
+            {t("apiKeys.createDesc", "Give your key a descriptive name so you can identify it later (e.g. 'My Trading Bot', 'Portfolio Tracker').")}
           </p>
           <input
             type="text"
@@ -209,10 +211,7 @@ export default function ApiKeysPage() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => {
-                setShowCreateForm(false);
-                setNewKeyName("");
-              }}
+              onClick={() => { setShowCreateForm(false); setNewKeyName(""); }}
               className="px-4 py-2.5 rounded-lg border border-stellar-border text-stellar-muted text-sm hover:text-white transition-colors"
             >
               {t("common.cancel", "Cancel")}
@@ -233,7 +232,7 @@ export default function ApiKeysPage() {
       <div className="bg-stellar-card border border-stellar-border rounded-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-stellar-border">
           <h2 className="text-sm font-semibold text-stellar-muted uppercase tracking-wider">
-            {t("apiKeys.yourKeys", "Your API Keys")} ({keys.length})
+            {t("apiKeys.yourKeys", "Your API Keys")} ({(keys ?? []).length})
           </h2>
         </div>
 
@@ -241,7 +240,7 @@ export default function ApiKeysPage() {
           <div className="flex items-center justify-center py-12">
             <Loader2 size={24} className="animate-spin text-stellar-muted" />
           </div>
-        ) : keys.length === 0 ? (
+        ) : (keys ?? []).length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
             <div className="w-16 h-16 rounded-full bg-stellar-border/30 flex items-center justify-center mb-4">
               <Key size={28} className="text-stellar-muted" />
@@ -250,10 +249,7 @@ export default function ApiKeysPage() {
               {t("apiKeys.noKeys", "No API Keys Yet")}
             </p>
             <p className="text-sm text-stellar-muted mb-4">
-              {t(
-                "apiKeys.noKeysDesc",
-                "Create your first API key to start using the Amma Wallet API."
-              )}
+              {t("apiKeys.noKeysDesc", "Create your first API key to start using the Amma Wallet API.")}
             </p>
             <button
               onClick={() => setShowCreateForm(true)}
@@ -265,72 +261,73 @@ export default function ApiKeysPage() {
           </div>
         ) : (
           <div className="divide-y divide-stellar-border">
-            {keys.map((apiKey) => (
-              <div key={apiKey.id} className="px-6 py-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-stellar-blue/15 flex items-center justify-center">
-                      <Shield size={16} className="text-stellar-blue" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium text-sm">{apiKey.name}</p>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <span className="flex items-center gap-1 text-xs text-stellar-muted">
-                          <Clock size={10} />
-                          {t("apiKeys.created", "Created")}: {formatDate(apiKey.createdAt)}
-                        </span>
-                        {apiKey.lastUsedAt && (
-                          <span className="text-xs text-stellar-muted">
-                            {t("apiKeys.lastUsed", "Last used")}: {formatDate(apiKey.lastUsedAt)}
+            {(keys ?? []).map((apiKey) => {
+              const keyStr = getKeyDisplay(apiKey);
+              return (
+                <div key={apiKey.id} className="px-6 py-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-stellar-blue/15 flex items-center justify-center">
+                        <Shield size={16} className="text-stellar-blue" />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium text-sm">{apiKey.name}</p>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <span className="flex items-center gap-1 text-xs text-stellar-muted">
+                            <Clock size={10} />
+                            {t("apiKeys.createdAt", "Created")}: {formatDate(apiKey.createdAt)}
                           </span>
-                        )}
+                          {apiKey.lastUsedAt && (
+                            <span className="text-xs text-stellar-muted">
+                              {t("apiKeys.lastUsed", "Last used")}: {formatDate(apiKey.lastUsedAt)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <button
+                      onClick={() => handleRevoke(apiKey.id, apiKey.name)}
+                      disabled={revoking === apiKey.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stellar-danger/30 text-stellar-danger text-xs font-medium hover:bg-stellar-danger/10 transition-colors disabled:opacity-50"
+                    >
+                      {revoking === apiKey.id ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={12} />
+                      )}
+                      {t("apiKeys.revoke", "Revoke")}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleRevoke(apiKey.id, apiKey.name)}
-                    disabled={revoking === apiKey.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stellar-danger/30 text-stellar-danger text-xs font-medium hover:bg-stellar-danger/10 transition-colors disabled:opacity-50"
-                  >
-                    {revoking === apiKey.id ? (
-                      <Loader2 size={12} className="animate-spin" />
-                    ) : (
-                      <Trash2 size={12} />
-                    )}
-                    {t("apiKeys.revoke", "Revoke")}
-                  </button>
+                  {keyStr && (
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 px-3 py-2 rounded-lg bg-stellar-dark border border-stellar-border text-xs text-stellar-muted font-mono">
+                        {showKey[keyStr] ? keyStr : maskKey(keyStr)}
+                      </code>
+                      <button
+                        onClick={() => setShowKey((prev) => ({ ...prev, [keyStr]: !prev[keyStr] }))}
+                        className="p-2 rounded-lg border border-stellar-border hover:bg-white/5 transition-colors shrink-0"
+                      >
+                        {showKey[keyStr] ? (
+                          <EyeOff size={14} className="text-stellar-muted" />
+                        ) : (
+                          <Eye size={14} className="text-stellar-muted" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleCopy(keyStr)}
+                        className="p-2 rounded-lg border border-stellar-border hover:bg-white/5 transition-colors shrink-0"
+                      >
+                        {copiedKey === keyStr ? (
+                          <Check size={14} className="text-stellar-success" />
+                        ) : (
+                          <Copy size={14} className="text-stellar-muted" />
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 px-3 py-2 rounded-lg bg-stellar-dark border border-stellar-border text-xs text-stellar-muted font-mono">
-                    {showKey[apiKey.key] ? apiKey.key : maskKey(apiKey.key)}
-                  </code>
-                  <button
-                    onClick={() =>
-                      setShowKey((prev) => ({ ...prev, [apiKey.key]: !prev[apiKey.key] }))
-                    }
-                    className="p-2 rounded-lg border border-stellar-border hover:bg-white/5 transition-colors shrink-0"
-                    title={showKey[apiKey.key] ? "Hide" : "Show"}
-                  >
-                    {showKey[apiKey.key] ? (
-                      <EyeOff size={14} className="text-stellar-muted" />
-                    ) : (
-                      <Eye size={14} className="text-stellar-muted" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleCopy(apiKey.key)}
-                    className="p-2 rounded-lg border border-stellar-border hover:bg-white/5 transition-colors shrink-0"
-                    title={t("common.copy", "Copy")}
-                  >
-                    {copiedKey === apiKey.key ? (
-                      <Check size={14} className="text-stellar-success" />
-                    ) : (
-                      <Copy size={14} className="text-stellar-muted" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -342,34 +339,23 @@ export default function ApiKeysPage() {
         </h2>
         <div className="space-y-3">
           <p className="text-sm text-stellar-muted">
-            {t(
-              "apiKeys.usageDesc",
-              "Include your API key in the x-api-key header of your HTTP requests:"
-            )}
+            {t("apiKeys.usageDesc", "Include your API key in the x-api-key header of your HTTP requests:")}
           </p>
           <div className="px-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border">
             <code className="text-xs text-green-400 font-mono whitespace-pre">
-              {`curl -H "x-api-key: YOUR_API_KEY" \\
+{`curl -H "x-api-key: YOUR_API_KEY" \\
      https://ammawallet.com/api/v1/tokens`}
             </code>
           </div>
           <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
             <AlertTriangle size={16} className="text-yellow-400 shrink-0 mt-0.5" />
             <p className="text-xs text-yellow-300">
-              {t(
-                "apiKeys.securityNote",
-                "Keep your API keys secret. Do not expose them in client-side code or public repositories. Rate limit: 100 requests per minute."
-              )}
+              {t("apiKeys.securityNote", "Keep your API keys secret. Do not expose them in client-side code or public repositories. Rate limit: 100 requests per minute.")}
             </p>
           </div>
           <p className="text-sm text-stellar-muted">
             {t("apiKeys.docsLink", "Full API documentation is available at")}{" "}
-            <a
-              href="https://ammawallet.com/docs"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-stellar-blue hover:text-stellar-purple transition-colors"
-            >
+            <a href="https://ammawallet.com/docs" target="_blank" rel="noopener noreferrer" className="text-stellar-blue hover:text-stellar-purple transition-colors">
               ammawallet.com/docs
             </a>
           </p>

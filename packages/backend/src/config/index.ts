@@ -10,4 +10,20 @@ export const config = {
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || "change-me-refresh-secret",
   JWT_EXPIRES_IN: parseInt(process.env.JWT_EXPIRES_IN || "900", 10),
   JWT_REFRESH_EXPIRES_IN: parseInt(process.env.JWT_REFRESH_EXPIRES_IN || "604800", 10),
+
+  // Cloudflare Turnstile
+  TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY || "",
+  TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY || "",
+
+  // Platform fee
+  PLATFORM_FEE_PERCENT: parseFloat(process.env.PLATFORM_FEE_PERCENT || "0.1"),
+  PLATFORM_WALLET: process.env.PLATFORM_WALLET || "",
+  PLATFORM_SECRET: process.env.PLATFORM_SECRET || "",
+
+  // SMTP
+  SMTP_HOST: process.env.SMTP_HOST || "smtp.gmail.com",
+  SMTP_PORT: parseInt(process.env.SMTP_PORT || "587"),
+  SMTP_USER: process.env.SMTP_USER || "",
+  SMTP_PASS: process.env.SMTP_PASS || "",
+  SMTP_FROM: process.env.SMTP_FROM || "Amma Wallet <noreply@ammawallet.com>",
 };

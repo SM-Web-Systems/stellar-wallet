@@ -196,6 +196,11 @@ export const users = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
     signingMode: text("signing_mode").default("self"), // 'self' | 'delegated'
+    twoFaSecret: text("two_fa_secret"),
+    twoFaEnabled: boolean("two_fa_enabled").default(false),
+    twoFaMethod: text("two_fa_method").default("none"), // 'none' | 'totp'
+    twoFaBackupCodes: text("two_fa_backup_codes"),
+    twoFaStaticCode: text("two_fa_static_code"), // hashed user-chosen 6-digit code // JSON array of hashed codes
   },
   (table) => [
     uniqueIndex("idx_users_email").on(table.email),
@@ -257,6 +262,26 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
 // ════════════════════════════════════════════
 // ALL Relations (must come after ALL tables)
 // ════════════════════════════════════════════
+
+
+// ════════════════════════════════════════════
+// Email Codes — 2FA and verification codes
+// ════════════════════════════════════════════
+export const emailCodes = pgTable(
+  "email_codes",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    userId: bigint("user_id", { mode: "number" }).notNull().references(() => users.id, { onDelete: "cascade" }),
+    code: text("code").notNull(),
+    type: text("type").notNull().default("login"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    used: boolean("used").default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("idx_email_codes_user").on(table.userId),
+  ]
+);
 
 export const tokensRelations = relations(tokens, ({ many }) => ({
   contractTokens: many(contractTokens),

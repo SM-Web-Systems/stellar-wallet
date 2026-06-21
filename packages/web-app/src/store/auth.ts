@@ -11,6 +11,7 @@ export interface User {
   avatar: string | null;
   preferredLanguage: string;
   preferredNetwork: string;
+  isEmailVerified?: boolean;
 }
 
 export interface ServerWallet {
@@ -28,8 +29,8 @@ interface AuthState {
   serverWallets: ServerWallet[];
   signingMode: "self" | "delegated";
 
-  register: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, firstName?: string, lastName?: string, turnstileToken?: string) => Promise<void>;
+  login: (email: string, password: string, turnstileToken?: string, twoFaToken?: string) => Promise<void>;
   logout: () => Promise<void>;
   loadProfile: () => Promise<void>;
   updateProfile: (data: { firstName?: string; lastName?: string; preferredLanguage?: string; preferredNetwork?: string }) => Promise<void>;
@@ -60,10 +61,10 @@ export const useAuthStore = create<AuthState>()(
       serverWallets: [],
       signingMode: "self",
 
-      register: async (email, password, firstName, lastName) => {
+      register: async (email, password, firstName, lastName, turnstileToken) => {
         set({ isLoading: true });
         try {
-          const res = await authApi.register({ email, password, firstName, lastName });
+          const res = await authApi.register({ email, password, firstName, lastName, turnstileToken });
           setTokens(res.accessToken, res.refreshToken);
           set({
             user: res.user,
@@ -77,10 +78,17 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      login: async (email, password) => {
+      login: async (email, password, turnstileToken, twoFaToken?) => {
         set({ isLoading: true });
         try {
-          const res = await authApi.login({ email, password });
+          const res = await authApi.login({ email, password, turnstileToken, twoFaToken });
+
+          // If 2FA is required, throw so the UI can prompt for the code
+          if (res.twoFaRequired) {
+            set({ isLoading: false });
+            throw new Error("2FA_REQUIRED:" + (res.twoFaMethod || "totp"));
+          }
+
           setTokens(res.accessToken, res.refreshToken);
           const mode = await fetchSigningMode();
           set({
@@ -131,6 +139,10 @@ export const useAuthStore = create<AuthState>()(
 
       updateProfile: async (data) => {
         const res = await authApi.updateProfile(data);
+        // Check if 2FA is required
+        if ((res as any).twoFaRequired) {
+          throw new Error("2FA_REQUIRED:" + (res.twoFaMethod || "totp"));
+        }
         set({ user: res.user });
       },
 

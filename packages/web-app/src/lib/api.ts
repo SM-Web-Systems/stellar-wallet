@@ -75,14 +75,14 @@ async function tryRefresh(): Promise<boolean> {
 
 // ——— Auth ———
 export const authApi = {
-  register: (data: { email: string; password: string; firstName?: string; lastName?: string }) =>
+  register: (data: { email: string; password: string; firstName?: string; lastName?: string; turnstileToken?: string }) =>
     request<any>("/api/v1/auth/register", {
       method: "POST",
       body: JSON.stringify(data),
       auth: false,
     } as any),
 
-  login: (data: { email: string; password: string }) =>
+  login: (data: { email: string; password: string; turnstileToken?: string; twoFaToken?: string }) =>
     request<any>("/api/v1/auth/login", {
       method: "POST",
       body: JSON.stringify(data),
@@ -139,6 +139,8 @@ export const tokenApi = {
       method: "POST",
       body: JSON.stringify({ publicKey, assetCode: code, assetIssuer: issuer }),
     }),
+  searchAssets: (query: string, limit = 20) =>
+    request<any>(`/api/v1/tokens/search-assets?query=${encodeURIComponent(query)}&limit=${limit}`),
 };
 
 // ——— Swap ———
@@ -191,10 +193,10 @@ export const signingApi = {
       body: JSON.stringify({ xdr, networkPassphrase }),
     }),
 
-  signAndSubmit: (xdr: string, networkPassphrase: string) =>
+  signAndSubmit: (xdr: string, networkPassphrase: string, pin?: string) =>
     request<any>("/api/v1/transactions/sign-and-submit", {
       method: "POST",
-      body: JSON.stringify({ xdr, networkPassphrase }),
+      body: JSON.stringify({ xdr, networkPassphrase, pin }),
     }),
 };
 
@@ -248,4 +250,57 @@ export const keypairApi = {
         body: JSON.stringify({ mnemonic, accountIndex }),
       }
     ),
+};
+
+// ——— Trustlines ———
+export const trustlineApi = {
+  list: (publicKey: string) =>
+    request<any>(`/api/v1/trustlines/${publicKey}`),
+  check: (publicKey: string, code: string, issuer: string) =>
+    request<any>(`/api/v1/trustlines/check/${publicKey}/${code}/${issuer}`),
+  add: (publicKey: string, code: string, issuer: string, secretKey: string) =>
+    request<any>("/api/v1/trustlines/add", {
+      method: "POST",
+      body: JSON.stringify({ publicKey, assetCode: code, assetIssuer: issuer, secretKey }),
+    }),
+  remove: (publicKey: string, code: string, issuer: string, secretKey: string) =>
+    request<any>("/api/v1/trustlines/remove", {
+      method: "POST",
+      body: JSON.stringify({ publicKey, assetCode: code, assetIssuer: issuer, secretKey }),
+    }),
+};
+
+// ——— 2FA ———
+export const twoFaApi = {
+  status: () =>
+    request<{ enabled: boolean; method: string }>("/api/v1/auth/2fa/status"),
+
+  setup: (method: "totp" | "email" | "static" = "totp", staticCode?: string) =>
+    request<any>("/api/v1/auth/2fa/setup", {
+      method: "POST",
+      body: JSON.stringify({ method, staticCode }),
+    }),
+
+  verify: (token: string) =>
+    request<{ success: boolean; backupCodes: string[]; message: string }>("/api/v1/auth/2fa/verify", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    }),
+
+  disable: (token: string, password: string) =>
+    request<{ success: boolean; message: string }>("/api/v1/auth/2fa/disable", {
+      method: "POST",
+      body: JSON.stringify({ token, password }),
+    }),
+
+  sendEmailCode: (email?: string) =>
+    email
+      ? request<{ success: boolean }>("/api/v1/auth/2fa/send-email-code", {
+          method: "POST",
+          body: JSON.stringify({ email }),
+        })
+      : request<{ success: boolean }>("/api/v1/auth/2fa/send-code", {
+          method: "POST",
+          body: JSON.stringify({}),
+        }),
 };

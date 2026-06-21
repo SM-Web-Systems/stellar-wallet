@@ -7,7 +7,31 @@ export async function walletRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────
   // GET USER WALLETS
   // ──────────────────────────────────────────
-  app.get("/api/v1/wallets", { preHandler: authMiddleware }, async (request) => {
+  app.get("/api/v1/wallets", {
+      preHandler: authMiddleware,
+      schema: {
+        description: "List all wallets for the authenticated user.",
+        tags: ["Wallets"],
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                  id: { type: "number" },
+                  userId: { type: "number" },
+                  name: { type: "string" },
+                  publicKey: { type: "string" },
+                  network: { type: "string" },
+                  isActive: { type: "boolean" },
+                  createdAt: { type: "string", format: "date-time" },
+                },
+              },
+          },
+        },
+      },
+    }, async (request) => {
     const userId = request.user!.userId;
 
     const wallets = await db
@@ -21,7 +45,40 @@ export async function walletRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────
   // ADD WALLET
   // ──────────────────────────────────────────
-  app.post("/api/v1/wallets", { preHandler: authMiddleware }, async (request, reply) => {
+  app.post("/api/v1/wallets", {
+      preHandler: authMiddleware,
+      schema: {
+        description: "Add a new wallet. Becomes the active wallet; all others are deactivated.",
+        tags: ["Wallets"],
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: "object",
+          required: ["name", "publicKey"],
+          properties: {
+            name: { type: "string", description: "Display name for the wallet" },
+            publicKey: { type: "string", description: "Stellar public key (G...)" },
+            encryptedSecret: { type: "string", description: "AES-GCM encrypted secret key (for delegated mode)" },
+            network: { type: "string", enum: ["testnet", "mainnet"], default: "testnet" },
+          },
+        },
+        response: {
+          200: {
+                type: "object",
+                properties: {
+                  id: { type: "number" },
+                  userId: { type: "number" },
+                  name: { type: "string" },
+                  publicKey: { type: "string" },
+                  network: { type: "string" },
+                  isActive: { type: "boolean" },
+                  createdAt: { type: "string", format: "date-time" },
+                },
+              },
+          400: { type: "object", properties: { error: { type: "string" } } },
+          409: { type: "object", properties: { error: { type: "string" } } },
+        },
+      },
+    }, async (request, reply) => {
     const userId = request.user!.userId;
     const { name, publicKey, encryptedSecret, network } = request.body as {
       name: string;
@@ -90,7 +147,35 @@ export async function walletRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────
   // SET ACTIVE WALLET
   // ──────────────────────────────────────────
-  app.patch("/api/v1/wallets/:id/activate", { preHandler: authMiddleware }, async (request, reply) => {
+  app.patch("/api/v1/wallets/:id/activate", {
+      preHandler: authMiddleware,
+      schema: {
+        description: "Set a wallet as the active wallet. Deactivates all others.",
+        tags: ["Wallets"],
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: "object",
+          properties: {
+            id: { type: "string", description: "Wallet ID" },
+          },
+        },
+        response: {
+          200: {
+                type: "object",
+                properties: {
+                  id: { type: "number" },
+                  userId: { type: "number" },
+                  name: { type: "string" },
+                  publicKey: { type: "string" },
+                  network: { type: "string" },
+                  isActive: { type: "boolean" },
+                  createdAt: { type: "string", format: "date-time" },
+                },
+              },
+          404: { type: "object", properties: { error: { type: "string" } } },
+        },
+      },
+    }, async (request, reply) => {
     const userId = request.user!.userId;
     const { id } = request.params as { id: string };
 
@@ -122,7 +207,42 @@ export async function walletRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────
   // RENAME WALLET
   // ──────────────────────────────────────────
-  app.patch("/api/v1/wallets/:id", { preHandler: authMiddleware }, async (request, reply) => {
+  app.patch("/api/v1/wallets/:id", {
+      preHandler: authMiddleware,
+      schema: {
+        description: "Rename a wallet.",
+        tags: ["Wallets"],
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: "object",
+          properties: {
+            id: { type: "string", description: "Wallet ID" },
+          },
+        },
+        body: {
+          type: "object",
+          required: ["name"],
+          properties: {
+            name: { type: "string", description: "New wallet name" },
+          },
+        },
+        response: {
+          200: {
+                type: "object",
+                properties: {
+                  id: { type: "number" },
+                  userId: { type: "number" },
+                  name: { type: "string" },
+                  publicKey: { type: "string" },
+                  network: { type: "string" },
+                  isActive: { type: "boolean" },
+                  createdAt: { type: "string", format: "date-time" },
+                },
+              },
+          404: { type: "object", properties: { error: { type: "string" } } },
+        },
+      },
+    }, async (request, reply) => {
     const userId = request.user!.userId;
     const { id } = request.params as { id: string };
     const { name } = request.body as { name: string };
@@ -148,7 +268,24 @@ export async function walletRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────
   // DELETE WALLET
   // ──────────────────────────────────────────
-  app.delete("/api/v1/wallets/:id", { preHandler: authMiddleware }, async (request, reply) => {
+  app.delete("/api/v1/wallets/:id", {
+      preHandler: authMiddleware,
+      schema: {
+        description: "Delete a wallet. If it was active, another wallet is auto-activated.",
+        tags: ["Wallets"],
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: "object",
+          properties: {
+            id: { type: "string", description: "Wallet ID" },
+          },
+        },
+        response: {
+          200: { type: "object", properties: { ok: { type: "boolean" } } },
+          404: { type: "object", properties: { error: { type: "string" } } },
+        },
+      },
+    }, async (request, reply) => {
     const userId = request.user!.userId;
     const { id } = request.params as { id: string };
 

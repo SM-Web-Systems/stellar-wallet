@@ -47,7 +47,8 @@ function resolveIconUrl(
 ): string | null {
   if (!meta) return null;
   if (meta.localIcon) {
-    return `${config.API_BASE_URL}/assets/icons/${meta.localIcon}`;
+    const icon = meta.localIcon.startsWith("/") ? meta.localIcon : `/assets/icons/${meta.localIcon}`;
+    return `${config.API_BASE_URL}${icon}`;
   }
   return meta.tomlImage ?? null;
 }

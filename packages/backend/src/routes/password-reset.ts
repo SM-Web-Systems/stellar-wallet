@@ -8,7 +8,27 @@ import { sendPasswordResetEmail } from "../lib/email";
 
 export async function passwordResetRoutes(app: FastifyInstance) {
   // POST /api/v1/auth/forgot-password
-  app.post("/api/v1/auth/forgot-password", async (request, reply) => {
+  app.post("/api/v1/auth/forgot-password", {
+      schema: {
+        description: "Request a password reset email. Always returns success to prevent email enumeration.",
+        tags: ["Auth"],
+        body: {
+          type: "object",
+          required: ["email"],
+          properties: {
+            email: { type: "string", format: "email" },
+          },
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              message: { type: "string" },
+            },
+          },
+        },
+      },
+    }, async (request, reply) => {
     const { email } = request.body as { email: string };
 
     if (!email) {
@@ -52,7 +72,24 @@ export async function passwordResetRoutes(app: FastifyInstance) {
   });
 
   // POST /api/v1/auth/reset-password
-  app.post("/api/v1/auth/reset-password", async (request, reply) => {
+  app.post("/api/v1/auth/reset-password", {
+      schema: {
+        description: "Reset password using a valid token from the password reset email.",
+        tags: ["Auth"],
+        body: {
+          type: "object",
+          required: ["token", "password"],
+          properties: {
+            token: { type: "string", description: "64-char hex reset token from email" },
+            password: { type: "string", minLength: 8, description: "New password (min 8 chars)" },
+          },
+        },
+        response: {
+          200: { type: "object", properties: { message: { type: "string" } } },
+          400: { type: "object", properties: { error: { type: "string" } } },
+        },
+      },
+    }, async (request, reply) => {
     const { token, password } = request.body as {
       token: string;
       password: string;

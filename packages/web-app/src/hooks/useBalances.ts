@@ -59,12 +59,43 @@ export function useBalances() {
     queryKey: ["balances", publicKey, network],
     queryFn: async () => {
       if (!publicKey) return [];
-      if (network === "public") {
-        const raw = await fetchBalancesFromHorizon(publicKey, network);
-        return raw.map(normalizeBalance);
+      try {
+        // Always try Horizon first (works for both testnet & public)
+        const horizonBalances = await fetchBalancesFromHorizon(publicKey, network);
+        if (horizonBalances.length > 0) {
+          // Enrich with backend token metadata
+          try {
+            const backendRaw = await tokenApi.userTokens(publicKey);
+            const backendBalances = unwrap(backendRaw);
+            const metaMap = new Map<string, any>();
+            for (const b of backendBalances) {
+              const code = b.assetCode || b.asset_code || "";
+              const issuer = b.assetIssuer || b.asset_issuer || "native";
+              metaMap.set(`${code}-${issuer}`, b);
+            }
+            return horizonBalances.map((hb: any) => {
+              const key = `${hb.assetCode}-${hb.assetIssuer}`;
+              const meta = metaMap.get(key);
+              return normalizeBalance({
+                ...hb,
+                token: meta?.token || hb.token,
+                isFavorite: meta?.isFavorite ?? meta?.is_favorite ?? hb.isFavorite,
+              });
+            });
+          } catch {
+            return horizonBalances.map(normalizeBalance);
+          }
+        }
+        return [];
+      } catch {
+        // Horizon failed — try backend as fallback
+        try {
+          const raw = await tokenApi.userTokens(publicKey);
+          return unwrap(raw).map(normalizeBalance);
+        } catch {
+          return [];
+        }
       }
-      const raw = await tokenApi.userTokens(publicKey);
-      return unwrap(raw).map(normalizeBalance);
     },
     enabled: !!publicKey,
     refetchInterval: 15_000,

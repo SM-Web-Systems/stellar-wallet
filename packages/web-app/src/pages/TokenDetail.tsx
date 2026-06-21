@@ -9,10 +9,11 @@ import OrderbookDepth from "../components/OrderbookDepth";
 import LiquidityPools from "../components/LiquidityPools";
 import PinModal from "../components/PinModal";
 import { useState } from "react";
+import { useBalances } from "../hooks/useBalances";
 import { toast } from "sonner";
 import { API_BASE } from "../lib/constants";
 import {
-  ArrowLeft, Star, ExternalLink, Shield, ShieldAlert, TrendingUp,
+  ArrowLeft, Star, ExternalLink, Shield, ShieldAlert, TrendingUp, X,
   Users, BarChart3, DollarSign, ArrowLeftRight, Send, Plus, Loader2,
   Globe, Copy, Check,
 } from "lucide-react";
@@ -99,6 +100,13 @@ export default function TokenDetailPage() {
   const [showPin, setShowPin] = useState(false);
   const [pinAction, setPinAction] = useState<"trustline" | "favorite">("trustline");
   const [copiedIssuer, setCopiedIssuer] = useState(false);
+
+  // Trustline status
+  const { data: balances } = useBalances();
+  const existingTrustline = balances?.find(
+    (b: any) => b.assetCode === code && (b.assetIssuer || "native") === issuer
+  );
+  const hasTrustline = !!existingTrustline;
 
   const {
     data: token,
@@ -224,12 +232,49 @@ export default function TokenDetailPage() {
               }
             />
           </button>
-          <button
-            onClick={handleAddTrustline}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-stellar-border text-sm text-stellar-muted hover:text-white hover:bg-white/5 transition-colors"
-          >
-            <Plus size={16} /> {t("tokens.addTrustline")}
-          </button>
+          {hasTrustline ? (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-stellar-success/40 text-sm text-stellar-success">
+                <Shield size={16} />
+                {t("tokens.trusted", "Trusted")}
+                {existingTrustline && (
+                  <span className="font-mono text-xs ml-1">
+                    ({parseFloat(existingTrustline.balance).toLocaleString(undefined, { maximumFractionDigits: 7 })} {code})
+                  </span>
+                )}
+              </div>
+              {existingTrustline && parseFloat(existingTrustline.balance) === 0 && code !== "XLM" && (
+                <button
+                  onClick={async () => {
+                    if (!window.confirm(t("tokens.removeTrustlineConfirm", `Remove trustline for ${code}? This will free up 0.5 XLM reserve.`))) return;
+                    if (!isUnlocked) {
+                      setPinAction("trustline");
+                      setShowPin(true);
+                      return;
+                    }
+                    try {
+                      const secret = getSecretKey();
+                      await buildTrustlineTx(secret, code!, issuer!);
+                      toast.success(t("tokens.trustlineRemoved", "Trustline removed"));
+                      queryClient.invalidateQueries({ queryKey: ["balances"] });
+                    } catch (err: any) {
+                      toast.error(err.message || t("tokens.removeFailed", "Failed to remove trustline"));
+                    }
+                  }}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-stellar-danger/30 text-sm text-stellar-danger hover:bg-stellar-danger/10 transition-colors"
+                >
+                  <X size={14} /> {t("tokens.removeTrustline", "Remove")}
+                </button>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={handleAddTrustline}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-stellar-border text-sm text-stellar-muted hover:text-white hover:bg-white/5 transition-colors"
+            >
+              <Plus size={16} /> {t("tokens.addTrustline")}
+            </button>
+          )}
           <button
             onClick={() => navigate(`/send?asset=${code}`)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-stellar-blue text-white text-sm font-medium hover:bg-stellar-purple transition-colors"
