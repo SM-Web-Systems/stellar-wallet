@@ -156,7 +156,7 @@ export default function SwapPage() {
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">{t("swap.title")}</h1>
+        <h1 className="text-2xl font-bold text-stellar-text">{t("swap.title")}</h1>
         <p className="mt-1 text-sm text-stellar-muted">{t("swap.subtitle")}</p>
       </div>
 
@@ -171,7 +171,7 @@ export default function SwapPage() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          <input type="number" min="0" step="any" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} className="flex-1 bg-transparent text-2xl text-white font-medium placeholder:text-stellar-muted/40 focus:outline-none" />
+          <input type="number" min="0" step="any" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} className="flex-1 bg-transparent text-2xl text-stellar-text font-medium placeholder:text-stellar-muted/40 focus:outline-none" />
           <TokenPickerButton selected={fromToken} placeholder={t("swap.selectToken")} onClick={() => { setShowFromPicker(!showFromPicker); setShowToPicker(false); }} />
         </div>
         {showFromPicker && (
@@ -194,7 +194,7 @@ export default function SwapPage() {
         <span className="text-sm text-stellar-muted">{t("swap.youReceive")}</span>
         <div className="flex items-center gap-3">
           <div className="flex-1 text-2xl font-medium">
-            {quoteLoading ? (<Loader2 size={24} className="animate-spin text-stellar-muted" />) : quote?.estimatedReceive ? (<span className="text-white">{parseFloat(quote.estimatedReceive).toLocaleString(undefined, { maximumFractionDigits: 7 })}</span>) : (<span className="text-stellar-muted/40">0.00</span>)}
+            {quoteLoading ? (<Loader2 size={24} className="animate-spin text-stellar-muted" />) : quote?.estimatedReceive ? (<span className="text-stellar-text">{parseFloat(quote.estimatedReceive).toLocaleString(undefined, { maximumFractionDigits: 7 })}</span>) : (<span className="text-stellar-muted/40">0.00</span>)}
           </div>
           <TokenPickerButton selected={toToken} placeholder={t("swap.selectToken")} onClick={() => { setShowToPicker(!showToPicker); setShowFromPicker(false); }} />
         </div>
@@ -209,18 +209,18 @@ export default function SwapPage() {
           {quote.rate && (
             <div className="flex justify-between text-stellar-muted">
               <span>{t("swap.rate")}</span>
-              <span className="text-white">1 {fromToken.code} ≈ {parseFloat(quote.rate).toLocaleString(undefined, { maximumFractionDigits: 7 })} {toToken.code}</span>
+              <span className="text-stellar-text">1 {fromToken.code} ≈ {parseFloat(quote.rate).toLocaleString(undefined, { maximumFractionDigits: 7 })} {toToken.code}</span>
             </div>
           )}
           {quote.path && quote.path.length > 0 && (
             <div className="flex justify-between text-stellar-muted">
               <span>{t("swap.route")}</span>
-              <span className="text-white">{fromToken.code} → {quote.path.map((p) => p.asset_code || "XLM").join(" → ")} → {toToken.code}</span>
+              <span className="text-stellar-text">{fromToken.code} → {quote.path.map((p) => p.asset_code || "XLM").join(" → ")} → {toToken.code}</span>
             </div>
           )}
           <div className="flex justify-between text-stellar-muted">
             <span>{t("swap.slippage")}</span>
-            <span className="text-white">1%</span>
+            <span className="text-stellar-text">1%</span>
           </div>
         </div>
       )}
@@ -251,7 +251,7 @@ export default function SwapPage() {
 function TokenPickerButton({ selected, placeholder = "Select", onClick }: { selected: TokenOption | null; placeholder?: string; onClick: () => void }) {
   return (
     <button onClick={onClick} className="flex items-center gap-2 bg-stellar-bg border border-stellar-border rounded-xl px-3 py-2 hover:border-stellar-blue/50 transition-colors shrink-0">
-      {selected ? (<><TokenIcon code={selected.code} image={selected.image} size={24} /><span className="text-white font-medium text-sm">{selected.code}</span></>) : (<span className="text-stellar-muted text-sm">{placeholder}</span>)}
+      {selected ? (<><TokenIcon code={selected.code} image={selected.image} size={24} /><span className="text-stellar-text font-medium text-sm">{selected.code}</span></>) : (<span className="text-stellar-muted text-sm">{placeholder}</span>)}
       <ChevronDown size={14} className="text-stellar-muted" />
     </button>
   );
@@ -263,8 +263,8 @@ function TokenPickerDropdown({ tokens, selected, search, onSearch, onSelect, onC
       <div className="p-3 border-b border-stellar-border">
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stellar-muted" />
-          <input type="text" placeholder={searchPlaceholder || "Search..."} value={search} onChange={(e) => onSearch(e.target.value)} className="w-full bg-stellar-card border border-stellar-border rounded-lg pl-9 pr-8 py-2 text-sm text-white placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue/50" autoFocus />
-          {search && (<button onClick={() => onSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-stellar-muted hover:text-white"><X size={14} /></button>)}
+          <input type="text" placeholder={searchPlaceholder || "Search..."} value={search} onChange={(e) => onSearch(e.target.value)} className="w-full bg-stellar-card border border-stellar-border rounded-lg pl-9 pr-8 py-2 text-sm text-stellar-text placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue/50" autoFocus />
+          {search && (<button onClick={() => onSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-stellar-muted hover:text-stellar-text"><X size={14} /></button>)}
         </div>
       </div>
       <div className="max-h-56 overflow-y-auto">
@@ -275,7 +275,7 @@ function TokenPickerDropdown({ tokens, selected, search, onSearch, onSelect, onC
               <div className="flex items-center gap-3">
                 <TokenIcon code={tk.code} image={tk.image} size={28} />
                 <div className="text-left">
-                  <p className="text-white text-sm font-medium">{tk.code}</p>
+                  <p className="text-stellar-text text-sm font-medium">{tk.code}</p>
                   <p className="text-xs text-stellar-muted">{tk.name}</p>
                 </div>
               </div>

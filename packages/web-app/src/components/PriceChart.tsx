@@ -71,7 +71,7 @@ export default function PriceChart({ code, issuer }: PriceChartProps) {
           </h3>
           {chartData.length > 0 && (
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xl font-bold text-white">{formatPrice(lastPrice)}</span>
+              <span className="text-xl font-bold text-stellar-text">{formatPrice(lastPrice)}</span>
               <span className={`flex items-center text-sm font-medium ${isPositive ? "text-stellar-success" : "text-stellar-danger"}`}>
                 {isPositive ? <TrendingUp size={14} /> : priceChange === 0 ? <Minus size={14} /> : <TrendingDown size={14} />}
                 <span className="ml-1">{isPositive ? "+" : ""}{priceChange.toFixed(2)}%</span>
@@ -87,7 +87,7 @@ export default function PriceChart({ code, issuer }: PriceChartProps) {
               className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
                 idx === intervalIdx
                   ? "bg-stellar-blue text-white"
-                  : "bg-stellar-dark text-stellar-muted hover:text-white"
+                  : "bg-stellar-dark text-stellar-muted hover:text-stellar-text"
               }`}
             >
               {iv.label}

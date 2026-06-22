@@ -34,21 +34,21 @@ export default function PinModal({ title, onSubmit, onCancel }: PinModalProps) {
         onSubmit={handleSubmit}
         className="bg-stellar-card border border-stellar-border rounded-2xl p-8 w-full max-w-sm space-y-4"
       >
-        <h2 className="text-lg font-semibold text-white">{title}</h2>
+        <h2 className="text-lg font-semibold text-stellar-text">{title}</h2>
         <input
           type="password"
           value={pin}
           onChange={(e) => setPin(e.target.value)}
           placeholder="Enter your PIN"
           autoFocus
-          className="w-full px-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-white placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
+          className="w-full px-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
         />
         {error && <p className="text-sm text-stellar-danger">{error}</p>}
         <div className="flex gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-lg border border-stellar-border text-stellar-muted hover:text-white transition-colors"
+            className="flex-1 py-2.5 rounded-lg border border-stellar-border text-stellar-muted hover:text-stellar-text transition-colors"
           >
             Cancel
           </button>

@@ -60,7 +60,7 @@ export default function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-2 rounded-lg text-stellar-muted hover:text-white hover:bg-stellar-card transition-colors"
+        className="relative p-2 rounded-lg text-stellar-muted hover:text-stellar-text hover:bg-stellar-card transition-colors"
       >
         <Bell size={20} />
         {count > 0 && (
@@ -73,7 +73,7 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 top-12 w-80 max-h-96 bg-stellar-card border border-stellar-border rounded-xl shadow-2xl z-50 overflow-hidden">
           <div className="flex items-center justify-between p-3 border-b border-stellar-border">
-            <h3 className="text-sm font-semibold text-white">
+            <h3 className="text-sm font-semibold text-stellar-text">
               {t("notifications.title", "Notifications")}
             </h3>
             <div className="flex gap-1">
@@ -97,7 +97,7 @@ export default function NotificationBell() {
               )}
               <button
                 onClick={() => setOpen(false)}
-                className="p-1 text-stellar-muted hover:text-white transition-colors"
+                className="p-1 text-stellar-muted hover:text-stellar-text transition-colors"
               >
                 <X size={16} />
               </button>
@@ -129,7 +129,7 @@ export default function NotificationBell() {
                     <Icon size={18} className={`mt-0.5 flex-shrink-0 ${typeColors[n.type]}`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <p className={`text-sm font-medium ${!n.read ? "text-white" : "text-stellar-muted"}`}>
+                        <p className={`text-sm font-medium ${!n.read ? "text-stellar-text" : "text-stellar-muted"}`}>
                           {n.title}
                         </p>
                         <button

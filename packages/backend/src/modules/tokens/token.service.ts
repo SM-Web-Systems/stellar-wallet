@@ -216,7 +216,7 @@ export class TokenService {
     ]);
 
     return {
-      tokens: results,
+      tokens: results.map((t) => ({ ...t, image: resolveIconUrl(t) })),
       pagination: {
         total: Number(countResult[0].count),
         limit,

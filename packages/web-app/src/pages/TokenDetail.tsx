@@ -168,7 +168,7 @@ export default function TokenDetailPage() {
       <div className="space-y-4">
         <Link
           to="/tokens"
-          className="flex items-center gap-2 text-sm text-stellar-muted hover:text-white"
+          className="flex items-center gap-2 text-sm text-stellar-muted hover:text-stellar-text"
         >
           <ArrowLeft size={16} /> {t("tokens.backToTokens")}
         </Link>
@@ -183,7 +183,7 @@ export default function TokenDetailPage() {
     <div className="space-y-8">
       <Link
         to="/tokens"
-        className="inline-flex items-center gap-2 text-sm text-stellar-muted hover:text-white transition-colors"
+        className="inline-flex items-center gap-2 text-sm text-stellar-muted hover:text-stellar-text transition-colors"
       >
         <ArrowLeft size={16} /> {t("tokens.backToTokens")}
       </Link>
@@ -193,7 +193,7 @@ export default function TokenDetailPage() {
         <TokenIcon code={token.assetCode} image={token.tomlImage} size={64} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl font-bold text-white">{token.assetCode}</h1>
+            <h1 className="text-3xl font-bold text-stellar-text">{token.assetCode}</h1>
             {token.isVerified ? (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-stellar-success/20 text-stellar-success text-xs font-medium">
                 <Shield size={12} /> {t("tokens.verified")}
@@ -271,7 +271,7 @@ export default function TokenDetailPage() {
           ) : (
             <button
               onClick={handleAddTrustline}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-stellar-border text-sm text-stellar-muted hover:text-white hover:bg-white/5 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-stellar-border text-sm text-stellar-muted hover:text-stellar-text hover:bg-white/5 transition-colors"
             >
               <Plus size={16} /> {t("tokens.addTrustline")}
             </button>
@@ -340,7 +340,7 @@ export default function TokenDetailPage() {
 
       {/* Metadata */}
       <div className="bg-stellar-card border border-stellar-border rounded-2xl p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-white">
+        <h2 className="text-lg font-semibold text-stellar-text">
           {t("tokens.assetDetails")}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
@@ -362,7 +362,7 @@ export default function TokenDetailPage() {
                     ) : (
                       <Copy
                         size={14}
-                        className="text-stellar-muted hover:text-white"
+                        className="text-stellar-muted hover:text-stellar-text"
                       />
                     )}
                   </button>
@@ -559,7 +559,7 @@ function StatCard({
           {label}
         </span>
       </div>
-      <p className="text-xl font-bold text-white">{value}</p>
+      <p className="text-xl font-bold text-stellar-text">{value}</p>
       {sub && <p className="text-xs text-stellar-muted mt-1">{sub}</p>}
     </div>
   );
@@ -575,7 +575,7 @@ function DetailRow({
   return (
     <div className="flex justify-between items-start gap-4">
       <span className="text-stellar-muted shrink-0">{label}</span>
-      <span className="text-white text-right">{value}</span>
+      <span className="text-stellar-text text-right">{value}</span>
     </div>
   );
 }
@@ -608,7 +608,7 @@ function ExternalButton({ href, label }: { href: string; label: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stellar-border text-xs text-stellar-muted hover:text-white hover:bg-white/5 transition-colors"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stellar-border text-xs text-stellar-muted hover:text-stellar-text hover:bg-white/5 transition-colors"
     >
       {label}
       <ExternalLink size={12} />

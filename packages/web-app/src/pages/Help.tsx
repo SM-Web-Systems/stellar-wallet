@@ -26,7 +26,7 @@ function FaqAccordion({ item, isOpen, toggle }: { item: FaqItem; isOpen: boolean
         onClick={toggle}
         className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-stellar-card/50 transition-colors"
       >
-        <span className={"text-sm font-medium " + (isOpen ? "text-stellar-blue" : "text-white")}>{item.question}</span>
+        <span className={"text-sm font-medium " + (isOpen ? "text-stellar-blue" : "text-stellar-text")}>{item.question}</span>
         {isOpen ? <ChevronUp size={16} className="text-stellar-blue shrink-0" /> : <ChevronDown size={16} className="text-stellar-muted shrink-0" />}
       </button>
       {isOpen && (
@@ -196,7 +196,7 @@ export default function HelpPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">{t("help.title", "Help & FAQ")}</h1>
+        <h1 className="text-2xl font-bold text-stellar-text">{t("help.title", "Help & FAQ")}</h1>
         <p className="text-sm text-stellar-muted mt-1">{t("help.subtitle", "Find answers to common questions about Amma Wallet")}</p>
       </div>
 
@@ -208,7 +208,7 @@ export default function HelpPage() {
             className={"flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors " + (
               activeCategory === key
                 ? "bg-stellar-blue/20 text-stellar-blue border border-stellar-blue/40"
-                : "bg-stellar-card border border-stellar-border text-stellar-muted hover:text-white hover:border-stellar-blue/30"
+                : "bg-stellar-card border border-stellar-border text-stellar-muted hover:text-stellar-text hover:border-stellar-blue/30"
             )}
           >
             <Icon size={14} />
@@ -229,7 +229,7 @@ export default function HelpPage() {
       </div>
 
       <div className="bg-stellar-card border border-stellar-border rounded-xl p-6 space-y-4">
-        <h3 className="text-white font-medium">{t("help.moreHelp", "Need more help?")}</h3>
+        <h3 className="text-stellar-text font-medium">{t("help.moreHelp", "Need more help?")}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <a
             href="https://ammawallet.com/docs"
@@ -239,7 +239,7 @@ export default function HelpPage() {
           >
             <ExternalLink size={16} className="text-stellar-blue" />
             <div>
-              <p className="text-sm font-medium text-white">API Documentation</p>
+              <p className="text-sm font-medium text-stellar-text">API Documentation</p>
               <p className="text-xs text-stellar-muted">Interactive Swagger docs for developers</p>
             </div>
           </a>
@@ -249,7 +249,7 @@ export default function HelpPage() {
           >
             <Mail size={16} className="text-stellar-blue" />
             <div>
-              <p className="text-sm font-medium text-white">Contact Support</p>
+              <p className="text-sm font-medium text-stellar-text">Contact Support</p>
               <p className="text-xs text-stellar-muted">Email us at support@ammawallet.com</p>
             </div>
           </a>

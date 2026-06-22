@@ -327,3 +327,33 @@ export const contactsApi = {
   remove: (id: number) =>
     request<any>("/api/v1/contacts/" + id, { method: "DELETE" }),
 };
+
+export const fiatApi = {
+  currencies: () => request<any>("/api/v1/fiat/currencies"),
+  buyQuote: (fiatCurrency: string, fiatAmount: number, targetAsset = "XLM") =>
+    request<any>("/api/v1/fiat/quote/buy", {
+      method: "POST",
+      body: JSON.stringify({ fiatCurrency, fiatAmount, targetAsset }),
+    }),
+  sellQuote: (fiatCurrency: string, cryptoAmount: number, sourceAsset = "XLM") =>
+    request<any>("/api/v1/fiat/quote/sell", {
+      method: "POST",
+      body: JSON.stringify({ fiatCurrency, cryptoAmount, sourceAsset }),
+    }),
+  buy: (quoteId: string, paymentMethod: string, destinationAddress: string) =>
+    request<any>("/api/v1/fiat/buy", {
+      method: "POST",
+      body: JSON.stringify({ quoteId, paymentMethod, destinationAddress }),
+    }),
+  sell: (quoteId: string, bankDetails?: any) =>
+    request<any>("/api/v1/fiat/sell", {
+      method: "POST",
+      body: JSON.stringify({ quoteId, bankDetails }),
+    }),
+};
+
+export const portfolioApi = {
+  snapshot: () => request<any>("/api/v1/portfolio/snapshot", { method: "POST" }),
+  history: (days = 30) => request<any>("/api/v1/portfolio/history?days=" + days),
+  summary: () => request<any>("/api/v1/portfolio/summary"),
+};

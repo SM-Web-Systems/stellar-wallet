@@ -22,7 +22,7 @@ export default function LiquidityPools({ pools }: LiquidityPoolsProps) {
     <div className="bg-stellar-card border border-stellar-border rounded-2xl p-6 space-y-4">
       <div className="flex items-center gap-2">
         <Droplets size={20} className="text-stellar-blue" />
-        <h2 className="text-lg font-semibold text-white">Liquidity Pools</h2>
+        <h2 className="text-lg font-semibold text-stellar-text">Liquidity Pools</h2>
         <span className="text-xs text-stellar-muted">({pools.length} found)</span>
       </div>
 
@@ -41,7 +41,7 @@ export default function LiquidityPools({ pools }: LiquidityPoolsProps) {
               {/* Pool pair header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-white font-semibold">
+                  <span className="text-stellar-text font-semibold">
                     {asset0Label} / {asset1Label}
                   </span>
                   {pool.fee_bp != null && (
@@ -54,7 +54,7 @@ export default function LiquidityPools({ pools }: LiquidityPoolsProps) {
                   href={`https://stellar.expert/explorer/testnet/liquidity-pool/${pool.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-stellar-muted hover:text-white transition-colors"
+                  className="text-stellar-muted hover:text-stellar-text transition-colors"
                 >
                   <ExternalLink size={14} />
                 </a>
@@ -65,7 +65,7 @@ export default function LiquidityPools({ pools }: LiquidityPoolsProps) {
                 {pool.reserves?.map((r, i) => (
                   <div key={i} className="text-sm">
                     <span className="text-stellar-muted">{parseAssetLabel(r.asset)}: </span>
-                    <span className="text-white font-mono">
+                    <span className="text-stellar-text font-mono">
                       {formatPoolAmount(r.amount)}
                     </span>
                   </div>

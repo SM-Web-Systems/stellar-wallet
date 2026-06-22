@@ -38,7 +38,7 @@ export default function VerifyEmailPage() {
   return (
     <div className="flex items-center justify-center min-h-screen p-6">
       <div className="w-full max-w-md bg-stellar-card rounded-2xl p-8 border border-stellar-border text-center">
-        <h1 className="text-2xl font-bold text-white mb-6">Email Verification</h1>
+        <h1 className="text-2xl font-bold text-stellar-text mb-6">Email Verification</h1>
 
         {status === "loading" && (
           <div className="flex flex-col items-center gap-4">
@@ -50,7 +50,7 @@ export default function VerifyEmailPage() {
         {status === "success" && (
           <div className="flex flex-col items-center gap-4">
             <CheckCircle className="w-16 h-16 text-green-500" />
-            <p className="text-white text-lg">{message}</p>
+            <p className="text-stellar-text text-lg">{message}</p>
             <button
               onClick={() => navigate("/dashboard")}
               className="mt-4 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white font-semibold hover:opacity-90 transition"
@@ -66,7 +66,7 @@ export default function VerifyEmailPage() {
             <p className="text-red-400 text-lg">{message}</p>
             <button
               onClick={() => navigate("/login")}
-              className="mt-4 px-6 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-white hover:bg-stellar-border transition"
+              className="mt-4 px-6 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-stellar-text hover:bg-stellar-border transition"
             >
               Back to Login
             </button>

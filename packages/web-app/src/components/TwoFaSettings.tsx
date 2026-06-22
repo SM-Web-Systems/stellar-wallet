@@ -158,7 +158,7 @@ export default function TwoFaSettings() {
           </p>
           <div className="grid grid-cols-2 gap-2 p-3 bg-stellar-dark rounded-lg">
             {backupCodes.map((code, i) => (
-              <code key={i} className="text-xs text-white font-mono text-center py-1">{code}</code>
+              <code key={i} className="text-xs text-stellar-text font-mono text-center py-1">{code}</code>
             ))}
           </div>
           <div className="flex gap-2">
@@ -181,7 +181,7 @@ export default function TwoFaSettings() {
   if (setupData?.method === "totp") {
     return (
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-stellar-text flex items-center gap-2">
           <Smartphone size={16} className="text-stellar-blue" /> Setup Authenticator App
         </h3>
         <div className="flex justify-center p-4 bg-white rounded-xl">
@@ -196,11 +196,11 @@ export default function TwoFaSettings() {
         <div className="space-y-2">
           <input type="text" inputMode="numeric" maxLength={6} value={verifyToken}
             onChange={(e) => setVerifyToken(e.target.value.replace(/\D/g, ""))} placeholder="000000"
-            className="w-full px-4 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-white text-center text-lg tracking-[0.5em] font-mono placeholder:text-stellar-muted/30 focus:outline-none focus:border-stellar-blue" />
+            className="w-full px-4 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-stellar-text text-center text-lg tracking-[0.5em] font-mono placeholder:text-stellar-muted/30 focus:outline-none focus:border-stellar-blue" />
         </div>
         <div className="flex gap-2">
           <button onClick={() => { setSetupData(null); setVerifyToken(""); }}
-            className="flex-1 py-3 rounded-xl border border-stellar-border text-stellar-muted text-sm hover:text-white transition-colors">Cancel</button>
+            className="flex-1 py-3 rounded-xl border border-stellar-border text-stellar-muted text-sm hover:text-stellar-text transition-colors">Cancel</button>
           <button onClick={handleVerify} disabled={verifying || verifyToken.length < 6}
             className="flex-1 py-3 rounded-xl bg-stellar-blue text-white text-sm font-medium hover:bg-stellar-purple transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
             {verifying && <Loader2 size={14} className="animate-spin" />} Verify & Enable
@@ -214,16 +214,16 @@ export default function TwoFaSettings() {
   if (setupData?.method === "email") {
     return (
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-stellar-text flex items-center gap-2">
           <Mail size={16} className="text-stellar-blue" /> Verify Email Code
         </h3>
         <p className="text-xs text-stellar-muted">A 6-digit code was sent to your email. Enter it below to enable email-based 2FA.</p>
         <input type="text" inputMode="numeric" maxLength={6} value={verifyToken}
           onChange={(e) => setVerifyToken(e.target.value.replace(/\D/g, ""))} placeholder="000000"
-          className="w-full px-4 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-white text-center text-lg tracking-[0.5em] font-mono placeholder:text-stellar-muted/30 focus:outline-none focus:border-stellar-blue" />
+          className="w-full px-4 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-stellar-text text-center text-lg tracking-[0.5em] font-mono placeholder:text-stellar-muted/30 focus:outline-none focus:border-stellar-blue" />
         <div className="flex gap-2">
           <button onClick={() => { setSetupData(null); setVerifyToken(""); }}
-            className="flex-1 py-3 rounded-xl border border-stellar-border text-stellar-muted text-sm hover:text-white transition-colors">Cancel</button>
+            className="flex-1 py-3 rounded-xl border border-stellar-border text-stellar-muted text-sm hover:text-stellar-text transition-colors">Cancel</button>
           <button onClick={handleVerify} disabled={verifying || verifyToken.length < 6}
             className="flex-1 py-3 rounded-xl bg-stellar-blue text-white text-sm font-medium hover:bg-stellar-purple transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
             {verifying && <Loader2 size={14} className="animate-spin" />} Verify & Enable
@@ -238,16 +238,16 @@ export default function TwoFaSettings() {
   if (setupData?.method === "static") {
     return (
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-stellar-text flex items-center gap-2">
           <Key size={16} className="text-stellar-blue" /> Verify Your Security Code
         </h3>
         <p className="text-xs text-stellar-muted">Enter your chosen 6-digit code to confirm and enable 2FA.</p>
         <input type="text" inputMode="numeric" maxLength={6} value={verifyToken}
           onChange={(e) => setVerifyToken(e.target.value.replace(/\D/g, ""))} placeholder="000000"
-          className="w-full px-4 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-white text-center text-lg tracking-[0.5em] font-mono placeholder:text-stellar-muted/30 focus:outline-none focus:border-stellar-blue" />
+          className="w-full px-4 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-stellar-text text-center text-lg tracking-[0.5em] font-mono placeholder:text-stellar-muted/30 focus:outline-none focus:border-stellar-blue" />
         <div className="flex gap-2">
           <button onClick={() => { setSetupData(null); setVerifyToken(""); setStaticCode(""); setStaticConfirm(""); }}
-            className="flex-1 py-3 rounded-xl border border-stellar-border text-stellar-muted text-sm hover:text-white transition-colors">Cancel</button>
+            className="flex-1 py-3 rounded-xl border border-stellar-border text-stellar-muted text-sm hover:text-stellar-text transition-colors">Cancel</button>
           <button onClick={handleVerify} disabled={verifying || verifyToken.length < 6}
             className="flex-1 py-3 rounded-xl bg-stellar-blue text-white text-sm font-medium hover:bg-stellar-purple transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
             {verifying && <Loader2 size={14} className="animate-spin" />} Verify & Enable
@@ -266,12 +266,12 @@ export default function TwoFaSettings() {
         </h3>
         <input type="password" value={disablePassword} onChange={(e) => setDisablePassword(e.target.value)}
           placeholder="Current password"
-          className="w-full px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-white text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue" />
+          className="w-full px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue" />
         <div className="space-y-2">
           <input type="text" inputMode="numeric" maxLength={8} value={disableToken}
             onChange={(e) => setDisableToken(e.target.value.replace(/[^0-9A-Za-z]/g, ""))}
             placeholder={status?.method === "email" ? "Email code or backup code" : status?.method === "static" ? "Your 6-digit security code" : "6-digit code or backup code"}
-            className="w-full px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-white text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue text-center tracking-widest" />
+            className="w-full px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue text-center tracking-widest" />
           {status?.method === "email" && (
             <button onClick={handleSendDisableCode} disabled={sendingCode}
               className="w-full py-2 rounded-lg border border-stellar-blue/30 text-stellar-blue text-xs hover:bg-stellar-blue/10 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50">
@@ -282,7 +282,7 @@ export default function TwoFaSettings() {
         </div>
         <div className="flex gap-2">
           <button onClick={() => { setShowDisable(false); setDisableToken(""); setDisablePassword(""); }}
-            className="flex-1 py-3 rounded-xl border border-stellar-border text-stellar-muted text-sm hover:text-white transition-colors">Cancel</button>
+            className="flex-1 py-3 rounded-xl border border-stellar-border text-stellar-muted text-sm hover:text-stellar-text transition-colors">Cancel</button>
           <button onClick={handleDisable} disabled={disabling}
             className="flex-1 py-3 rounded-xl bg-stellar-danger text-white text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
             {disabling && <Loader2 size={14} className="animate-spin" />} Disable 2FA
@@ -298,7 +298,7 @@ export default function TwoFaSettings() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ShieldCheck size={16} className={status?.enabled ? "text-green-400" : "text-stellar-muted"} />
-          <span className="text-sm text-white">Two-Factor Authentication</span>
+          <span className="text-sm text-stellar-text">Two-Factor Authentication</span>
         </div>
         <span className={`text-xs px-2 py-1 rounded-full ${
           status?.enabled ? "bg-green-500/20 text-green-400" : "bg-stellar-muted/20 text-stellar-muted"
@@ -336,7 +336,7 @@ export default function TwoFaSettings() {
                   <Icon size={18} className={selectedMethod === key ? "text-stellar-blue" : "text-stellar-muted"} />
                 </div>
                 <div>
-                  <span className={`text-sm font-medium ${selectedMethod === key ? "text-white" : "text-stellar-muted"}`}>
+                  <span className={`text-sm font-medium ${selectedMethod === key ? "text-stellar-text" : "text-stellar-muted"}`}>
                     {label}
                   </span>
                   <p className="text-xs text-stellar-muted/70">{desc}</p>
@@ -351,11 +351,11 @@ export default function TwoFaSettings() {
               <input type="password" inputMode="numeric" maxLength={6} value={staticCode}
                 onChange={(e) => setStaticCode(e.target.value.replace(/\D/g, ""))}
                 placeholder="Enter 6-digit code"
-                className="w-full px-4 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-white text-center text-lg tracking-[0.5em] font-mono placeholder:text-stellar-muted/30 focus:outline-none focus:border-stellar-blue" />
+                className="w-full px-4 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-stellar-text text-center text-lg tracking-[0.5em] font-mono placeholder:text-stellar-muted/30 focus:outline-none focus:border-stellar-blue" />
               <input type="password" inputMode="numeric" maxLength={6} value={staticConfirm}
                 onChange={(e) => setStaticConfirm(e.target.value.replace(/\D/g, ""))}
                 placeholder="Confirm 6-digit code"
-                className="w-full px-4 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-white text-center text-lg tracking-[0.5em] font-mono placeholder:text-stellar-muted/30 focus:outline-none focus:border-stellar-blue" />
+                className="w-full px-4 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-stellar-text text-center text-lg tracking-[0.5em] font-mono placeholder:text-stellar-muted/30 focus:outline-none focus:border-stellar-blue" />
               {staticCode.length === 6 && staticConfirm.length === 6 && staticCode !== staticConfirm && (
                 <p className="text-xs text-red-400 text-center">Codes don't match</p>
               )}

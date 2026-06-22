@@ -129,7 +129,7 @@ export default function ApiKeysPage() {
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-stellar-text">
             {t("apiKeys.title", "API Keys")}
           </h1>
           <p className="text-sm text-stellar-muted mt-1">
@@ -155,7 +155,7 @@ export default function ApiKeysPage() {
               <Key size={20} className="text-green-400" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-white font-semibold">
+              <h3 className="text-stellar-text font-semibold">
                 {t("apiKeys.keyCreated", "Your API Key Has Been Created")}
               </h3>
               <p className="text-sm text-green-300/80">
@@ -164,7 +164,7 @@ export default function ApiKeysPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <code className="flex-1 px-4 py-3 rounded-lg bg-stellar-dark border border-green-500/30 text-sm text-white font-mono break-all select-all">
+            <code className="flex-1 px-4 py-3 rounded-lg bg-stellar-dark border border-green-500/30 text-sm text-stellar-text font-mono break-all select-all">
               {newlyCreatedKey}
             </code>
             <button
@@ -193,7 +193,7 @@ export default function ApiKeysPage() {
           onSubmit={handleCreate}
           className="bg-stellar-card border border-stellar-border rounded-2xl p-6 space-y-4"
         >
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-stellar-text flex items-center gap-2">
             <Plus size={18} className="text-stellar-blue" />
             {t("apiKeys.createTitle", "Create New API Key")}
           </h2>
@@ -206,13 +206,13 @@ export default function ApiKeysPage() {
             onChange={(e) => setNewKeyName(e.target.value)}
             placeholder={t("apiKeys.namePlaceholder", "Key name (e.g. My Trading Bot)")}
             autoFocus
-            className="w-full px-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-white placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
+            className="w-full px-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
           />
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => { setShowCreateForm(false); setNewKeyName(""); }}
-              className="px-4 py-2.5 rounded-lg border border-stellar-border text-stellar-muted text-sm hover:text-white transition-colors"
+              className="px-4 py-2.5 rounded-lg border border-stellar-border text-stellar-muted text-sm hover:text-stellar-text transition-colors"
             >
               {t("common.cancel", "Cancel")}
             </button>
@@ -245,7 +245,7 @@ export default function ApiKeysPage() {
             <div className="w-16 h-16 rounded-full bg-stellar-border/30 flex items-center justify-center mb-4">
               <Key size={28} className="text-stellar-muted" />
             </div>
-            <p className="text-white font-medium mb-1">
+            <p className="text-stellar-text font-medium mb-1">
               {t("apiKeys.noKeys", "No API Keys Yet")}
             </p>
             <p className="text-sm text-stellar-muted mb-4">
@@ -271,7 +271,7 @@ export default function ApiKeysPage() {
                         <Shield size={16} className="text-stellar-blue" />
                       </div>
                       <div>
-                        <p className="text-white font-medium text-sm">{apiKey.name}</p>
+                        <p className="text-stellar-text font-medium text-sm">{apiKey.name}</p>
                         <div className="flex items-center gap-3 mt-0.5">
                           <span className="flex items-center gap-1 text-xs text-stellar-muted">
                             <Clock size={10} />

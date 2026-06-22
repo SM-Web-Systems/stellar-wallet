@@ -53,7 +53,7 @@ export default function ResetPasswordPage() {
           <div className="w-16 h-16 mx-auto rounded-full bg-green-500/10 flex items-center justify-center">
             <CheckCircle size={32} className="text-green-400" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Password Reset Successfully</h1>
+          <h1 className="text-2xl font-bold text-stellar-text">Password Reset Successfully</h1>
           <p className="text-stellar-muted">Your password has been updated. You can now sign in with your new password.</p>
           <Link
             to="/login"
@@ -71,7 +71,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <img src="/favicon-128.png" alt="Amma Wallet" className="w-16 h-16 mx-auto mb-4 rounded-2xl" />
-          <h1 className="text-3xl font-bold text-white">Reset Password</h1>
+          <h1 className="text-3xl font-bold text-stellar-text">Reset Password</h1>
           <p className="mt-2 text-stellar-muted">Enter your new password below</p>
         </div>
 
@@ -85,7 +85,7 @@ export default function ResetPasswordPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter new password"
-                className="w-full pl-10 pr-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-white placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue transition-colors"
+                className="w-full pl-10 pr-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue transition-colors"
               />
             </div>
           </div>
@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
-                className="w-full pl-10 pr-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-white placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue transition-colors"
+                className="w-full pl-10 pr-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue transition-colors"
               />
             </div>
           </div>

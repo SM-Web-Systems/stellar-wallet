@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
           <div className="w-16 h-16 mx-auto rounded-full bg-green-500/10 flex items-center justify-center">
             <CheckCircle size={32} className="text-green-400" />
           </div>
-          <h1 className="text-2xl font-bold text-white">{t("auth.resetEmailSent")}</h1>
+          <h1 className="text-2xl font-bold text-stellar-text">{t("auth.resetEmailSent")}</h1>
           <p className="text-stellar-muted">{t("auth.resetEmailSentDesc")}</p>
           <Link
             to="/login"
@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <img src="/favicon-128.png" alt="Amma Wallet" className="w-16 h-16 mx-auto mb-4 rounded-2xl" />
-          <h1 className="text-3xl font-bold text-white">{t("auth.forgotPassword")}</h1>
+          <h1 className="text-3xl font-bold text-stellar-text">{t("auth.forgotPassword")}</h1>
           <p className="mt-2 text-stellar-muted">{t("auth.forgotPasswordDesc")}</p>
         </div>
 
@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t("auth.emailPlaceholder")}
                 autoFocus
-                className="w-full pl-10 pr-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-white placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue transition-colors"
+                className="w-full pl-10 pr-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue transition-colors"
               />
             </div>
           </div>

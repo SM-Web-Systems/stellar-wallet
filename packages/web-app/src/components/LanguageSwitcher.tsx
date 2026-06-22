@@ -29,7 +29,7 @@ export default function LanguageSwitcher() {
       >
         <span className="flex items-center gap-3">
           <span className="text-xl">{current.flag}</span>
-          <span className="text-white">{current.name}</span>
+          <span className="text-stellar-text">{current.name}</span>
         </span>
         <ChevronDown
           size={18}
@@ -48,7 +48,7 @@ export default function LanguageSwitcher() {
               }`}
             >
               <span className="text-xl">{lang.flag}</span>
-              <span className="text-white text-sm">{lang.name}</span>
+              <span className="text-stellar-text text-sm">{lang.name}</span>
               {lang.code === resolvedCode && (
                 <span className="ml-auto text-xs text-stellar-blue">✓</span>
               )}

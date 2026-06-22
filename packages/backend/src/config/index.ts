@@ -26,4 +26,9 @@ export const config = {
   SMTP_USER: process.env.SMTP_USER || "",
   SMTP_PASS: process.env.SMTP_PASS || "",
   SMTP_FROM: process.env.SMTP_FROM || "Amma Wallet <noreply@ammawallet.com>",
+  VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY || "",
+  VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || "",
+  FIAT_RAMP_FEE_PERCENT: parseFloat(process.env.FIAT_RAMP_FEE_PERCENT || "0.3"),
+  FIAT_RAMP_PROVIDER: process.env.FIAT_RAMP_PROVIDER || "internal",
+  VAPID_EMAIL: process.env.VAPID_EMAIL || "mailto:noreply@ammawallet.com",
 };

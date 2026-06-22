@@ -195,7 +195,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6 max-w-lg">
-      <h1 className="text-2xl font-bold text-white">{t("settings.title", "Settings")}</h1>
+      <h1 className="text-2xl font-bold text-stellar-text">{t("settings.title", "Settings")}</h1>
 
       {/* Profile */}
       {user && (
@@ -208,10 +208,10 @@ export default function SettingsPage() {
             <div className="space-y-3">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-stellar-blue to-stellar-purple flex items-center justify-center">
-                  <User size={20} className="text-white" />
+                  <User size={20} className="text-stellar-text" />
                 </div>
                 <div>
-                  <p className="text-white font-medium">
+                  <p className="text-stellar-text font-medium">
                     {user.firstName
                       ? `${user.firstName} ${user.lastName || ""}`.trim()
                       : t("settings.noNameSet", "No name set")}
@@ -238,20 +238,20 @@ export default function SettingsPage() {
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder={t("auth.firstNamePlaceholder")}
-                  className="px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-white text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue"
+                  className="px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue"
                 />
                 <input
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder={t("auth.lastNamePlaceholder")}
-                  className="px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-white text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue"
+                  className="px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue"
                 />
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setEditingProfile(false)}
-                  className="px-4 py-2 rounded-lg border border-stellar-border text-stellar-muted text-sm hover:text-white transition-colors"
+                  className="px-4 py-2 rounded-lg border border-stellar-border text-stellar-muted text-sm hover:text-stellar-text transition-colors"
                 >
                   {t("common.cancel", "Cancel")}
                 </button>
@@ -281,7 +281,7 @@ export default function SettingsPage() {
               {t("onboarding.walletName", "Name")}
             </span>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-white font-medium">{active.name}</span>
+              <span className="text-sm text-stellar-text font-medium">{active.name}</span>
               {isHDWallet && (
                 <span className="px-1.5 py-0.5 text-[10px] rounded bg-stellar-blue/20 text-stellar-blue font-medium">
                   HD
@@ -298,7 +298,7 @@ export default function SettingsPage() {
             {t("settings.publicKey", "Public Key")}
           </label>
           <div className="flex items-center gap-2">
-            <code className="flex-1 px-3 py-2 rounded-lg bg-stellar-dark border border-stellar-border text-xs text-white break-all">
+            <code className="flex-1 px-3 py-2 rounded-lg bg-stellar-dark border border-stellar-border text-xs text-stellar-text break-all">
               {publicKey}
             </code>
             <button
@@ -345,7 +345,7 @@ export default function SettingsPage() {
                   className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-colors ${
                     signingMode === "self"
                       ? "border-stellar-blue bg-stellar-blue/10 text-white"
-                      : "border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5"
+                      : "border-stellar-border text-stellar-muted hover:text-stellar-text hover:bg-white/5"
                   }`}
                 >
                   <Shield size={24} />
@@ -359,7 +359,7 @@ export default function SettingsPage() {
                   className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-colors ${
                     signingMode === "delegated"
                       ? "border-stellar-purple bg-stellar-purple/10 text-white"
-                      : "border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5"
+                      : "border-stellar-border text-stellar-muted hover:text-stellar-text hover:bg-white/5"
                   }`}
                 >
                   <RefreshCw size={24} />
@@ -413,7 +413,7 @@ export default function SettingsPage() {
         {!revealedKey ? (
           <button
             onClick={handleRevealSecret}
-            className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5 transition-colors text-sm"
+            className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-stellar-text hover:bg-white/5 transition-colors text-sm"
           >
             <Eye size={16} />
             {t("settings.revealSecret", "Reveal Secret Key")}
@@ -428,7 +428,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs text-white break-all select-all">
+                <code className="flex-1 text-xs text-stellar-text break-all select-all">
                   {revealedKey}
                 </code>
                 <button
@@ -446,7 +446,7 @@ export default function SettingsPage() {
             </div>
             <button
               onClick={handleHideSecret}
-              className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5 transition-colors text-sm"
+              className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-stellar-text hover:bg-white/5 transition-colors text-sm"
             >
               <EyeOff size={16} />
               {t("settings.hideSecret", "Hide Secret Key")}
@@ -460,7 +460,7 @@ export default function SettingsPage() {
             {!revealedMnemonic ? (
               <button
                 onClick={handleRevealMnemonic}
-                className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5 transition-colors text-sm"
+                className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-stellar-text hover:bg-white/5 transition-colors text-sm"
               >
                 <ShieldCheck size={16} />
                 {t("settings.revealMnemonic", "Reveal Recovery Phrase")}
@@ -488,14 +488,14 @@ export default function SettingsPage() {
                           <span className="text-[10px] text-stellar-muted w-4 text-right">
                             {i + 1}.
                           </span>
-                          <span className="text-xs text-white font-mono">{word}</span>
+                          <span className="text-xs text-stellar-text font-mono">{word}</span>
                         </div>
                       ))}
                     </div>
                     {!showMnemonic && (
                       <button
                         onClick={() => setShowMnemonic(true)}
-                        className="absolute inset-0 flex items-center justify-center gap-2 text-white text-sm font-medium bg-black/40 rounded-lg"
+                        className="absolute inset-0 flex items-center justify-center gap-2 text-stellar-text text-sm font-medium bg-black/40 rounded-lg"
                       >
                         <Eye size={16} />
                         {t("onboarding.tapToReveal", "Click to reveal")}
@@ -527,7 +527,7 @@ export default function SettingsPage() {
                 </div>
                 <button
                   onClick={handleHideMnemonic}
-                  className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5 transition-colors text-sm"
+                  className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-stellar-text hover:bg-white/5 transition-colors text-sm"
                 >
                   <EyeOff size={16} />
                   {t("settings.hideMnemonic", "Hide Recovery Phrase")}
@@ -541,14 +541,14 @@ export default function SettingsPage() {
         {!showPasswordChange ? (
           <button
             onClick={() => setShowPasswordChange(true)}
-            className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5 transition-colors text-sm"
+            className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-stellar-text hover:bg-white/5 transition-colors text-sm"
           >
             <KeyRound size={16} />
             {t("settings.changePassword", "Change Password")}
           </button>
         ) : (
           <div className="space-y-3 p-4 bg-stellar-dark/50 border border-stellar-border rounded-lg">
-            <h3 className="text-sm font-medium text-white flex items-center gap-2">
+            <h3 className="text-sm font-medium text-stellar-text flex items-center gap-2">
               <KeyRound size={16} className="text-stellar-blue" />
               {t("settings.changePassword", "Change Password")}
             </h3>
@@ -557,7 +557,7 @@ export default function SettingsPage() {
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder={t("settings.currentPassword", "Current password")}
-              className="w-full px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-white text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue"
+              className="w-full px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue"
             />
             <input
               type="password"
@@ -567,14 +567,14 @@ export default function SettingsPage() {
                 "settings.newPassword",
                 "New password (min 8 chars, 1 uppercase, 1 number)"
               )}
-              className="w-full px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-white text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue"
+              className="w-full px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue"
             />
             <input
               type="password"
               value={confirmNewPassword}
               onChange={(e) => setConfirmNewPassword(e.target.value)}
               placeholder={t("settings.confirmNewPassword", "Confirm new password")}
-              className="w-full px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-white text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue"
+              className="w-full px-3 py-2.5 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text text-sm placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue"
             />
             {newPassword.length > 0 && (
               <div className="space-y-1">
@@ -650,7 +650,7 @@ export default function SettingsPage() {
                   setNewPassword("");
                   setConfirmNewPassword("");
                 }}
-                className="px-4 py-2 rounded-lg border border-stellar-border text-stellar-muted text-sm hover:text-white transition-colors"
+                className="px-4 py-2 rounded-lg border border-stellar-border text-stellar-muted text-sm hover:text-stellar-text transition-colors"
               >
                 {t("common.cancel", "Cancel")}
               </button>
@@ -669,7 +669,7 @@ export default function SettingsPage() {
         {/* API Keys Link */}
         <button
           onClick={() => navigate("/api-keys")}
-          className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-white hover:bg-white/5 transition-colors text-sm"
+          className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border border-stellar-border text-stellar-muted hover:text-stellar-text hover:bg-white/5 transition-colors text-sm"
         >
           <Key size={16} />
           {t("settings.manageApiKeys", "Manage API Keys")}
@@ -729,7 +729,7 @@ export default function SettingsPage() {
                 <LogOut size={28} className="text-stellar-danger" />
               </div>
             </div>
-            <h3 className="text-white text-lg font-bold text-center">
+            <h3 className="text-stellar-text text-lg font-bold text-center">
               {t("settings.logout", "Sign Out")}
             </h3>
             <p className="text-stellar-muted text-sm text-center">
@@ -741,7 +741,7 @@ export default function SettingsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
-                className="flex-1 py-3 rounded-xl border border-stellar-border text-stellar-muted text-sm font-medium hover:text-white transition-colors"
+                className="flex-1 py-3 rounded-xl border border-stellar-border text-stellar-muted text-sm font-medium hover:text-stellar-text transition-colors"
               >
                 {t("common.cancel", "Cancel")}
               </button>

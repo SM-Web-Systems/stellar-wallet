@@ -129,7 +129,7 @@ export default function SendPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-white">{t("send.title")}</h1>
+      <h1 className="text-2xl font-bold text-stellar-text">{t("send.title")}</h1>
 
       <div className="bg-stellar-card border border-stellar-border rounded-2xl p-6 space-y-4 max-w-lg">
         {signingMode === "delegated" && (
@@ -143,7 +143,7 @@ export default function SendPage() {
           <select
             value={assetCode}
             onChange={(e) => setAssetCode(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-white focus:outline-none focus:border-stellar-blue"
+            className="w-full px-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text focus:outline-none focus:border-stellar-blue"
           >
             {balances?.map((b) => (
               <option key={`${b.assetCode}-${b.assetIssuer}`} value={b.assetCode}>
@@ -160,7 +160,7 @@ export default function SendPage() {
             value={destination}
             onChange={(e) => setDestination(e.target.value)}
             placeholder={t("send.destinationPlaceholder")}
-            className="w-full px-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-white placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue font-mono text-sm"
+            className="w-full px-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue font-mono text-sm"
           />
         </div>
 
@@ -173,7 +173,7 @@ export default function SendPage() {
             placeholder="0.00"
             step="any"
             min="0"
-            className="w-full px-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-white placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
+            className="w-full px-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
           />
         </div>
 
@@ -181,7 +181,7 @@ export default function SendPage() {
           <div className="text-xs text-stellar-muted space-y-1 px-1">
             <div className="flex justify-between">
               <span>Recipient receives:</span>
-              <span className="text-white">{parseFloat(netAmount).toFixed(7)} {assetCode}</span>
+              <span className="text-stellar-text">{parseFloat(netAmount).toFixed(7)} {assetCode}</span>
             </div>
             <div className="flex justify-between">
               <span>Platform fee (0.1%):</span>

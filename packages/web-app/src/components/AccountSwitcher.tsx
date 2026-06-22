@@ -65,7 +65,7 @@ export default function AccountSwitcher() {
           <User size={14} className="text-stellar-blue" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white truncate">
+          <p className="text-sm font-medium text-stellar-text truncate">
             {active?.name || "No Wallet"}
           </p>
           <p className="text-[10px] text-stellar-muted font-mono truncate">
@@ -105,7 +105,7 @@ export default function AccountSwitcher() {
                           if (e.key === "Enter") saveRename();
                           if (e.key === "Escape") setEditingId(null);
                         }}
-                        className="flex-1 px-2 py-1 rounded bg-stellar-dark border border-stellar-border text-white text-sm focus:outline-none focus:border-stellar-blue"
+                        className="flex-1 px-2 py-1 rounded bg-stellar-dark border border-stellar-border text-stellar-text text-sm focus:outline-none focus:border-stellar-blue"
                       />
                       <button onClick={saveRename} className="p-1 hover:bg-white/10 rounded">
                         <Check size={14} className="text-stellar-success" />
@@ -148,7 +148,7 @@ export default function AccountSwitcher() {
                           {account.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm text-white truncate">{account.name}</p>
+                          <p className="text-sm text-stellar-text truncate">{account.name}</p>
                           <p className="text-[10px] text-stellar-muted font-mono truncate">
                             {account.publicKey.slice(0, 8)}...{account.publicKey.slice(-6)}
                           </p>
@@ -195,7 +195,7 @@ export default function AccountSwitcher() {
                   setOpen(false);
                   navigate("/onboarding?action=create");
                 }}
-                className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-stellar-muted hover:text-white hover:bg-white/5 transition-colors"
+                className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-stellar-muted hover:text-stellar-text hover:bg-white/5 transition-colors"
               >
                 <Plus size={14} />
                 Create New Wallet
@@ -205,7 +205,7 @@ export default function AccountSwitcher() {
                   setOpen(false);
                   navigate("/onboarding?action=import");
                 }}
-                className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-stellar-muted hover:text-white hover:bg-white/5 transition-colors"
+                className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-stellar-muted hover:text-stellar-text hover:bg-white/5 transition-colors"
               >
                 <Download size={14} />
                 Import Wallet

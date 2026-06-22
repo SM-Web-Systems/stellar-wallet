@@ -48,7 +48,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <img src="/favicon-128.png" alt="Amma Wallet" className="w-16 h-16 mx-auto mb-4 rounded-2xl" />
-          <h1 className="text-3xl font-bold text-white">{t("auth.welcomeBack")}</h1>
+          <h1 className="text-3xl font-bold text-stellar-text">{t("auth.welcomeBack")}</h1>
           <p className="mt-2 text-stellar-muted">{t("auth.signInSubtitle")}</p>
         </div>
 
@@ -63,7 +63,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t("auth.emailPlaceholder")}
                 autoFocus
-                className="w-full pl-10 pr-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-white placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue transition-colors"
+                className="w-full pl-10 pr-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue transition-colors"
               />
             </div>
           </div>
@@ -77,12 +77,12 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={t("auth.passwordPlaceholder")}
-                className="w-full pl-10 pr-12 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-white placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue transition-colors"
+                className="w-full pl-10 pr-12 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue transition-colors"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-stellar-muted hover:text-white transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-stellar-muted hover:text-stellar-text transition-colors"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -106,7 +106,7 @@ export default function LoginPage() {
                 value={twoFaToken}
                 onChange={(e) => setTwoFaToken(e.target.value.replace(/[^0-9A-Za-z]/g, ""))}
                 placeholder={twoFaMethod === "email" ? "Enter email code" : twoFaMethod === "static" ? "Enter your security code" : "Enter 6-digit code or backup code"}
-                className="w-full px-4 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-white placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue text-center text-lg tracking-widest"
+                className="w-full px-4 py-3 rounded-xl bg-stellar-dark border border-stellar-border text-stellar-text placeholder:text-stellar-muted/50 focus:outline-none focus:border-stellar-blue text-center text-lg tracking-widest"
                 autoFocus
               />
               <p className="text-xs text-stellar-muted text-center">

@@ -31,7 +31,7 @@ export default function NetworkSwitcher() {
           className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all ${
             network === "testnet"
               ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-              : "bg-stellar-dark border border-stellar-border text-stellar-muted hover:text-white"
+              : "bg-stellar-dark border border-stellar-border text-stellar-muted hover:text-stellar-text"
           }`}
         >
           <div className="flex items-center justify-center gap-2">
@@ -44,7 +44,7 @@ export default function NetworkSwitcher() {
           className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all ${
             network === "public"
               ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-              : "bg-stellar-dark border border-stellar-border text-stellar-muted hover:text-white"
+              : "bg-stellar-dark border border-stellar-border text-stellar-muted hover:text-stellar-text"
           }`}
         >
           <div className="flex items-center justify-center gap-2">
@@ -57,7 +57,7 @@ export default function NetworkSwitcher() {
       {showConfirm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-stellar-card border border-stellar-border rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white text-lg font-bold mb-2">
+            <h3 className="text-stellar-text text-lg font-bold mb-2">
               {t("settings.switchNetwork", "Switch Network")}
             </h3>
             <p className="text-stellar-muted text-sm mb-6">
@@ -68,13 +68,13 @@ export default function NetworkSwitcher() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 py-3 rounded-xl border border-stellar-border text-stellar-muted text-sm font-medium hover:text-white transition-colors"
+                className="flex-1 py-3 rounded-xl border border-stellar-border text-stellar-muted text-sm font-medium hover:text-stellar-text transition-colors"
               >
                 {t("common.cancel", "Cancel")}
               </button>
               <button
                 onClick={confirmSwitch}
-                className={`flex-1 py-3 rounded-xl text-sm font-medium text-white transition-colors ${
+                className={`flex-1 py-3 rounded-xl text-sm font-medium text-stellar-text transition-colors ${
                   pendingNetwork === "public" ? "bg-emerald-600 hover:bg-emerald-500" : "bg-amber-600 hover:bg-amber-500"
                 }`}
               >

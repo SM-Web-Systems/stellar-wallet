@@ -7,7 +7,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors bg-stellar-card border border-stellar-border hover:border-stellar-blue/50 text-stellar-muted hover:text-white"
+      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors bg-stellar-card border border-stellar-border hover:border-stellar-blue/50 text-stellar-muted hover:text-stellar-text"
       title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
     >
       {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}

@@ -46,7 +46,7 @@ export default function HistoryPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-white">{t("history.title")}</h1>
+      <h1 className="text-2xl font-bold text-stellar-text">{t("history.title")}</h1>
 
       {error && (
         <div className="bg-stellar-danger/10 border border-stellar-danger/30 rounded-lg p-4">
@@ -80,7 +80,7 @@ export default function HistoryPage() {
                     {getOpIcon(type, isSent)}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-white">{getOpLabel(type, isSent)}{hasAmount && assetCode ? ` ${assetCode}` : ""}</p>
+                    <p className="text-sm font-medium text-stellar-text">{getOpLabel(type, isSent)}{hasAmount && assetCode ? ` ${assetCode}` : ""}</p>
                     <div className="flex items-center gap-2 text-xs text-stellar-muted">
                       {createdAt && (<span>{new Date(createdAt).toLocaleString()}</span>)}
                       {counterparty && (<><span>·</span><span className="font-mono truncate max-w-[120px]">{counterparty.slice(0, 6)}...{counterparty.slice(-6)}</span></>)}

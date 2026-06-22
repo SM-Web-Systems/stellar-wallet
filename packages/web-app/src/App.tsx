@@ -20,6 +20,8 @@ const SettingsPage = lazy(() => import("./pages/Settings"));
 const ApiKeysPage = lazy(() => import("./pages/ApiKeys"));
 const HelpPage = lazy(() => import("./pages/Help"));
 const ContactsPage = lazy(() => import("./pages/Contacts"));
+const PortfolioPage = lazy(() => import("./pages/Portfolio"));
+const BuySellPage = lazy(() => import("./pages/BuySell"));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -81,7 +83,9 @@ export default function App() {
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/api-keys" element={<ApiKeysPage />} />
-        <Route path="/help" element={<HelpPage />} />
+        <Route path="/portfolio" element={<PortfolioPage />} />
+          <Route path="/buy-sell" element={<BuySellPage />} />
+          <Route path="/help" element={<HelpPage />} />
         <Route path="/contacts" element={<ContactsPage />} />
       </Route>
 

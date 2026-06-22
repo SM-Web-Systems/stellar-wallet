@@ -11,6 +11,7 @@ import {
   index,
   bigint,
   varchar,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -293,6 +294,27 @@ export const addressBook = pgTable("address_book", {
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+
+export const portfolioSnapshots = pgTable("portfolio_snapshots", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  userId: bigint("user_id", { mode: "number" }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  walletPublicKey: text("wallet_public_key").notNull(),
+  totalXlm: numeric("total_xlm").notNull().default("0"),
+  totalUsd: numeric("total_usd").notNull().default("0"),
+  assetBreakdown: jsonb("asset_breakdown").notNull().default("[]"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  userId: bigint("user_id", { mode: "number" }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const tokensRelations = relations(tokens, ({ many }) => ({

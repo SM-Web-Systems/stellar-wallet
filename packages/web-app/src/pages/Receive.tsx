@@ -118,7 +118,7 @@ export default function ReceivePage() {
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">{t("receive.title")}</h1>
+        <h1 className="text-2xl font-bold text-stellar-text">{t("receive.title")}</h1>
         <p className="mt-1 text-sm text-stellar-muted">{t("receive.subtitle")}</p>
       </div>
 
@@ -129,7 +129,7 @@ export default function ReceivePage() {
           <div className="flex items-center gap-3">
             <TokenIcon code={selectedToken?.code || "XLM"} image={selectedToken?.image} size={32} />
             <div className="text-left">
-              <p className="text-white font-medium">{selectedToken?.code || "XLM"}</p>
+              <p className="text-stellar-text font-medium">{selectedToken?.code || "XLM"}</p>
               <p className="text-xs text-stellar-muted">
                 {selectedToken?.name || t("dashboard.stellarLumens")}
                 {selectedToken?.balance != null && (
@@ -148,15 +148,15 @@ export default function ReceivePage() {
             <div className="p-3 border-b border-stellar-border">
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stellar-muted" />
-                <input type="text" placeholder={t("receive.searchTokens")} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-stellar-bg border border-stellar-border rounded-lg pl-9 pr-8 py-2 text-sm text-white placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue/50" autoFocus />
-                {search && (<button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-stellar-muted hover:text-white"><X size={14} /></button>)}
+                <input type="text" placeholder={t("receive.searchTokens")} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-stellar-bg border border-stellar-border rounded-lg pl-9 pr-8 py-2 text-sm text-stellar-text placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue/50" autoFocus />
+                {search && (<button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-stellar-muted hover:text-stellar-text"><X size={14} /></button>)}
               </div>
             </div>
             <div className="max-h-64 overflow-y-auto">
               <button onClick={() => { setSelectedToken(null); setShowPicker(false); setSearch(""); }} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors ${!selectedToken ? "bg-stellar-blue/10" : ""}`}>
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-stellar-blue to-stellar-purple flex items-center justify-center text-white text-xs font-bold">*</div>
                 <div className="text-left">
-                  <p className="text-white text-sm font-medium">{t("receive.anyToken")}</p>
+                  <p className="text-stellar-text text-sm font-medium">{t("receive.anyToken")}</p>
                   <p className="text-xs text-stellar-muted">{t("receive.anyTokenDesc")}</p>
                 </div>
               </button>
@@ -167,7 +167,7 @@ export default function ReceivePage() {
                     <div className="flex items-center gap-3">
                       <TokenIcon code={tk.code} image={tk.image} size={32} />
                       <div className="text-left">
-                        <p className="text-white text-sm font-medium">{tk.code}</p>
+                        <p className="text-stellar-text text-sm font-medium">{tk.code}</p>
                         <p className="text-xs text-stellar-muted">{tk.name}</p>
                       </div>
                     </div>
@@ -185,7 +185,7 @@ export default function ReceivePage() {
       <div>
         <label className="block text-sm font-medium text-stellar-muted mb-2">{t("receive.amount")}</label>
         <div className="relative">
-          <input type="number" min="0" step="any" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-stellar-card border border-stellar-border rounded-xl px-4 py-3 text-white placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue/50" />
+          <input type="number" min="0" step="any" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-stellar-card border border-stellar-border rounded-xl px-4 py-3 text-stellar-text placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue/50" />
           <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-stellar-muted">{selectedToken?.code || "XLM"}</span>
         </div>
       </div>
@@ -193,7 +193,7 @@ export default function ReceivePage() {
       {/* Memo */}
       <div>
         <label className="block text-sm font-medium text-stellar-muted mb-2">{t("receive.memo")}</label>
-        <input type="text" maxLength={28} placeholder={t("receive.memoPlaceholder")} value={memo} onChange={(e) => setMemo(e.target.value)} className="w-full bg-stellar-card border border-stellar-border rounded-xl px-4 py-3 text-white placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue/50" />
+        <input type="text" maxLength={28} placeholder={t("receive.memoPlaceholder")} value={memo} onChange={(e) => setMemo(e.target.value)} className="w-full bg-stellar-card border border-stellar-border rounded-xl px-4 py-3 text-stellar-text placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue/50" />
       </div>
 
       {/* QR Code */}
@@ -204,10 +204,10 @@ export default function ReceivePage() {
         {selectedToken && (
           <div className="mt-4 flex items-center gap-2">
             <TokenIcon code={selectedToken.code} image={selectedToken.image} size={20} />
-            <span className="text-sm text-white font-medium">{selectedToken.code}{amount && ` — ${amount}`}</span>
+            <span className="text-sm text-stellar-text font-medium">{selectedToken.code}{amount && ` — ${amount}`}</span>
           </div>
         )}
-        <button onClick={downloadQR} className="mt-4 flex items-center gap-2 text-sm text-stellar-muted hover:text-white transition-colors">
+        <button onClick={downloadQR} className="mt-4 flex items-center gap-2 text-sm text-stellar-muted hover:text-stellar-text transition-colors">
           <Download size={16} />{t("receive.downloadQr")}
         </button>
       </div>
@@ -216,7 +216,7 @@ export default function ReceivePage() {
       <div className="bg-stellar-card border border-stellar-border rounded-xl p-4">
         <label className="block text-xs text-stellar-muted mb-2">{t("receive.yourAddress")}</label>
         <div className="flex items-center gap-2">
-          <code className="flex-1 text-sm text-white font-mono break-all">{publicKey}</code>
+          <code className="flex-1 text-sm text-stellar-text font-mono break-all">{publicKey}</code>
           <button onClick={() => copyToClipboard(publicKey, "address")} className="shrink-0 p-2 rounded-lg hover:bg-white/5 transition-colors">
             {copied === "address" ? <Check size={18} className="text-stellar-success" /> : <Copy size={18} className="text-stellar-muted" />}
           </button>

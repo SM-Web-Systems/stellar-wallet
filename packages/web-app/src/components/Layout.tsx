@@ -21,7 +21,7 @@ import { useAuthStore } from "../store/auth";
 import { useWalletStore } from "../store/wallet";
 import AccountSwitcher from "./AccountSwitcher";
 import clsx from "clsx";
-import { BookUser } from "lucide-react";
+import { BookUser, DollarSign, PieChart } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import NotificationBell from "./NotificationBell";
 
@@ -50,6 +50,8 @@ export default function Layout() {
     { to: "/settings", label: t("nav.settings"), icon: SettingsIcon },
     { to: "/api-keys", label: t("nav.apiKeys", "API Keys"), icon: Key },
     { to: "/contacts", label: t("nav.contacts", "Contacts"), icon: BookUser },
+    { to: "/portfolio", label: t("nav.portfolio", "Portfolio"), icon: PieChart },
+    { to: "/buy-sell", label: t("nav.buySell", "Buy & Sell"), icon: DollarSign },
     { to: "/help", label: t("nav.help", "Help & FAQ"), icon: HelpCircle },
   ];
 
@@ -61,7 +63,7 @@ export default function Layout() {
 
       {user && (
         <div className="px-4 py-3 border-b border-stellar-border">
-          <p className="text-sm text-white font-medium truncate">
+          <p className="text-sm text-stellar-text font-medium truncate">
             {user.firstName ? (user.firstName + " " + (user.lastName || "")).trim() : user.email}
           </p>
           <p className="text-xs text-stellar-muted truncate">{user.email}</p>
@@ -79,7 +81,7 @@ export default function Layout() {
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
                 isActive
                   ? "bg-stellar-blue/20 text-white font-medium"
-                  : "text-stellar-muted hover:text-white hover:bg-white/5"
+                  : "text-stellar-muted hover:text-stellar-text hover:bg-white/5"
               )
             }
           >
@@ -132,10 +134,10 @@ export default function Layout() {
         )}
       >
         <div className="flex items-center justify-between p-3 border-b border-stellar-border">
-          <span className="text-white font-semibold text-sm">Amma Wallet</span>
+          <span className="text-stellar-text font-semibold text-sm">Amma Wallet</span>
           <button
             onClick={() => setMobileOpen(false)}
-            className="p-1 rounded-lg text-stellar-muted hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1 rounded-lg text-stellar-muted hover:text-stellar-text hover:bg-white/10 transition-colors"
           >
             <X size={20} />
           </button>
@@ -149,11 +151,11 @@ export default function Layout() {
         <header className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-stellar-border bg-stellar-card">
           <button
             onClick={() => setMobileOpen(true)}
-            className="p-1.5 rounded-lg text-stellar-muted hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg text-stellar-muted hover:text-stellar-text hover:bg-white/10 transition-colors"
           >
             <Menu size={22} />
           </button>
-          <h1 className="text-white font-medium text-sm truncate flex-1">{pageTitle}</h1>
+          <h1 className="text-stellar-text font-medium text-sm truncate flex-1">{pageTitle}</h1>
           <NotificationBell />
           <ThemeToggle />
         </header>

@@ -186,10 +186,10 @@ export default function OnboardingPage() {
 
   // ── Shared input classes ──
   const inputClass =
-    "w-full px-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-white placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue";
+    "w-full px-4 py-3 rounded-lg bg-stellar-dark border border-stellar-border text-stellar-text placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue";
   const btnPrimary =
     "w-full py-3 rounded-lg bg-stellar-blue text-white font-medium hover:bg-stellar-purple transition-colors disabled:opacity-50";
-  const btnSecondary = "w-full text-sm text-stellar-muted hover:text-white transition-colors";
+  const btnSecondary = "w-full text-sm text-stellar-muted hover:text-stellar-text transition-colors";
   const backLabel = isAddingToExisting ? t("common.cancel") : t("common.back");
 
   return (
@@ -197,7 +197,7 @@ export default function OnboardingPage() {
       <div className="w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-white">{t("onboarding.title")}</h1>
+          <h1 className="text-3xl font-bold text-stellar-text">{t("onboarding.title")}</h1>
           <p className="mt-2 text-stellar-muted">
             {isAddingToExisting ? t("onboarding.subtitleAdd") : t("onboarding.subtitle")}
           </p>
@@ -224,7 +224,7 @@ export default function OnboardingPage() {
               </button>
               <button
                 onClick={() => setMode("create")}
-                className="w-full py-3 rounded-xl border border-stellar-border text-white font-medium hover:bg-white/5 transition-colors"
+                className="w-full py-3 rounded-xl border border-stellar-border text-stellar-text font-medium hover:bg-white/5 transition-colors"
               >
                 {t("onboarding.createQuick", "Quick Create (keypair only)")}
               </button>
@@ -236,13 +236,13 @@ export default function OnboardingPage() {
               </p>
               <button
                 onClick={() => setMode("import-mnemonic")}
-                className="w-full py-3 rounded-xl border border-stellar-border text-white font-medium hover:bg-white/5 transition-colors"
+                className="w-full py-3 rounded-xl border border-stellar-border text-stellar-text font-medium hover:bg-white/5 transition-colors"
               >
                 {t("onboarding.importFromSeed", "Import from Recovery Phrase")}
               </button>
               <button
                 onClick={() => setMode("import")}
-                className="w-full py-3 rounded-xl border border-stellar-border text-white font-medium hover:bg-white/5 transition-colors"
+                className="w-full py-3 rounded-xl border border-stellar-border text-stellar-text font-medium hover:bg-white/5 transition-colors"
               >
                 {t("onboarding.importFromSecret", "Import from Secret Key")}
               </button>
@@ -251,7 +251,7 @@ export default function OnboardingPage() {
             {isAddingToExisting && (
               <button
                 onClick={() => navigate("/dashboard")}
-                className="w-full text-sm text-stellar-muted hover:text-white transition-colors pt-2"
+                className="w-full text-sm text-stellar-muted hover:text-stellar-text transition-colors pt-2"
               >
                 {t("onboarding.cancelBack")}
               </button>
@@ -265,7 +265,7 @@ export default function OnboardingPage() {
             onSubmit={handleCreate}
             className="space-y-4 bg-stellar-card border border-stellar-border rounded-2xl p-6"
           >
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-stellar-text">
               {isAddingToExisting
                 ? t("onboarding.addNewWallet")
                 : t("onboarding.createWallet")}
@@ -313,7 +313,7 @@ export default function OnboardingPage() {
             onSubmit={handleGenerateMnemonic}
             className="space-y-4 bg-stellar-card border border-stellar-border rounded-2xl p-6"
           >
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-stellar-text flex items-center gap-2">
               <ShieldCheck size={20} className="text-stellar-blue" />
               {t("onboarding.createWithSeedTitle", "Create HD Wallet")}
             </h2>
@@ -356,7 +356,7 @@ export default function OnboardingPage() {
 
         {mode === "create-mnemonic" && step === "backup" && (
           <div className="space-y-4 bg-stellar-card border border-stellar-border rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-stellar-text">
               {t("onboarding.backupTitle", "Back Up Your Recovery Phrase")}
             </h2>
 
@@ -379,7 +379,7 @@ export default function OnboardingPage() {
                 {generatedMnemonic.split(" ").map((word, i) => (
                   <div key={i} className="flex items-center gap-1.5">
                     <span className="text-xs text-stellar-muted w-5 text-right">{i + 1}.</span>
-                    <span className="text-sm text-white font-mono">{word}</span>
+                    <span className="text-sm text-stellar-text font-mono">{word}</span>
                   </div>
                 ))}
               </div>
@@ -387,7 +387,7 @@ export default function OnboardingPage() {
               {!showMnemonic && (
                 <button
                   onClick={() => setShowMnemonic(true)}
-                  className="absolute inset-0 flex items-center justify-center gap-2 text-white font-medium bg-black/40 rounded-lg"
+                  className="absolute inset-0 flex items-center justify-center gap-2 text-stellar-text font-medium bg-black/40 rounded-lg"
                 >
                   <Eye size={18} />
                   {t("onboarding.tapToReveal", "Click to reveal")}
@@ -399,7 +399,7 @@ export default function OnboardingPage() {
               {showMnemonic && (
                 <button
                   onClick={() => setShowMnemonic(false)}
-                  className="flex-1 py-2 rounded-lg border border-stellar-border text-sm text-white hover:bg-white/5 flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2 rounded-lg border border-stellar-border text-sm text-stellar-text hover:bg-white/5 flex items-center justify-center gap-1.5"
                 >
                   <EyeOff size={14} />
                   {t("common.hide", "Hide")}
@@ -407,7 +407,7 @@ export default function OnboardingPage() {
               )}
               <button
                 onClick={handleCopyMnemonic}
-                className="flex-1 py-2 rounded-lg border border-stellar-border text-sm text-white hover:bg-white/5 flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 rounded-lg border border-stellar-border text-sm text-stellar-text hover:bg-white/5 flex items-center justify-center gap-1.5"
               >
                 {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
                 {copied ? t("common.copied", "Copied") : t("common.copy", "Copy")}
@@ -431,7 +431,7 @@ export default function OnboardingPage() {
 
         {mode === "create-mnemonic" && step === "confirm" && !mnemonicConfirmed && (
           <div className="space-y-4 bg-stellar-card border border-stellar-border rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-stellar-text">
               {t("onboarding.confirmPhraseTitle", "Confirm Your Recovery Phrase")}
             </h2>
             <p className="text-sm text-stellar-muted">
@@ -465,7 +465,7 @@ export default function OnboardingPage() {
             <div className="mx-auto w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
               <ShieldCheck size={32} className="text-green-400" />
             </div>
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-stellar-text">
               {t("onboarding.phraseVerified", "Recovery Phrase Verified!")}
             </h2>
             <p className="text-sm text-stellar-muted">
@@ -492,7 +492,7 @@ export default function OnboardingPage() {
             onSubmit={handleImport}
             className="space-y-4 bg-stellar-card border border-stellar-border rounded-2xl p-6"
           >
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-stellar-text">
               {isAddingToExisting
                 ? t("onboarding.addExistingWallet")
                 : t("onboarding.importWallet")}
@@ -541,7 +541,7 @@ export default function OnboardingPage() {
             onSubmit={handleImportFromMnemonic}
             className="space-y-4 bg-stellar-card border border-stellar-border rounded-2xl p-6"
           >
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-stellar-text">
               {t("onboarding.importFromSeedTitle", "Recover from Phrase")}
             </h2>
             <p className="text-sm text-stellar-muted">

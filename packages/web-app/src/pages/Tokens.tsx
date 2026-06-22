@@ -176,7 +176,7 @@ export default function TokensPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">{t("tokens.title")}</h1>
+          <h1 className="text-2xl font-bold text-stellar-text">{t("tokens.title")}</h1>
           <p className="text-sm text-stellar-muted mt-1">
             {pagination.total.toLocaleString()} {t("tokens.tokensAvailable", "tokens available")}
           </p>
@@ -193,7 +193,7 @@ export default function TokensPage() {
       {/* Smart Token Search (Add Token) */}
       {showAddToken && (
         <div className="bg-stellar-card border border-stellar-border rounded-xl p-6 space-y-4">
-          <h3 className="text-white font-medium">{t("tokens.findToken", "Find a Token")}</h3>
+          <h3 className="text-stellar-text font-medium">{t("tokens.findToken", "Find a Token")}</h3>
           <p className="text-xs text-stellar-muted">
             {t("tokens.findTokenDesc", "Search by asset code (e.g. USDC, BTC) or name. Results include verified assets from Stellar Expert and Horizon.")}
           </p>
@@ -205,7 +205,7 @@ export default function TokensPage() {
               onChange={(e) => handleTokenSearch(e.target.value)}
               placeholder={t("tokens.searchByTicker", "Search by ticker or name (e.g. USDC, Bitcoin)...")}
               autoFocus
-              className="w-full pl-10 pr-4 py-3 rounded-lg bg-stellar-bg border border-stellar-border text-white placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
+              className="w-full pl-10 pr-4 py-3 rounded-lg bg-stellar-bg border border-stellar-border text-stellar-text placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
             />
             {searching && (
               <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-stellar-blue" />
@@ -228,7 +228,7 @@ export default function TokensPage() {
                       <TokenIcon code={tk.assetCode} image={tk.image || tk.tomlImage} size={32} />
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-white text-sm">{tk.assetCode}</span>
+                          <span className="font-medium text-stellar-text text-sm">{tk.assetCode}</span>
                           {tk.isVerified && <span className="text-[9px] px-1 py-0.5 rounded bg-stellar-success/20 text-stellar-success font-medium">VERIFIED</span>}
                           {isTrusted && <span className="text-[9px] px-1 py-0.5 rounded bg-stellar-blue/20 text-stellar-blue font-medium">TRUSTED</span>}
                         </div>
@@ -242,7 +242,7 @@ export default function TokensPage() {
                       {tk.ratingAverage != null && (
                         <div className="flex items-center gap-1">
                           <Star size={12} className="text-yellow-400" />
-                          <span className="text-xs text-white">{formatRating(tk.ratingAverage)}</span>
+                          <span className="text-xs text-stellar-text">{formatRating(tk.ratingAverage)}</span>
                         </div>
                       )}
                       {tk.trustlinesFunded && <p className="text-[10px] text-stellar-muted">{Number(tk.trustlinesFunded).toLocaleString()} holders</p>}
@@ -269,7 +269,7 @@ export default function TokensPage() {
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
             placeholder={t("tokens.searchPlaceholder", "Search tokens...")}
-            className="w-full pl-10 pr-4 py-3 rounded-lg bg-stellar-card border border-stellar-border text-white placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
+            className="w-full pl-10 pr-4 py-3 rounded-lg bg-stellar-card border border-stellar-border text-stellar-text placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
           />
         </div>
       </div>
@@ -283,7 +283,7 @@ export default function TokensPage() {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               tab === key
                 ? "bg-stellar-blue/20 text-stellar-blue border border-stellar-blue/40"
-                : "bg-stellar-card border border-stellar-border text-stellar-muted hover:text-white hover:border-stellar-blue/30"
+                : "bg-stellar-card border border-stellar-border text-stellar-muted hover:text-stellar-text hover:border-stellar-blue/30"
             }`}
           >
             <Icon size={16} />
@@ -315,22 +315,22 @@ export default function TokensPage() {
       {tab !== "trusted" && (
         <div className="grid grid-cols-12 gap-2 px-5 py-2 text-xs text-stellar-muted uppercase tracking-wider">
           <div className="col-span-5">
-            <button onClick={() => handleSort("name")} className="flex items-center gap-1 hover:text-white transition-colors">
+            <button onClick={() => handleSort("name")} className="flex items-center gap-1 hover:text-stellar-text transition-colors">
               {t("tokens.name", "Token")} <SortIcon field="name" />
             </button>
           </div>
           <div className="col-span-2 text-right">
-            <button onClick={() => handleSort("rating")} className="flex items-center gap-1 ml-auto hover:text-white transition-colors">
+            <button onClick={() => handleSort("rating")} className="flex items-center gap-1 ml-auto hover:text-stellar-text transition-colors">
               {t("tokens.trustScore", "Trust Score")} <SortIcon field="rating" />
             </button>
           </div>
           <div className="col-span-3 text-right">
-            <button onClick={() => handleSort("volume")} className="flex items-center gap-1 ml-auto hover:text-white transition-colors">
+            <button onClick={() => handleSort("volume")} className="flex items-center gap-1 ml-auto hover:text-stellar-text transition-colors">
               {t("tokens.volume", "Volume 7d")} <SortIcon field="volume" />
             </button>
           </div>
           <div className="col-span-2 text-right">
-            <button onClick={() => handleSort("trustlines")} className="flex items-center gap-1 ml-auto hover:text-white transition-colors">
+            <button onClick={() => handleSort("trustlines")} className="flex items-center gap-1 ml-auto hover:text-stellar-text transition-colors">
               {t("tokens.holders", "Holders")} <SortIcon field="trustlines" />
             </button>
           </div>
@@ -364,7 +364,7 @@ export default function TokensPage() {
                   <TokenIcon code={tk.assetCode} image={tk.image || tk.tomlImage} size={32} />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-white text-sm truncate">{tk.assetCode}</p>
+                      <p className="font-medium text-stellar-text text-sm truncate">{tk.assetCode}</p>
                       {tk.isVerified && <span className="text-[9px] px-1 py-0.5 rounded bg-stellar-success/20 text-stellar-success font-medium shrink-0">VERIFIED</span>}
                       {isTrusted && <span className="text-[9px] px-1 py-0.5 rounded bg-stellar-blue/20 text-stellar-blue font-medium shrink-0">TRUSTED</span>}
                     </div>
@@ -375,13 +375,13 @@ export default function TokensPage() {
                 <div className="col-span-2 text-right">
                   <div className="flex items-center gap-1 justify-end">
                     <Star size={12} className="text-yellow-400" />
-                    <span className="text-sm text-white">{formatRating(tk.ratingAverage)}</span>
+                    <span className="text-sm text-stellar-text">{formatRating(tk.ratingAverage)}</span>
                   </div>
                 </div>
                 {/* Volume */}
                 <div className="col-span-3 text-right">
                   {bal ? (
-                    <p className="text-sm font-mono text-white">
+                    <p className="text-sm font-mono text-stellar-text">
                       {parseFloat(bal.balance).toLocaleString(undefined, { maximumFractionDigits: 4 })} <span className="text-stellar-muted text-xs">{tk.assetCode}</span>
                     </p>
                   ) : (
@@ -414,7 +414,7 @@ export default function TokensPage() {
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="p-2 rounded-lg bg-stellar-card border border-stellar-border text-stellar-muted hover:text-white hover:border-stellar-blue/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-lg bg-stellar-card border border-stellar-border text-stellar-muted hover:text-stellar-text hover:border-stellar-blue/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft size={16} />
             </button>
@@ -437,7 +437,7 @@ export default function TokensPage() {
                   className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
                     pageNum === page
                       ? "bg-stellar-blue text-white"
-                      : "bg-stellar-card border border-stellar-border text-stellar-muted hover:text-white hover:border-stellar-blue/30"
+                      : "bg-stellar-card border border-stellar-border text-stellar-muted hover:text-stellar-text hover:border-stellar-blue/30"
                   }`}
                 >
                   {pageNum + 1}
@@ -447,7 +447,7 @@ export default function TokensPage() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={!pagination.hasMore}
-              className="p-2 rounded-lg bg-stellar-card border border-stellar-border text-stellar-muted hover:text-white hover:border-stellar-blue/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-lg bg-stellar-card border border-stellar-border text-stellar-muted hover:text-stellar-text hover:border-stellar-blue/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight size={16} />
             </button>

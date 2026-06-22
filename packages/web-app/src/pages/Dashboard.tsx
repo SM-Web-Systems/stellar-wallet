@@ -16,19 +16,19 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white">{t("dashboard.title")}</h1>
+        <h1 className="text-2xl font-bold text-stellar-text">{t("dashboard.title")}</h1>
         <p className="mt-1 text-sm text-stellar-muted font-mono">{publicKey}</p>
       </div>
 
       <div className="bg-gradient-to-br from-stellar-blue/30 to-stellar-purple/20 border border-stellar-border rounded-2xl p-8">
         <p className="text-sm text-stellar-muted">{t("dashboard.totalBalance")}</p>
-        <p className="mt-2 text-4xl font-bold text-white">
+        <p className="mt-2 text-4xl font-bold text-stellar-text">
           {parseFloat(totalXlm).toLocaleString(undefined, { maximumFractionDigits: 4 })} XLM
         </p>
       </div>
 
       <div>
-        <h2 className="text-lg font-semibold text-white mb-4">{t("dashboard.yourAssets")}</h2>
+        <h2 className="text-lg font-semibold text-stellar-text mb-4">{t("dashboard.yourAssets")}</h2>
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="animate-spin text-stellar-muted" size={32} />
@@ -46,13 +46,13 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-4">
                   <TokenIcon code={b.assetCode} image={b.token?.tomlImage} size={36} />
                   <div>
-                    <p className="font-medium text-white">{b.assetCode}</p>
+                    <p className="font-medium text-stellar-text">{b.assetCode}</p>
                     <p className="text-xs text-stellar-muted">
                       {b.token?.tomlName || b.token?.domain || (b.assetType === "native" ? t("dashboard.stellarLumens") : b.assetIssuer?.slice(0, 12) + "...")}
                     </p>
                   </div>
                 </div>
-                <p className="font-mono text-white">
+                <p className="font-mono text-stellar-text">
                   {parseFloat(b.balance).toLocaleString(undefined, { maximumFractionDigits: 7 })}
                 </p>
               </Link>

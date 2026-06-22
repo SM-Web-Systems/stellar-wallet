@@ -48,7 +48,7 @@ export default function TokenIcon({
 
   return (
     <div
-      className={`${colors[colorIndex]} rounded-full flex items-center justify-center text-white font-bold shrink-0 ${className}`}
+      className={`${colors[colorIndex]} rounded-full flex items-center justify-center text-stellar-text font-bold shrink-0 ${className}`}
       style={{ width: size, height: size, fontSize: size * 0.4 }}
     >
       {safeCode.slice(0, 2).toUpperCase()}

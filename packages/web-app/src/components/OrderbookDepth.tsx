@@ -62,7 +62,7 @@ export default function OrderbookDepth({ orderbook, assetCode }: OrderbookProps)
   if (depthData.length === 0) {
     return (
       <div className="bg-stellar-card border border-stellar-border rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-white mb-2">Order Book</h2>
+        <h2 className="text-lg font-semibold text-stellar-text mb-2">Order Book</h2>
         <p className="text-stellar-muted text-sm">No orderbook data available for {assetCode}/XLM.</p>
       </div>
     );
@@ -71,7 +71,7 @@ export default function OrderbookDepth({ orderbook, assetCode }: OrderbookProps)
   return (
     <div className="bg-stellar-card border border-stellar-border rounded-2xl p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Order Book Depth</h2>
+        <h2 className="text-lg font-semibold text-stellar-text">Order Book Depth</h2>
         <span className="text-xs text-stellar-muted">{assetCode} / XLM</span>
       </div>
 
@@ -87,11 +87,11 @@ export default function OrderbookDepth({ orderbook, assetCode }: OrderbookProps)
         </div>
         <div>
           <span className="text-stellar-muted">Spread: </span>
-          <span className="text-white font-mono">{spread.toFixed(3)}%</span>
+          <span className="text-stellar-text font-mono">{spread.toFixed(3)}%</span>
         </div>
         <div>
           <span className="text-stellar-muted">Mid: </span>
-          <span className="text-white font-mono">{midPrice.toFixed(7)}</span>
+          <span className="text-stellar-text font-mono">{midPrice.toFixed(7)}</span>
         </div>
       </div>
 
