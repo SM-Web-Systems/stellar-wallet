@@ -22,6 +22,7 @@ import { addressBookRoutes } from "./routes/contacts";
 import { pushRoutes } from "./routes/push";
 import { fiatRampRoutes } from "./routes/fiat";
 import { portfolioRoutes } from "./routes/portfolio";
+import { moneygramRoutes } from "./routes/moneygram";
 import { curatedTokenRoutes } from "./routes/curated-tokens";
 import StellarHDWallet from "stellar-hd-wallet";
 import { db, schema } from "./db";
@@ -87,7 +88,7 @@ async function bootstrap() {
         { name: "API Keys", description: "API key management" },
         { name: "Contacts", description: "Address book management" },
         { name: "Push Notifications", description: "Web push notification management" },
-        { name: "Fiat Ramp", description: "Fiat on/off ramp with currency conversion" },
+        { name: "Fiat Ramp", description: "Fiat on/off ramp — MoneyGram cash in/out via SEP-24" },
         { name: "Portfolio", description: "Portfolio analytics and balance tracking" },
       ],
     },
@@ -151,6 +152,7 @@ async function bootstrap() {
   app.register(fiatRampRoutes);
   app.register(portfolioRoutes);
   app.register(curatedTokenRoutes);
+  app.register(moneygramRoutes);
   app.register(fastifyStatic, {
     root: path.resolve(__dirname, "../assets/icons"),
     prefix: "/assets/icons/",

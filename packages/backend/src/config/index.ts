@@ -30,5 +30,9 @@ export const config = {
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || "",
   FIAT_RAMP_FEE_PERCENT: parseFloat(process.env.FIAT_RAMP_FEE_PERCENT || "0.3"),
   FIAT_RAMP_PROVIDER: process.env.FIAT_RAMP_PROVIDER || "internal",
+  SIGNING_PUBLIC_KEY: process.env.SIGNING_PUBLIC_KEY || "",
+  SIGNING_SECRET_KEY: process.env.SIGNING_SECRET_KEY || "",
+  MONEYGRAM_RAMPS_URL: process.env.MONEYGRAM_RAMPS_URL || "https://extstellar.moneygram.com",
+  MONEYGRAM_RAMPS_DOMAIN: process.env.MONEYGRAM_RAMPS_DOMAIN || "extstellar.moneygram.com",
   VAPID_EMAIL: process.env.VAPID_EMAIL || "mailto:noreply@ammawallet.com",
 };

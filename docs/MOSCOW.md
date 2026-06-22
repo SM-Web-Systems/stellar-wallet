@@ -65,3 +65,19 @@
 | Custodial exchange | Regulatory complexity, out of scope |
 | Non-Stellar chains | Amma Wallet is Stellar-focused |
 | Native mobile apps | Web-first approach, PWA possible later |
+
+---
+
+## Future (v2.0) — Planned
+
+| Feature | Description | Complexity |
+|---------|-------------|------------|
+| SEP-24 Anchor Platform | Become a licensed Stellar anchor, handle KYC/AML, connect to local payment rails (M-Pesa, bank transfers) | Very High |
+| Custom fiat corridors | Direct ZAR, NGN, KES on/off ramp without third-party dependency | High |
+| Multi-chain bridge | Bridge USDC between Stellar and other chains (Ethereum, Solana) via Wormhole/Allbridge | High |
+| Soroban smart contracts | Deploy and interact with Soroban smart contracts on Stellar | High |
+| Multi-signature wallets | Require multiple signers for transaction approval | Medium |
+| Native mobile apps | React Native iOS/Android apps with biometric auth | High |
+| Hardware wallet support | Ledger/Trezor integration for cold storage signing | Medium |
+| Recurring payments | Scheduled automated payments and subscriptions | Medium |
+| DAO governance | Community voting on platform decisions using governance tokens | High |

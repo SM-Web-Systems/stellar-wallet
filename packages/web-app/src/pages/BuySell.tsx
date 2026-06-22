@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { fiatApi } from "../lib/api";
+import { fiatApi, moneygramApi } from "../lib/api";
 import { useWalletStore } from "../store/wallet";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Loader2, RefreshCw, AlertCircle, CreditCard, Building2, Smartphone } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2, RefreshCw, AlertCircle, CreditCard, Building2, Smartphone, Banknote, ExternalLink } from "lucide-react";
 
 type Tab = "buy" | "sell";
 
@@ -57,6 +57,30 @@ export default function BuySellPage() {
     }
   };
 
+  const [mgLoading, setMgLoading] = useState(false);
+
+  const handleMoneyGram = async () => {
+    if (!activeAccount) {
+      toast.error("No wallet selected");
+      return;
+    }
+    setMgLoading(true);
+    try {
+      const fn = tab === "buy" ? moneygramApi.deposit : moneygramApi.withdraw;
+      const result = await fn(activeAccount.publicKey, amount || undefined);
+      if (result.error) {
+        toast.error(result.error);
+      } else if (result.interactiveUrl) {
+        toast.success("Redirecting to MoneyGram...");
+        window.open(result.interactiveUrl, "_blank", "noopener,noreferrer");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "MoneyGram unavailable");
+    } finally {
+      setMgLoading(false);
+    }
+  };
+
   const quote = tab === "buy" ? buyQuote.data : sellQuote.data;
   const quoteLoading = tab === "buy" ? buyQuote.isPending : sellQuote.isPending;
 
@@ -64,6 +88,7 @@ export default function BuySellPage() {
     { id: "card", label: "Card", icon: CreditCard },
     { id: "bank_transfer", label: "Bank Transfer", icon: Building2 },
     { id: "mobile_money", label: "Mobile Money", icon: Smartphone },
+    { id: "moneygram", label: "MoneyGram Cash", icon: Banknote },
   ];
 
   return (
@@ -187,12 +212,26 @@ export default function BuySellPage() {
               </span>
             </div>
 
-            <div className="flex items-start gap-2 mt-3 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-              <AlertCircle size={16} className="text-yellow-400 mt-0.5 shrink-0" />
-              <p className="text-xs text-yellow-300">
-                {t("fiat.providerNotice", "Fiat transactions require a payment provider integration. This feature shows live quotes but execution is not yet available. Contact support for more information.")}
-              </p>
-            </div>
+            {paymentMethod === "moneygram" ? (
+              <button
+                onClick={handleMoneyGram}
+                disabled={mgLoading}
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white py-3 rounded-lg font-medium transition-all disabled:opacity-50"
+              >
+                {mgLoading ? <Loader2 size={16} className="animate-spin" /> : <ExternalLink size={16} />}
+                {tab === "buy"
+                  ? t("fiat.mgDeposit", "Cash In at MoneyGram")
+                  : t("fiat.mgWithdraw", "Cash Out via MoneyGram")
+                }
+              </button>
+            ) : (
+              <div className="flex items-start gap-2 mt-3 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                <AlertCircle size={16} className="text-yellow-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-yellow-300">
+                  {t("fiat.cardNotice", "Card and bank transfer payments coming soon. Use MoneyGram Cash for immediate transactions.")}
+                </p>
+              </div>
+            )}
           </div>
         )}
 

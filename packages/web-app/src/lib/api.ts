@@ -357,3 +357,20 @@ export const portfolioApi = {
   history: (days = 30) => request<any>("/api/v1/portfolio/history?days=" + days),
   summary: () => request<any>("/api/v1/portfolio/summary"),
 };
+
+export const moneygramApi = {
+  info: () => request<any>("/api/v1/moneygram/info"),
+  deposit: (publicKey: string, amount?: string) =>
+    request<any>("/api/v1/moneygram/deposit", {
+      method: "POST",
+      body: JSON.stringify({ publicKey, amount }),
+    }),
+  withdraw: (publicKey: string, amount?: string) =>
+    request<any>("/api/v1/moneygram/withdraw", {
+      method: "POST",
+      body: JSON.stringify({ publicKey, amount }),
+    }),
+  transactionStatus: (id: string, publicKey: string) =>
+    request<any>(`/api/v1/moneygram/transaction/${id}?publicKey=${publicKey}`),
+};
+
