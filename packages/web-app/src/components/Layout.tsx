@@ -21,7 +21,7 @@ import { useAuthStore } from "../store/auth";
 import { useWalletStore } from "../store/wallet";
 import AccountSwitcher from "./AccountSwitcher";
 import clsx from "clsx";
-import { BookUser, DollarSign, PieChart } from "lucide-react";
+import { Droplets, BookUser, DollarSign, PieChart } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import NotificationBell from "./NotificationBell";
 
@@ -51,6 +51,7 @@ export default function Layout() {
     { to: "/api-keys", label: t("nav.apiKeys", "API Keys"), icon: Key },
     { to: "/contacts", label: t("nav.contacts", "Contacts"), icon: BookUser },
     { to: "/portfolio", label: t("nav.portfolio", "Portfolio"), icon: PieChart },
+    { to: "/earn", label: t("nav.earn", "Earn"), icon: Droplets },
     { to: "/buy-sell", label: t("nav.buySell", "Buy & Sell"), icon: DollarSign },
     { to: "/help", label: t("nav.help", "Help & FAQ"), icon: HelpCircle },
   ];

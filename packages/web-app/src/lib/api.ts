@@ -374,3 +374,20 @@ export const moneygramApi = {
     request<any>(`/api/v1/moneygram/transaction/${id}?publicKey=${publicKey}`),
 };
 
+export const earnApi = {
+  pools: (asset?: string, limit = 20) =>
+    request<any>(`/api/v1/earn/pools?${asset ? "asset=" + asset + "&" : ""}limit=${limit}`),
+  positions: (publicKey: string) =>
+    request<any>(`/api/v1/earn/positions/${publicKey}`),
+  deposit: (publicKey: string, poolId: string, maxAmountA: string, maxAmountB: string) =>
+    request<any>("/api/v1/earn/deposit", {
+      method: "POST",
+      body: JSON.stringify({ publicKey, poolId, maxAmountA, maxAmountB }),
+    }),
+  withdraw: (publicKey: string, poolId: string, shares: string) =>
+    request<any>("/api/v1/earn/withdraw", {
+      method: "POST",
+      body: JSON.stringify({ publicKey, poolId, shares }),
+    }),
+};
+
