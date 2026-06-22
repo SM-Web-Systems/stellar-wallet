@@ -9,22 +9,22 @@ export default function Portfolio() {
   const activeAccount = useWalletStore((s) => s.accounts.find((a) => a.id === s.activeAccountId));
   const publicKey = activeAccount?.publicKey || "";
 
-  const { data: summary, isLoading: summaryLoading } = useQuery({
+  const { data: summary, isLoading: summaryLoading } = useQuery<any>({
     queryKey: ["portfolio-summary", publicKey],
-    queryFn: () => portfolioApi.summary(publicKey),
+    queryFn: () => portfolioApi.summary(),
     enabled: !!publicKey,
   });
 
-  const { data: history, isLoading: historyLoading } = useQuery({
+  const { data: history, isLoading: historyLoading } = useQuery<any>({
     queryKey: ["portfolio-history", publicKey],
-    queryFn: () => portfolioApi.history(publicKey, 30),
+    queryFn: () => portfolioApi.history(30, publicKey),
     enabled: !!publicKey,
   });
 
   const snapshots = history?.snapshots || [];
-  const totalValue = summary?.totalValue || 0;
-  const change24h = summary?.change24h || 0;
-  const change7d = summary?.change7d || 0;
+  const totalValue = Number(summary?.totalUsd || 0);
+  const change24h = Number(summary?.change24h?.percent || 0);
+  const change7d = Number(summary?.change7d?.percent || 0);
   const assets = summary?.assets || [];
 
   const isUp24h = change24h >= 0;
@@ -76,7 +76,7 @@ export default function Portfolio() {
             <div className="bg-stellar-card rounded-xl border border-stellar-border overflow-hidden">
               <p className="text-xs text-stellar-muted px-3 pt-3 pb-1">{t("portfolio.breakdown", "Asset Breakdown")}</p>
               {assets.map((asset: any, i: number) => {
-                const pct = totalValue > 0 ? (Number(asset.value) / Number(totalValue)) * 100 : 0;
+                const pct = totalValue > 0 ? (Number(asset.valueUsd || 0) / totalValue) * 100 : 0;
                 return (
                   <div key={i} className="flex items-center justify-between px-3 py-2 border-t border-stellar-border">
                     <div className="flex items-center gap-2">
@@ -91,7 +91,7 @@ export default function Portfolio() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-white">${Number(asset.value).toFixed(2)}</p>
+                      <p className="text-xs text-white">${Number(asset.valueUsd || 0).toFixed(2)}</p>
                       <p className="text-[10px] text-stellar-muted">{pct.toFixed(1)}%</p>
                     </div>
                   </div>
@@ -105,14 +105,14 @@ export default function Portfolio() {
               <p className="text-xs text-stellar-muted mb-2">{t("portfolio.history", "30-Day History")}</p>
               <div className="flex items-end gap-[2px] h-16">
                 {snapshots.map((s: any, i: number) => {
-                  const max = Math.max(...snapshots.map((x: any) => Number(x.totalValue || 0)));
-                  const height = max > 0 ? (Number(s.totalValue || 0) / max) * 100 : 0;
+                  const max = Math.max(...snapshots.map((x: any) => Number(x.totalUsd || 0)));
+                  const height = max > 0 ? (Number(s.totalUsd || 0) / max) * 100 : 0;
                   return (
                     <div
                       key={i}
                       className="flex-1 bg-stellar-blue/40 rounded-t-sm min-h-[2px]"
                       style={{ height: `${height}%` }}
-                      title={`$${Number(s.totalValue || 0).toFixed(2)}`}
+                      title={`$${Number(s.totalUsd || 0).toFixed(2)}`}
                     />
                   );
                 })}

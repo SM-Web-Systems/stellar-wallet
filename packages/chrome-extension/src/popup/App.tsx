@@ -40,6 +40,8 @@ import ContactsPage from "./pages/Contacts";
 import EarnPage from "./pages/Earn";
 import BuySellPage from "./pages/BuySell";
 import PortfolioPage from "./pages/Portfolio";
+import ForgotPasswordPage from "./pages/ForgotPassword";
+
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -175,6 +177,7 @@ export default function App() {
             </AuthRoute>
           }
         />
+        <Route path="/forgot-password" element={<AuthRoute><ForgotPasswordPage /></AuthRoute>} />
         <Route
           path="/onboarding"
           element={

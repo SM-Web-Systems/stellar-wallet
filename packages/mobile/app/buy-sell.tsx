@@ -18,13 +18,16 @@ export default function BuySellScreen() {
   const [currency, setCurrency] = useState("USD");
   const [amount, setAmount] = useState("");
 
-  const { data: mgInfo } = useQuery({
+  const { data: mgInfo } = useQuery<{ rate?: string; amount?: string; fee?: string; limits?: any; supportedAssets?: string[]; feePercent?: number; status?: string }>({
     queryKey: ["moneygram-info"],
-    queryFn: moneygramApi.info,
+    queryFn: () => moneygramApi.info() as any,
   });
 
   const quoteMutation = useMutation({
-    mutationFn: () => fiatApi.quote({ from: currency, to: "XLM", amount: Number(amount) }),
+    mutationFn: () =>
+      tab === "buy"
+        ? fiatApi.quoteBuy({ fiatCurrency: currency, fiatAmount: Number(amount) })
+        : fiatApi.quoteSell({ fiatCurrency: currency, cryptoAmount: Number(amount) }),
     onError: (e: Error) => Alert.alert("Error", e.message),
   });
 
@@ -165,22 +168,26 @@ export default function BuySellScreen() {
             </TouchableOpacity>
           )}
 
-          {quoteMutation.data && (
-            <View style={{ backgroundColor: "#0a0e1a", borderRadius: 8, padding: 10, gap: 4 }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ fontSize: 12, color: "#6b7280" }}>{t("buysell.rate", "Rate")}</Text>
-                <Text style={{ fontSize: 12, color: "#fff" }}>{quoteMutation.data.rate}</Text>
+          {quoteMutation.data && (() => {
+            const q = quoteMutation.data as { rate?: string; estimatedAmount?: string; estimatedFiat?: string; fee?: string; feePercent?: number };
+            const youGet = tab === "buy" ? `${q.estimatedAmount || "—"} XLM` : `${q.estimatedFiat || "—"} ${currency}`;
+            return (
+              <View style={{ backgroundColor: "#0a0e1a", borderRadius: 8, padding: 10, gap: 4 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={{ fontSize: 12, color: "#6b7280" }}>{t("buysell.rate", "Rate")}</Text>
+                  <Text style={{ fontSize: 12, color: "#fff" }}>{q.rate || "—"}</Text>
+                </View>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={{ fontSize: 12, color: "#6b7280" }}>{t("buysell.youGet", "You get")}</Text>
+                  <Text style={{ fontSize: 12, color: "#fff" }}>{youGet}</Text>
+                </View>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={{ fontSize: 12, color: "#6b7280" }}>{t("buysell.fee", "Fee")}</Text>
+                  <Text style={{ fontSize: 12, color: "#fff" }}>{q.fee || "—"} ({q.feePercent || 0}%)</Text>
+                </View>
               </View>
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ fontSize: 12, color: "#6b7280" }}>{t("buysell.youGet", "You get")}</Text>
-                <Text style={{ fontSize: 12, color: "#fff" }}>{quoteMutation.data.amount} XLM</Text>
-              </View>
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ fontSize: 12, color: "#6b7280" }}>{t("buysell.fee", "Fee")}</Text>
-                <Text style={{ fontSize: 12, color: "#fff" }}>{quoteMutation.data.fee}</Text>
-              </View>
-            </View>
-          )}
+            );
+          })()}
         </View>
 
         {mgInfo?.status === "configured" && (

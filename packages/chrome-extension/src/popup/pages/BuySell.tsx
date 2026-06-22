@@ -18,18 +18,21 @@ export default function BuySell() {
   const [currency, setCurrency] = useState("USD");
   const [amount, setAmount] = useState("");
 
-  const { data: mgInfo } = useQuery({
+  const { data: mgInfo } = useQuery<{ limits?: { onRamp?: { min: string; max: string }; offRamp?: { min: string; max: string } }; feePercent?: number; status?: string; supportedAssets?: string[] }>({
     queryKey: ["moneygram-info"],
-    queryFn: moneygramApi.info,
+    queryFn: () => moneygramApi.info() as any,
   });
 
-  const { data: currencies } = useQuery({
+  const { data: currencies } = useQuery<{ currencies: { code: string; name: string; symbol: string }[]; feePercent: number; provider: string }>({
     queryKey: ["fiat-currencies"],
-    queryFn: fiatApi.currencies,
+    queryFn: () => fiatApi.currencies() as any,
   });
 
   const quoteMutation = useMutation({
-    mutationFn: () => fiatApi.quote({ from: currency, to: "XLM", amount: Number(amount) }),
+    mutationFn: () =>
+      tab === "buy"
+        ? fiatApi.quoteBuy({ fiatCurrency: currency, fiatAmount: Number(amount) })
+        : fiatApi.quoteSell({ fiatCurrency: currency, cryptoAmount: Number(amount) }),
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -63,6 +66,13 @@ export default function BuySell() {
 
   const mgLoading = mgDepositMutation.isPending || mgWithdrawMutation.isPending;
   const limits = mgInfo ? (tab === "buy" ? mgInfo.limits?.onRamp : mgInfo.limits?.offRamp) : null;
+
+  const quoteResult = quoteMutation.data as any;
+  const quoteYouGet = quoteResult
+    ? tab === "buy"
+      ? `${quoteResult.estimatedAmount || "—"} XLM`
+      : `${quoteResult.estimatedFiat || "—"} ${currency}`
+    : "";
 
   return (
     <div className="p-3 space-y-3">
@@ -102,8 +112,8 @@ export default function BuySell() {
               onChange={(e) => setCurrency(e.target.value)}
               className="bg-stellar-bg border border-stellar-border rounded-lg px-2 py-2 text-sm text-white"
             >
-              {(currencies?.currencies || ["USD", "EUR", "GBP", "ZAR", "NGN", "KES", "BRL"]).map((c: string) => (
-                <option key={c} value={c}>{c}</option>
+              {(currencies?.currencies || [{ code: "USD" }, { code: "EUR" }, { code: "GBP" }, { code: "ZAR" }, { code: "NGN" }, { code: "KES" }, { code: "BRL" }]).map((c: any) => (
+                <option key={c.code || c} value={c.code || c}>{c.code || c}</option>
               ))}
             </select>
           </div>
@@ -128,7 +138,7 @@ export default function BuySell() {
 
         {limits && (
           <p className="text-[10px] text-stellar-muted">
-            {t("buysell.limits", "Limits")}: ${limits.min} – ${limits.max} USDC &middot; {t("buysell.fee", "Fee")}: {mgInfo.feePercent}%
+            {t("buysell.limits", "Limits")}: ${limits.min} – ${limits.max} USDC &middot; {t("buysell.fee", "Fee")}: {mgInfo?.feePercent}%
           </p>
         )}
 
@@ -151,19 +161,19 @@ export default function BuySell() {
           </button>
         )}
 
-        {quoteMutation.data && (
+        {quoteResult && (
           <div className="bg-stellar-bg rounded-lg p-2 space-y-1">
             <div className="flex justify-between text-xs">
               <span className="text-stellar-muted">{t("buysell.rate", "Rate")}</span>
-              <span className="text-white">{quoteMutation.data.rate}</span>
+              <span className="text-white">{quoteResult.rate || "—"}</span>
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-stellar-muted">{t("buysell.youGet", "You get")}</span>
-              <span className="text-white">{quoteMutation.data.amount} XLM</span>
+              <span className="text-white">{quoteYouGet}</span>
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-stellar-muted">{t("buysell.fee", "Fee")}</span>
-              <span className="text-white">{quoteMutation.data.fee}</span>
+              <span className="text-white">{quoteResult.fee || "—"} ({quoteResult.feePercent || 0}%)</span>
             </div>
           </div>
         )}

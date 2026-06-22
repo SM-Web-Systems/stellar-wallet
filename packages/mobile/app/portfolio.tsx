@@ -16,13 +16,13 @@ export default function PortfolioScreen() {
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ["portfolio-summary", publicKey],
-    queryFn: () => portfolioApi.summary(publicKey),
+    queryFn: () => portfolioApi.summary(),
     enabled: !!publicKey,
   });
 
-  const { data: history } = useQuery({
+  const { data: history, isLoading: historyLoading } = useQuery({
     queryKey: ["portfolio-history", publicKey],
-    queryFn: () => portfolioApi.history(publicKey, 30),
+    queryFn: () => portfolioApi.history(30, publicKey),
     enabled: !!publicKey,
   });
 

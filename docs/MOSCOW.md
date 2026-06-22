@@ -1,85 +1,96 @@
-# MoSCoW Feature Prioritization
+# Amma Wallet — MoSCoW Feature Prioritisation
 
-## Must Have (v1.0) — Complete
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| User registration and login | Done | Email/password with Cloudflare Turnstile |
-| Email verification | Done | Token-based, required before full access |
-| JWT authentication | Done | 15-min access, 7-day refresh, rotation with revocation |
-| Multi-wallet management | Done | Create, import, rename, delete, switch active wallet |
-| HD wallet creation | Done | BIP-39 mnemonic, 12 or 24 words |
-| Import wallet via secret key | Done | Optional server-side encryption with PIN |
-| Send XLM and tokens | Done | With memo support (text, id, hash) |
-| Receive with QR code | Done | QR code generation plus copyable address |
-| Token discovery and search | Done | 340+ tokens, server-side pagination (50/page), sortable columns |
-| Trustline management | Done | Add, remove, and update trust limits |
-| Swap via Stellar DEX | Done | Path payment with best-route, price impact display |
-| Transaction history | Done | Paginated from Horizon with cursor-based navigation |
-| Self-custody signing | Done | Client-side signing, keys never leave the browser |
-| Delegated signing | Done | PIN-encrypted server-side signing with optional fee-bump |
-| Two-factor authentication | Done | TOTP, email codes, and static backup codes |
-| Password reset | Done | Email token with 1-hour expiry |
-| API documentation | Done | Swagger/OpenAPI for all 54 endpoints |
-| Rate limiting | Done | 100/min global, 10/5min on auth endpoints |
-| Platform fee on swaps | Done | Configurable percentage, works in both signing modes |
-| HTTPS/SSL | Done | Let's Encrypt via Nginx with auto-renewal |
-
-## Should Have (v1.1) — Complete
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Dark and light theme | Done | CSS custom properties with instant toggle |
-| Mobile responsive design | Done | Hamburger menu, slide-out drawer, sticky header |
-| Multi-language support | Done | 18 languages including RTL (Arabic) |
-| Address book / contacts | Done | Per-user CRUD with memo and notes, isolated per account |
-| In-app notifications | Done | Bell icon, persistent store, mark-read, clear-all |
-| Price charts | Done | OHLCV from Horizon trade aggregations, 1W/1M/3M/1Y |
-| Orderbook depth chart | Done | Visual bid/ask depth via Recharts |
-| Token enrichment pipeline | Done | StellarExpert integration, network-aware, XLM support |
-| Bundle optimization | Done | Code splitting, vendor chunks, 170 KB gzipped initial load |
-| npm audit remediation | Done | Backend 4 moderate (dev-only), frontend 6 low |
-| In-app help and FAQ | Done | 19 FAQ items across 6 categories at /help |
-| Auto-liquifier | Done | Converts non-XLM fees to XLM every 6 hours |
-| Admin endpoints | Done | Manual liquify and platform balance check |
-| Toast standardization | Done | Migrated all to Sonner, removed react-hot-toast |
-
-## Could Have (v1.2) — Planned
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Push notifications | Done | Service worker, web push API |
-| Fiat on/off ramp | Done | Third-party provider integration |
-| Portfolio analytics | Done | Historical balance tracking, PnL |
-| Curated token list | Done | 24 mainnet + 7 testnet tokens with self-hosted icons (PNG + SVG) |
-| Staking and rewards | Done | AMM liquidity provision tracking |
-| Earn / Liquidity pools | Done | Pool browser, user positions, deposit/withdraw XDR building |
-| Soroban smart contract interaction | Planned | Invoke contracts, deploy tokens |
-| Multi-signature support | Planned | Orion Safe integration (SCF44) |
-| Export transaction history | Planned | CSV/PDF export for tax reporting |
-| Custom token creation | Planned | Issue new assets via the UI |
-
-
-## Won't Have (out of scope)
-
-| Feature | Reason |
-|---------|--------|
-| Full block explorer | Dedicated tools like StellarExpert exist |
-| Custodial exchange | Regulatory complexity, out of scope |
-| Non-Stellar chains | Amma Wallet is Stellar-focused |
-| Native mobile apps | Web-first approach, PWA possible later |
+> Last updated: 2026-06-22 | API docs: https://ammawallet.com/docs
+> **76 paths · ~95 operations · 18 tags** documented in OpenAPI 3.0
 
 ---
 
-## Future (v2.0) — Planned
+## M — Must Have (v1.0) — 20/20 COMPLETE ✅
 
-Feature	Description	Complexity
-SEP-24 Anchor Platform	Become a licensed Stellar anchor, handle KYC/AML, connect to local payment rails (M-Pesa, bank transfers)	Very High
-Custom fiat corridors	Direct ZAR, NGN, KES on/off ramp without third-party dependency	High
-Multi-chain bridge	Bridge USDC between Stellar and other chains (Ethereum, Solana) via Wormhole/Allbridge	High
-Soroban smart contracts	Deploy and interact with Soroban smart contracts on Stellar	High
-Multi-signature wallets	Require multiple signers for transaction approval	Medium
-Native mobile apps	React Native iOS/Android apps with biometric auth	High
-Hardware wallet support	Ledger/Trezor integration for cold storage signing	Medium
-Recurring payments	Scheduled automated payments and subscriptions	Medium
-DAO governance	Community voting on platform decisions using governance tokens	High
+| # | Feature | Status |
+|---|---------|--------|
+| 1 | User registration & login (email/password) | Done |
+| 2 | Email verification (token-based) | Done |
+| 3 | JWT authentication (15 min access, 7 day refresh, rotation) | Done |
+| 4 | Multi-wallet management (add, rename, activate, delete) | Done |
+| 5 | HD wallet creation (BIP-39 / SEP-0005) | Done |
+| 6 | Import wallet via secret key | Done |
+| 7 | Send XLM & any Stellar token (memo, QR) | Done |
+| 8 | Receive with QR code generation | Done |
+| 9 | Token discovery (340+ tokens, 50/page, sort, search, verified filter) | Done |
+| 10 | Trustline management (add/remove, pre-flight check) | Done |
+| 11 | Stellar DEX swap (best-route path payment, slippage control) | Done |
+| 12 | Paginated transaction history (type labels, memos, cursors) | Done |
+| 13 | Client-side self-custody signing | Done |
+| 14 | PIN-encrypted delegated signing (server-side) | Done |
+| 15 | Two-factor authentication (TOTP / email / static PIN, backup codes) | Done |
+| 16 | Password reset (email, time-limited tokens) | Done |
+| 17 | Swagger / OpenAPI documentation (76 paths, 18 tags) | Done |
+| 18 | Rate limiting (100 req/min global, 10/5 min auth) | Done |
+| 19 | Configurable platform swap fee (% to platform wallet) | Done |
+| 20 | HTTPS & SSL (Let's Encrypt, auto-renew, redirect) | Done |
+
+## S — Should Have (v1.1) — 14/14 COMPLETE ✅
+
+| # | Feature | Status |
+|---|---------|--------|
+| 1 | Dark & light theme (system-preference aware, Tailwind) | Done |
+| 2 | Mobile responsive design (bottom nav, collapsible sidebar) | Done |
+| 3 | Multi-language UI (18 languages via i18next, lazy-loaded, RTL) | Done |
+| 4 | Address book / contacts (CRUD, integrated in send flow) | Done |
+| 5 | In-app notification centre (unread badge, mark-as-read) | Done |
+| 6 | OHLCV price charts (candlestick/line, 1h/1d/1w intervals) | Done |
+| 7 | Order book depth visualisation (bid/ask, spread) | Done |
+| 8 | Token enrichment pipeline (StellarExpert proxy) | Done |
+| 9 | Bundle optimisation (170 KB gzipped) | Done |
+| 10 | npm audit remediation (4 moderate dev, 6 low frontend) | Done |
+| 11 | Help / FAQ (19 items) | Done |
+| 12 | Auto-liquifier (convert non-XLM fees every 6h) | Done |
+| 13 | Admin endpoints (liquify, platform balance) | Done |
+| 14 | Toast standardisation (Sonner) | Done |
+
+## C — Could Have (v1.2) — 6/10 COMPLETE
+
+| # | Feature | Status |
+|---|---------|--------|
+| 1 | Push notifications (VAPID, web-push, service worker) | Done |
+| 2 | Fiat on/off ramp — MoneyGram SEP-10/24 (0.3% fee) | Done |
+| 3 | Fiat quotes (buy/sell, 7 currencies, CoinGecko rates) | Done |
+| 4 | Portfolio analytics (snapshots, 30-day history, summary) | Done |
+| 5 | Curated token list (24 mainnet + 7 testnet) | Done |
+| 6 | Earn / Liquidity pools (deposit, withdraw, positions, LP fee 0.30%) | Done |
+| 7 | Export transaction history (CSV / PDF) | Planned |
+| 8 | Custom token creation | Planned |
+| 9 | Soroban smart contract interaction | Planned |
+| 10 | Multi-signature support (Orion Safe) | Planned |
+
+## W — Won't Have (out of scope)
+
+- Full block explorer
+- Custodial exchange
+- Non-Stellar chains
+- Native mobile apps (web-first approach — Expo prototype in repo)
+
+## Future (v2.0) — Planned Roadmap
+
+| Feature | Complexity | Notes |
+|---------|-----------|-------|
+| SEP-24 Anchor Platform (KYC/AML, local rails) | Very High | Requires MoneyGram staging access |
+| Custom fiat corridors (ZAR, NGN, KES) | High | Depends on anchor platform |
+| Multi-chain bridge (USDC via Wormhole/Allbridge) | High | Cross-chain USDC |
+| Soroban contracts | High | Stellar smart contracts |
+| Multi-signature wallets | Medium | Orion Safe pattern |
+| Native mobile apps (React Native) | High | Expo prototype exists |
+| Hardware wallet support (Ledger / Trezor) | Medium | WebUSB / WebHID |
+| Recurring payments | Medium | Scheduled transactions |
+| DAO governance | High | On-chain voting |
+
+---
+
+### Platform Coverage
+
+| Platform | Pages | API Client | Build |
+|----------|-------|-----------|-------|
+| **Web app** (React 19 / Vite 6) | 16 pages | Full (14 API modules) | ✅ Production |
+| **Chrome extension** (MV3 / Vite) | 16 pages | Full (14 API modules) | ✅ Builds |
+| **Mobile** (Expo 54 / React Native) | 18 screens | Full (14 API modules) | ✅ Compiles |

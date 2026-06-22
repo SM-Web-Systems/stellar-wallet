@@ -97,6 +97,8 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
+  forgotPassword: (email: string) =>
+    request("/api/v1/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
   logout: () => {
     const refreshToken = getRefreshToken();
     return request<{ message: string }>("/api/v1/auth/logout", {
@@ -277,15 +279,13 @@ export const earnApi = {
 
 // ─── Fiat Ramp ─────────────────────────────────────────────
 export const fiatApi = {
-  currencies: () => request<any>("/api/v1/fiat/currencies"),
-  quote: (params: { from: string; to: string; amount: number }) => {
-    const qs = new URLSearchParams({ from: params.from, to: params.to, amount: String(params.amount) });
-    return request<any>(`/api/v1/fiat/quote?${qs}`);
-  },
-  buy: (body: { currency: string; amount: number; publicKey: string }) =>
-    request<any>("/api/v1/fiat/buy", { method: "POST", body: JSON.stringify(body) }),
-  sell: (body: { currency: string; amount: number; publicKey: string }) =>
-    request<any>("/api/v1/fiat/sell", { method: "POST", body: JSON.stringify(body) }),
+  currencies: () => request("/api/v1/fiat/currencies"),
+  quoteBuy: (b: { fiatCurrency: string; fiatAmount: number; targetAsset?: string }) =>
+    request("/api/v1/fiat/quote/buy", { method: "POST", body: JSON.stringify(b) }),
+  quoteSell: (b: { fiatCurrency: string; cryptoAmount: number; sourceAsset?: string }) =>
+    request("/api/v1/fiat/quote/sell", { method: "POST", body: JSON.stringify(b) }),
+  buy: (b: any) => request("/api/v1/fiat/buy", { method: "POST", body: JSON.stringify(b) }),
+  sell: (b: any) => request("/api/v1/fiat/sell", { method: "POST", body: JSON.stringify(b) }),
 };
 
 // ─── MoneyGram (SEP-10/24) ─────────────────────────────────
@@ -301,12 +301,13 @@ export const moneygramApi = {
 
 // ─── Portfolio ─────────────────────────────────────────────
 export const portfolioApi = {
-  snapshot: (publicKey: string) =>
-    request<any>("/api/v1/portfolio/snapshot", { method: "POST", body: JSON.stringify({ publicKey }) }),
-  history: (publicKey: string, days = 30) =>
-    request<any>(`/api/v1/portfolio/history/${publicKey}?days=${days}`),
-  summary: (publicKey: string) =>
-    request<any>(`/api/v1/portfolio/summary/${publicKey}`),
+  snapshot: () => request("/api/v1/portfolio/snapshot", { method: "POST" }),
+  history: (days = 30, walletPublicKey?: string) => {
+    const qs = new URLSearchParams({ days: String(days) });
+    if (walletPublicKey) qs.set("walletPublicKey", walletPublicKey);
+    return request(`/api/v1/portfolio/history?${qs}`);
+  },
+  summary: () => request("/api/v1/portfolio/summary"),
 };
 
 // ─── Price History ─────────────────────────────────────────
