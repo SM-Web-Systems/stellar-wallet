@@ -15,6 +15,10 @@ import {
   ArrowLeftRight,
   History as HistoryIcon,
   Settings as SettingsIcon,
+  Droplets,
+  DollarSign,
+  PieChart,
+  Users,
 } from "lucide-react";
 import { useAuthStore } from "../shared/store/auth";
 import { useWalletStore } from "../shared/store/wallet";
@@ -32,6 +36,10 @@ import HistoryPage from "./pages/History";
 import SettingsPage from "./pages/Settings";
 import Onboarding from "./pages/Onboarding";
 import TokenDetailPage from "./pages/TokenDetail";
+import ContactsPage from "./pages/Contacts";
+import EarnPage from "./pages/Earn";
+import BuySellPage from "./pages/BuySell";
+import PortfolioPage from "./pages/Portfolio";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -54,11 +62,11 @@ function BottomNav() {
   const { t } = useTranslation();
 
   const tabs = [
-    { to: "/dashboard", icon: Home, label: t("nav.dashboard") },
-    { to: "/tokens", icon: Coins, label: t("nav.tokens") },
-    { to: "/send", icon: Send, label: t("nav.send") },
-    { to: "/receive", icon: QrCode, label: t("nav.receive") },
-    { to: "/swap", icon: ArrowLeftRight, label: t("nav.swap") },
+    { to: "/dashboard", icon: Home, label: t("nav.dashboard", "Home") },
+    { to: "/tokens", icon: Coins, label: t("nav.tokens", "Tokens") },
+    { to: "/swap", icon: ArrowLeftRight, label: t("nav.swap", "Swap") },
+    { to: "/earn", icon: Droplets, label: t("nav.earn", "Earn") },
+    { to: "/buy-sell", icon: DollarSign, label: t("nav.buysell", "Buy") },
   ];
 
   return (
@@ -94,14 +102,44 @@ function Header() {
       </div>
       <div className="flex items-center gap-0.5 shrink-0">
         <button
+          onClick={() => navigate("/send")}
+          className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
+          title="Send"
+        >
+          <Send size={16} />
+        </button>
+        <button
+          onClick={() => navigate("/receive")}
+          className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
+          title="Receive"
+        >
+          <QrCode size={16} />
+        </button>
+        <button
+          onClick={() => navigate("/contacts")}
+          className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
+          title="Contacts"
+        >
+          <Users size={16} />
+        </button>
+        <button
+          onClick={() => navigate("/portfolio")}
+          className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
+          title="Portfolio"
+        >
+          <PieChart size={16} />
+        </button>
+        <button
           onClick={() => navigate("/history")}
           className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
+          title="History"
         >
           <HistoryIcon size={16} />
         </button>
         <button
           onClick={() => navigate("/settings")}
           className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
+          title="Settings"
         >
           <SettingsIcon size={16} />
         </button>
@@ -121,7 +159,6 @@ export default function App() {
   return (
     <div className="flex flex-col h-[600px] w-[380px] bg-stellar-bg">
       <Routes>
-        {/* Auth routes */}
         <Route
           path="/login"
           element={
@@ -138,8 +175,6 @@ export default function App() {
             </AuthRoute>
           }
         />
-
-        {/* Onboarding — auth required, no wallet yet */}
         <Route
           path="/onboarding"
           element={
@@ -150,8 +185,6 @@ export default function App() {
             )
           }
         />
-
-        {/* Root redirect */}
         <Route
           path="/"
           element={
@@ -161,8 +194,6 @@ export default function App() {
             />
           }
         />
-
-        {/* Protected app routes */}
         <Route
           path="/*"
           element={
@@ -175,6 +206,10 @@ export default function App() {
                   <Route path="/send" element={<SendPage />} />
                   <Route path="/receive" element={<ReceivePage />} />
                   <Route path="/swap" element={<SwapPage />} />
+                  <Route path="/earn" element={<EarnPage />} />
+                  <Route path="/buy-sell" element={<BuySellPage />} />
+                  <Route path="/portfolio" element={<PortfolioPage />} />
+                  <Route path="/contacts" element={<ContactsPage />} />
                   <Route path="/history" element={<HistoryPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route

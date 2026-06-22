@@ -155,7 +155,7 @@ export default function SendPage() {
             gap: 10,
           }}
         >
-          <TokenIcon code={activeAsset?.assetCode} image={activeAsset?.token?.tomlImage} size={32} />
+          <TokenIcon code={activeAsset?.assetCode || "XLM"} image={activeAsset?.token?.tomlImage} size={32} />
           <View style={{ flex: 1 }}>
             <Text style={{ color: "#fff", fontSize: 15, fontWeight: "600" }}>
               {activeAsset?.assetCode || "XLM"}

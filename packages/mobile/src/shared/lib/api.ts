@@ -162,3 +162,81 @@ export const signingApi = {
       body: JSON.stringify({ xdr, networkPassphrase }),
     }),
 };
+
+// ─── Contacts ──────────────────────────────────────────────
+export const contactsApi = {
+  list: () => request("/api/v1/contacts"),
+  add: (data: { name: string; address: string; memo?: string; notes?: string }) =>
+    request("/api/v1/contacts", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: number, data: { name?: string; address?: string; memo?: string; notes?: string }) =>
+    request(`/api/v1/contacts/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  remove: (id: number) => request(`/api/v1/contacts/${id}`, { method: "DELETE" }),
+};
+
+// ─── Earn / Liquidity Pools ────────────────────────────────
+export const earnApi = {
+  pools: (params?: { asset?: string; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.asset) qs.set("asset", params.asset);
+    if (params?.limit) qs.set("limit", String(params.limit));
+    return request(`/api/v1/earn/pools?${qs}`);
+  },
+  positions: (publicKey: string) =>
+    request(`/api/v1/earn/positions/${publicKey}`),
+  deposit: (body: { publicKey: string; poolId: string; maxAmountA: string; maxAmountB: string }) =>
+    request("/api/v1/earn/deposit", { method: "POST", body: JSON.stringify(body) }),
+  withdraw: (body: { publicKey: string; poolId: string; shares: string }) =>
+    request("/api/v1/earn/withdraw", { method: "POST", body: JSON.stringify(body) }),
+};
+
+// ─── Fiat Ramp ─────────────────────────────────────────────
+export const fiatApi = {
+  currencies: () => request("/api/v1/fiat/currencies"),
+  quote: (params: { from: string; to: string; amount: number }) => {
+    const qs = new URLSearchParams({ from: params.from, to: params.to, amount: String(params.amount) });
+    return request(`/api/v1/fiat/quote?${qs}`);
+  },
+  buy: (body: { currency: string; amount: number; publicKey: string }) =>
+    request("/api/v1/fiat/buy", { method: "POST", body: JSON.stringify(body) }),
+  sell: (body: { currency: string; amount: number; publicKey: string }) =>
+    request("/api/v1/fiat/sell", { method: "POST", body: JSON.stringify(body) }),
+};
+
+// ─── MoneyGram (SEP-10/24) ─────────────────────────────────
+export const moneygramApi = {
+  info: () => request("/api/v1/moneygram/info"),
+  deposit: (body: { publicKey: string; amount?: string }) =>
+    request("/api/v1/moneygram/deposit", { method: "POST", body: JSON.stringify(body) }),
+  withdraw: (body: { publicKey: string; amount: string }) =>
+    request("/api/v1/moneygram/withdraw", { method: "POST", body: JSON.stringify(body) }),
+  transactionStatus: (id: string, publicKey: string) =>
+    request(`/api/v1/moneygram/transaction/${id}?publicKey=${publicKey}`),
+};
+
+// ─── Portfolio ─────────────────────────────────────────────
+export const portfolioApi = {
+  snapshot: (publicKey: string) =>
+    request("/api/v1/portfolio/snapshot", { method: "POST", body: JSON.stringify({ publicKey }) }),
+  history: (publicKey: string, days = 30) =>
+    request(`/api/v1/portfolio/history/${publicKey}?days=${days}`),
+  summary: (publicKey: string) =>
+    request(`/api/v1/portfolio/summary/${publicKey}`),
+};
+
+// ─── Price History ─────────────────────────────────────────
+export const priceApi = {
+  history: (code: string, issuer: string, resolution = 86400000, limit = 30) =>
+    request(
+      `/api/v1/tokens/${encodeURIComponent(code)}/${encodeURIComponent(issuer)}/price-history?resolution=${resolution}&limit=${limit}`
+    ),
+};
+
+// ─── Two-Factor Auth ───────────────────────────────────────
+export const twoFactorApi = {
+  setup: () => request("/api/v1/2fa/setup", { method: "POST" }),
+  verify: (code: string) =>
+    request("/api/v1/2fa/verify", { method: "POST", body: JSON.stringify({ code }) }),
+  disable: (code: string) =>
+    request("/api/v1/2fa/disable", { method: "POST", body: JSON.stringify({ code }) }),
+  backupCodes: () => request("/api/v1/2fa/backup-codes"),
+};

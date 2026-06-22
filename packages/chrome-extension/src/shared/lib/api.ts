@@ -248,3 +248,82 @@ export const keypairApi = {
       body: JSON.stringify({ mnemonic, accountIndex }),
     }),
 };
+
+// ─── Contacts ──────────────────────────────────────────────
+export const contactsApi = {
+  list: () => request<any[]>("/api/v1/contacts"),
+  add: (data: { name: string; address: string; memo?: string; notes?: string }) =>
+    request<any>("/api/v1/contacts", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: number, data: { name?: string; address?: string; memo?: string; notes?: string }) =>
+    request<any>(`/api/v1/contacts/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  remove: (id: number) => request<any>(`/api/v1/contacts/${id}`, { method: "DELETE" }),
+};
+
+// ─── Earn / Liquidity Pools ────────────────────────────────
+export const earnApi = {
+  pools: (params?: { asset?: string; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.asset) qs.set("asset", params.asset);
+    if (params?.limit) qs.set("limit", String(params.limit));
+    return request<any>(`/api/v1/earn/pools?${qs}`);
+  },
+  positions: (publicKey: string) =>
+    request<any>(`/api/v1/earn/positions/${publicKey}`),
+  deposit: (body: { publicKey: string; poolId: string; maxAmountA: string; maxAmountB: string }) =>
+    request<any>("/api/v1/earn/deposit", { method: "POST", body: JSON.stringify(body) }),
+  withdraw: (body: { publicKey: string; poolId: string; shares: string }) =>
+    request<any>("/api/v1/earn/withdraw", { method: "POST", body: JSON.stringify(body) }),
+};
+
+// ─── Fiat Ramp ─────────────────────────────────────────────
+export const fiatApi = {
+  currencies: () => request<any>("/api/v1/fiat/currencies"),
+  quote: (params: { from: string; to: string; amount: number }) => {
+    const qs = new URLSearchParams({ from: params.from, to: params.to, amount: String(params.amount) });
+    return request<any>(`/api/v1/fiat/quote?${qs}`);
+  },
+  buy: (body: { currency: string; amount: number; publicKey: string }) =>
+    request<any>("/api/v1/fiat/buy", { method: "POST", body: JSON.stringify(body) }),
+  sell: (body: { currency: string; amount: number; publicKey: string }) =>
+    request<any>("/api/v1/fiat/sell", { method: "POST", body: JSON.stringify(body) }),
+};
+
+// ─── MoneyGram (SEP-10/24) ─────────────────────────────────
+export const moneygramApi = {
+  info: () => request<any>("/api/v1/moneygram/info"),
+  deposit: (body: { publicKey: string; amount?: string }) =>
+    request<any>("/api/v1/moneygram/deposit", { method: "POST", body: JSON.stringify(body) }),
+  withdraw: (body: { publicKey: string; amount: string }) =>
+    request<any>("/api/v1/moneygram/withdraw", { method: "POST", body: JSON.stringify(body) }),
+  transactionStatus: (id: string, publicKey: string) =>
+    request<any>(`/api/v1/moneygram/transaction/${id}?publicKey=${publicKey}`),
+};
+
+// ─── Portfolio ─────────────────────────────────────────────
+export const portfolioApi = {
+  snapshot: (publicKey: string) =>
+    request<any>("/api/v1/portfolio/snapshot", { method: "POST", body: JSON.stringify({ publicKey }) }),
+  history: (publicKey: string, days = 30) =>
+    request<any>(`/api/v1/portfolio/history/${publicKey}?days=${days}`),
+  summary: (publicKey: string) =>
+    request<any>(`/api/v1/portfolio/summary/${publicKey}`),
+};
+
+// ─── Price History ─────────────────────────────────────────
+export const priceApi = {
+  history: (code: string, issuer: string, resolution = 86400000, limit = 30) =>
+    request<any>(
+      `/api/v1/tokens/${encodeURIComponent(code)}/${encodeURIComponent(issuer)}/price-history?resolution=${resolution}&limit=${limit}`
+    ),
+};
+
+// ─── Two-Factor Auth ───────────────────────────────────────
+export const twoFactorApi = {
+  setup: () => request<any>("/api/v1/2fa/setup", { method: "POST" }),
+  verify: (code: string) =>
+    request<any>("/api/v1/2fa/verify", { method: "POST", body: JSON.stringify({ code }) }),
+  disable: (code: string) =>
+    request<any>("/api/v1/2fa/disable", { method: "POST", body: JSON.stringify({ code }) }),
+  backupCodes: () => request<any>("/api/v1/2fa/backup-codes"),
+};
+

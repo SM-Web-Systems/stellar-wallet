@@ -29,7 +29,11 @@ export default function RootLayout() {
         <Stack.Screen name="settings" />
         <Stack.Screen name="history" />
         <Stack.Screen name="token-detail" />
-        <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+        <Stack.Screen name="forgot-password" />
+        <Stack.Screen name="contacts" />
+        <Stack.Screen name="earn" />
+        <Stack.Screen name="buy-sell" />
+        <Stack.Screen name="portfolio" />
       </Stack>
     </QueryClientProvider>
   );
