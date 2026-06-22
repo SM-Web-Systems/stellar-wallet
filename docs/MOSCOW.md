@@ -48,14 +48,17 @@
 
 | Feature | Status | Notes |
 |---------|--------|-------|
+| Push notifications | Done | Service worker, web push API |
+| Fiat on/off ramp | Done | Third-party provider integration |
+| Portfolio analytics | Done | Historical balance tracking, PnL |
+| Curated token list | Done | 24 mainnet + 7 testnet tokens with self-hosted icons (PNG + SVG) |
+| Staking and rewards | Done | AMM liquidity provision tracking |
+| Earn / Liquidity pools | Done | Pool browser, user positions, deposit/withdraw XDR building |
 | Soroban smart contract interaction | Planned | Invoke contracts, deploy tokens |
 | Multi-signature support | Planned | Orion Safe integration (SCF44) |
-| Fiat on/off ramp | Planned | Third-party provider integration |
-| Push notifications | Planned | Service worker, web push API |
-| Portfolio analytics | Planned | Historical balance tracking, PnL |
 | Export transaction history | Planned | CSV/PDF export for tax reporting |
 | Custom token creation | Planned | Issue new assets via the UI |
-| Staking and rewards | Planned | AMM liquidity provision tracking |
+
 
 ## Won't Have (out of scope)
 
@@ -70,14 +73,13 @@
 
 ## Future (v2.0) — Planned
 
-| Feature | Description | Complexity |
-|---------|-------------|------------|
-| SEP-24 Anchor Platform | Become a licensed Stellar anchor, handle KYC/AML, connect to local payment rails (M-Pesa, bank transfers) | Very High |
-| Custom fiat corridors | Direct ZAR, NGN, KES on/off ramp without third-party dependency | High |
-| Multi-chain bridge | Bridge USDC between Stellar and other chains (Ethereum, Solana) via Wormhole/Allbridge | High |
-| Soroban smart contracts | Deploy and interact with Soroban smart contracts on Stellar | High |
-| Multi-signature wallets | Require multiple signers for transaction approval | Medium |
-| Native mobile apps | React Native iOS/Android apps with biometric auth | High |
-| Hardware wallet support | Ledger/Trezor integration for cold storage signing | Medium |
-| Recurring payments | Scheduled automated payments and subscriptions | Medium |
-| DAO governance | Community voting on platform decisions using governance tokens | High |
+Feature	Description	Complexity
+SEP-24 Anchor Platform	Become a licensed Stellar anchor, handle KYC/AML, connect to local payment rails (M-Pesa, bank transfers)	Very High
+Custom fiat corridors	Direct ZAR, NGN, KES on/off ramp without third-party dependency	High
+Multi-chain bridge	Bridge USDC between Stellar and other chains (Ethereum, Solana) via Wormhole/Allbridge	High
+Soroban smart contracts	Deploy and interact with Soroban smart contracts on Stellar	High
+Multi-signature wallets	Require multiple signers for transaction approval	Medium
+Native mobile apps	React Native iOS/Android apps with biometric auth	High
+Hardware wallet support	Ledger/Trezor integration for cold storage signing	Medium
+Recurring payments	Scheduled automated payments and subscriptions	Medium
+DAO governance	Community voting on platform decisions using governance tokens	High
