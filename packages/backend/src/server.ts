@@ -16,7 +16,6 @@ import { syncTomlImages } from "./lib/toml-sync.js";
 import { authRoutes } from "./routes/auth";
 import { twoFaRoutes } from "./routes/two-fa";
 import { walletRoutes } from "./routes/wallets";
-import { passwordResetRoutes } from "./routes/password-reset";
 import { trustlineRoutes } from "./routes/trustlines";
 import { addressBookRoutes } from "./routes/contacts";
 import { pushRoutes } from "./routes/push";
@@ -147,7 +146,6 @@ async function bootstrap() {
   app.register(authRoutes);
   app.register(twoFaRoutes);
   app.register(walletRoutes);
-  app.register(passwordResetRoutes);
   app.register(trustlineRoutes);
   app.register(addressBookRoutes);
   app.register(pushRoutes);

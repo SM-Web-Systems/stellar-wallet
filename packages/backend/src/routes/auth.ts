@@ -754,6 +754,7 @@ export async function authRoutes(app: FastifyInstance) {
       response: {
         200: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" } } },
         400: { type: "object", properties: { error: { type: "string" } } },
+        500: { type: "object", properties: { error: { type: "string" } } },
       },
     },
   }, async (request, reply) => {
@@ -820,6 +821,7 @@ export async function authRoutes(app: FastifyInstance) {
           properties: { success: { type: "boolean" }, message: { type: "string" } },
         },
         400: { type: "object", properties: { error: { type: "string" } } },
+        500: { type: "object", properties: { error: { type: "string" } } },
       },
     },
   }, async (request, reply) => {
