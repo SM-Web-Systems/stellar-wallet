@@ -29,6 +29,7 @@ import StellarHDWallet from "stellar-hd-wallet";
 import { db, schema } from "./db";
 import { eq, and } from "drizzle-orm";
 import { authMiddleware } from "./middleware/auth";
+import { auditLog } from "./lib/audit";
 import { apiKeyMiddleware } from "./lib/api-key";
 import { decryptSecret } from "./lib/decrypt-secret";
 
@@ -926,6 +927,7 @@ async function bootstrap() {
         const result = await stellarClient.wallet
           .stellar()
           .submitTransaction(tx);
+                await auditLog("transaction_submit", { userId: request.user?.userId, ip: request.ip });
         return { success: true, result };
       } catch (error: any) {
         return { error: config.NODE_ENV === "production" ? "Transaction submission failed" : (error.message || "Transaction submission failed") };
@@ -1275,7 +1277,9 @@ async function bootstrap() {
             stellarClient.stellar.decodeTransaction(txToSubmit.toXDR())
           );
 
-        return { success: true, result, fee: feeDetails, feeBumped: txToSubmit !== finalTx };
+        await auditLog("transaction_sign", { userId: request.user?.userId, ip: request.ip });
+
+      return { success: true, result, fee: feeDetails, feeBumped: txToSubmit !== finalTx };
       } catch (error: any) {
         console.error("[sign-and-submit] ERROR:", error.message, error.stack?.split("\n").slice(0,3).join(" | "));
         console.error("[sign-and-submit] FULL ERROR:", error.message, "\n", error.stack);

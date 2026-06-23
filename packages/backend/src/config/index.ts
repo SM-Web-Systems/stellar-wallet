@@ -1,4 +1,6 @@
 // Validate critical secrets at startup
+// NOTE: Rotate JWT_SECRET and JWT_REFRESH_SECRET periodically.
+// When rotating, revoke all existing refresh tokens first.
 const requiredEnvVars = [
   "JWT_SECRET",
   "JWT_REFRESH_SECRET",

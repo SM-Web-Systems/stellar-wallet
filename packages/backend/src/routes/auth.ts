@@ -13,6 +13,7 @@ import {
   verifyRefreshToken,
 } from "../lib/auth";
 import { authMiddleware } from "../middleware/auth";
+import { auditLog } from "../lib/audit";
 import speakeasy from "speakeasy";
 import { randomBytes } from "crypto";
 import crypto from "crypto";
@@ -125,9 +126,12 @@ export async function authRoutes(app: FastifyInstance) {
       .returning();
 
     // ── Generate tokens ──
+        await auditLog("login", { userId: user.id, ip: request.ip, userAgent: request.headers["user-agent"] });
+
     const accessToken = generateAccessToken({ userId: newUser.id, email: newUser.email });
     const refreshToken = generateRefreshToken({ userId: newUser.id, email: newUser.email });
     await storeRefreshToken(newUser.id, refreshToken);
+    await auditLog("register", { userId: newUser.id, ip: request.ip, detail: { email: newUser.email || null, phone: newUser.phoneNumber || null } });
 
     // ── Send verification email if email provided ──
     if (email) {
@@ -249,6 +253,7 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     if (!user) {
+            await auditLog("login_failed", { userId: user.id, ip: request.ip, detail: { identifier: email || phoneNumber } });
       return reply.status(401).send({ error: "Invalid credentials" });
     }
 
@@ -258,6 +263,7 @@ export async function authRoutes(app: FastifyInstance) {
     if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS && user.lastFailedLogin) {
       const lockoutUntil = new Date(new Date(user.lastFailedLogin).getTime() + LOCKOUT_MINUTES * 60 * 1000);
       if (new Date() < lockoutUntil) {
+                await auditLog("login_locked", { userId: user.id, ip: request.ip });
         return reply.status(423).send({ error: "Account temporarily locked. Try again later." });
       }
       await db.update(schema.users)
@@ -478,6 +484,8 @@ export async function authRoutes(app: FastifyInstance) {
     if (refreshToken) {
       await revokeRefreshToken(refreshToken);
     }
+        await auditLog("password_change", { userId, ip: request.ip });
+
     return { ok: true };
   });
 
@@ -736,6 +744,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     // Always return success to prevent email enumeration
     const successResponse = { success: true, message: "If that email is registered, a reset link has been sent" };
+    await auditLog("password_reset_request", { ip: request.ip, detail: { email: email || null } });
 
     const [user] = await db
       .select({ id: schema.users.id, email: schema.users.email })
@@ -824,6 +833,7 @@ export async function authRoutes(app: FastifyInstance) {
       // Revoke all refresh tokens
       await revokeAllUserTokens(record.user_id);
 
+      await auditLog("password_reset", { userId: record.userId, ip: request.ip });
       return { success: true, message: "Password reset successfully. Please log in." };
     } catch (err: any) {
       console.error("[reset-password] Error:", err.message);
