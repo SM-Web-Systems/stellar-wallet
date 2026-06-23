@@ -108,7 +108,7 @@ async function bootstrap() {
   // Rate Limiting
   // ═══════════════════════════════════════
   await app.register(fastifyRateLimit, {
-    max: 100,
+    max: 60,
     timeWindow: "1 minute",
     keyGenerator: (request) => {
       // Use API key if present, otherwise IP
@@ -662,9 +662,10 @@ async function bootstrap() {
   app.post(
     "/api/v1/swap/build",
     {
+      preHandler: authMiddleware,
       schema: {
         tags: ["Swap"],
-        summary: "Build unsigned swap transaction XDR",
+        summary: "Build unsigned swap transaction XDR. The publicKey must belong to the authenticated user.",
         security: [{ bearerAuth: [] }],
         body: {
           type: "object",
@@ -677,14 +678,33 @@ async function bootstrap() {
         },
         response: {
           200: { description: "Unsigned swap XDR", type: "object", properties: { xdr: { type: "string", description: "Unsigned transaction XDR" }, networkPassphrase: { type: "string" } } },
+          400: { type: "object", properties: { error: { type: "string" } } },
+          403: { type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
       const { publicKey, quote, slippageBps } = request.body as any;
 
       if (!publicKey || !quote) {
-        return { error: "publicKey and quote are required" };
+        return reply.status(400).send({ error: "publicKey and quote are required" });
+      }
+
+      // Ownership check: ensure publicKey belongs to authenticated user
+      const userId = request.user!.userId;
+      const [wallet] = await db
+        .select()
+        .from(schema.userWallets)
+        .where(
+          and(
+            eq(schema.userWallets.userId, userId),
+            eq(schema.userWallets.publicKey, publicKey)
+          )
+        )
+        .limit(1);
+
+      if (!wallet) {
+        return reply.status(403).send({ error: "This wallet does not belong to your account" });
       }
 
       let xdr = await swapService.buildSwapTransaction(

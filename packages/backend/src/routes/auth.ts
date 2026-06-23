@@ -25,6 +25,7 @@ export async function authRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────
   app.post("/api/v1/auth/register", {
     preHandler: verifyTurnstile,
+    config: { rateLimit: { max: 5, timeWindow: "15 minutes" } },
     schema: {
       tags: ["Auth"],
       description:
@@ -161,6 +162,7 @@ export async function authRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────
   app.post("/api/v1/auth/login", {
     preHandler: verifyTurnstile,
+    config: { rateLimit: { max: 10, timeWindow: "5 minutes" } },
     schema: {
       description:
         "Authenticate with email or phone number. If 2FA is enabled, first call returns twoFaRequired:true, then re-call with twoFaToken.",
@@ -683,6 +685,7 @@ export async function authRoutes(app: FastifyInstance) {
   // FORGOT PASSWORD
   // ──────────────────────────────────────────
   app.post("/api/v1/auth/forgot-password", {
+    config: { rateLimit: { max: 3, timeWindow: "15 minutes" } },
     schema: {
       description: "Request a password reset link. Works with email only.",
       tags: ["Auth"],
@@ -740,6 +743,7 @@ export async function authRoutes(app: FastifyInstance) {
   // RESET PASSWORD
   // ──────────────────────────────────────────
   app.post("/api/v1/auth/reset-password", {
+    config: { rateLimit: { max: 5, timeWindow: "15 minutes" } },
     schema: {
       description: "Reset password using token from forgot-password email.",
       tags: ["Auth"],
