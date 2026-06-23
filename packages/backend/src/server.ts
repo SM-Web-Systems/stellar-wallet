@@ -4,6 +4,7 @@ import fastifyStatic from "@fastify/static";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
 import fastifyRateLimit from "@fastify/rate-limit";
+import fastifyHelmet from "@fastify/helmet";
 import path from "path";
 import crypto from "crypto";
 import * as StellarSdk from "@stellar/stellar-sdk";
@@ -31,7 +32,10 @@ import { authMiddleware } from "./middleware/auth";
 import { apiKeyMiddleware } from "./lib/api-key";
 import { decryptSecret } from "./lib/decrypt-secret";
 
-const app = Fastify({ logger: true });
+const app = Fastify({
+    bodyLimit: 1_048_576, // 1 MB max request body
+    logger: true,
+  });
 const tokenService = new TokenService();
 const swapService = new SwapService();
 const stellar = new StellarSdk.Horizon.Server(config.HORIZON_URL);
@@ -129,6 +133,15 @@ async function bootstrap() {
   });
 
   // ═══════════════════════════════════════
+  // Security Headers (for direct API access bypassing nginx)
+  // ═══════════════════════════════════════
+  await app.register(fastifyHelmet, {
+    contentSecurityPolicy: false, // nginx handles CSP for web app
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    crossOriginResourcePolicy: { policy: "cross-origin" }, // allow API responses cross-origin
+  });
+
   // Rate Limiting
   // ═══════════════════════════════════════
   await app.register(fastifyRateLimit, {
@@ -359,7 +372,7 @@ async function bootstrap() {
       } catch (err: any) {
         return reply
           .status(502)
-          .send({ error: err.message || "Failed to fetch from StellarExpert" });
+          .send({ error: config.NODE_ENV === "production" ? "Failed to fetch from StellarExpert" : (err.message || "Failed to fetch from StellarExpert") });
       }
     }
   );
@@ -605,7 +618,7 @@ async function bootstrap() {
       try {
         return await tokenService.getUserTokens(publicKey);
       } catch (error: any) {
-        return { error: error.message || "Failed to load account" };
+        return { error: "Account not found or not funded" };
       }
     }
   );
@@ -873,7 +886,7 @@ async function bootstrap() {
         const data = await res.json();
         return { success: true, data };
       } catch (error: any) {
-        return { error: error.message };
+        return { error: config.NODE_ENV === "production" ? "Operation failed" : error.message };
       }
     }
   );
@@ -915,7 +928,7 @@ async function bootstrap() {
           .submitTransaction(tx);
         return { success: true, result };
       } catch (error: any) {
-        return { error: error.message || "Transaction submission failed" };
+        return { error: config.NODE_ENV === "production" ? "Transaction submission failed" : (error.message || "Transaction submission failed") };
       }
     }
   );
@@ -1019,7 +1032,7 @@ async function bootstrap() {
         return { signedXdr, networkPassphrase: passphrase };
       } catch (error: any) {
         return reply.status(500).send({
-          error: error.message || "Failed to sign transaction",
+          error: config.NODE_ENV === "production" ? "Failed to sign transaction" : (error.message || "Failed to sign transaction"),
         });
       }
     }
@@ -1267,7 +1280,7 @@ async function bootstrap() {
         console.error("[sign-and-submit] ERROR:", error.message, error.stack?.split("\n").slice(0,3).join(" | "));
         console.error("[sign-and-submit] FULL ERROR:", error.message, "\n", error.stack);
         return reply.status(500).send({
-          error: error.message || "Failed to sign and submit",
+          error: config.NODE_ENV === "production" ? "Failed to sign and submit" : (error.message || "Failed to sign and submit"),
         });
       }
     }

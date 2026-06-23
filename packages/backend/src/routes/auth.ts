@@ -252,9 +252,35 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(401).send({ error: "Invalid credentials" });
     }
 
+    // Check account lockout
+    const MAX_FAILED_ATTEMPTS = 10;
+    const LOCKOUT_MINUTES = 30;
+    if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS && user.lastFailedLogin) {
+      const lockoutUntil = new Date(new Date(user.lastFailedLogin).getTime() + LOCKOUT_MINUTES * 60 * 1000);
+      if (new Date() < lockoutUntil) {
+        return reply.status(423).send({ error: "Account temporarily locked. Try again later." });
+      }
+      await db.update(schema.users)
+        .set({ failedLoginAttempts: 0 })
+        .where(eq(schema.users.id, user.id));
+    }
+
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
+      await db.update(schema.users)
+        .set({
+          failedLoginAttempts: (user.failedLoginAttempts || 0) + 1,
+          lastFailedLogin: new Date(),
+        })
+        .where(eq(schema.users.id, user.id));
       return reply.status(401).send({ error: "Invalid credentials" });
+    }
+
+    // Reset failed attempts on successful login
+    if (user.failedLoginAttempts > 0) {
+      await db.update(schema.users)
+        .set({ failedLoginAttempts: 0, lastFailedLogin: null })
+        .where(eq(schema.users.id, user.id));
     }
 
     // ── 2FA check ──
