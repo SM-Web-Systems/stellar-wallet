@@ -46,8 +46,32 @@ async function bootstrap() {
       info: {
         title: "Amma Wallet API",
         description:
-          "Public REST API for the Amma Stellar Wallet. Provides token data, account info, swap quotes, trustline management, and transaction submission.",
-        version: "1.0.0",
+          "Public REST API for the Amma Stellar Wallet. Provides token data, account info, swap quotes, trustline management, and transaction submission.\n\n" +
+          "## Authentication\n" +
+          "Most endpoints require a Bearer JWT token obtained via POST /api/v1/auth/login. " +
+          "Include it in the Authorization header: `Bearer <token>`.\n\n" +
+          "## Rate Limiting\n" +
+          "All endpoints are subject to a global rate limit of 60 requests/minute per IP. " +
+          "Sensitive endpoints have stricter limits:\n" +
+          "- **Register**: 5 req / 15 min\n" +
+          "- **Login**: 10 req / 5 min\n" +
+          "- **Forgot password**: 3 req / 15 min\n" +
+          "- **Reset password**: 5 req / 15 min\n" +
+          "- **Keypair generate**: 3 req / min\n" +
+          "- **Keypair from-mnemonic**: 3 req / min\n" +
+          "- **Keypair from-secret**: 5 req / min\n" +
+          "- **Validate mnemonic**: 10 req / min\n" +
+          "- **Friendbot fund**: 3 req / 10 min\n" +
+          "- **Wallet info**: 30 req / min\n" +
+          "- **Transaction history**: 30 req / min\n" +
+          "- **StellarExpert proxy**: 20 req / min\n\n" +
+          "Rate-limited responses return HTTP 429 with `{\"error\": \"Too many requests. Please slow down.\"}`.\n\n" +
+          "## Ownership Verification\n" +
+          "Endpoints that operate on a wallet (e.g. swap/build, sign, sign-and-submit) verify that the " +
+          "provided publicKey belongs to the authenticated user.\n\n" +
+          "## Registration\n" +
+          "Users can register with email, phone number (E.164 format), or both. At least one identifier is required.",
+        version: "1.1.0",
         contact: {
           name: "SM Web Systems",
           url: "https://ammawallet.com",
@@ -75,13 +99,13 @@ async function bootstrap() {
       },
       tags: [
         { name: "Health", description: "Server health check" },
-        { name: "Auth", description: "Authentication & user management" },
-        { name: "Tokens", description: "Token registry, search, and metadata" },
-        { name: "Wallet", description: "Wallet account info and funding" },
+        { name: "Auth", description: "Authentication & user management. Register with email and/or phone number. Rate-limited." },
+        { name: "Tokens", description: "Token registry, search, and metadata. Favorites require auth. Directory and search results are paginated with max limits." },
+        { name: "Wallet", description: "Wallet account info (rate-limited) and testnet funding (rate-limited, testnet only)." },
         { name: "Trustlines", description: "Stellar trustline management" },
-        { name: "Swap", description: "DEX swap quotes and execution" },
-        { name: "Transactions", description: "Transaction submission and history" },
-        { name: "Keypair", description: "Keypair generation and derivation" },
+        { name: "Swap", description: "DEX swap quotes and execution. Build requires auth and wallet ownership verification." },
+        { name: "Transactions", description: "Transaction submission (auth required) and history (rate-limited)." },
+        { name: "Keypair", description: "Keypair generation and derivation. All endpoints require authentication and are rate-limited." },
         { name: "Signing", description: "Delegated signing mode" },
         { name: "2FA", description: "Two-factor authentication setup and management" },
         { name: "Wallets", description: "Multi-wallet management" },
@@ -604,6 +628,7 @@ async function bootstrap() {
         },
         response: {
           200: { description: "Favorite toggle result", type: "object", properties: { isFavorite: { type: "boolean" } }, additionalProperties: true },
+          401: { type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
@@ -679,7 +704,9 @@ async function bootstrap() {
         response: {
           200: { description: "Unsigned swap XDR", type: "object", properties: { xdr: { type: "string", description: "Unsigned transaction XDR" }, networkPassphrase: { type: "string" } } },
           400: { type: "object", properties: { error: { type: "string" } } },
-          403: { type: "object", properties: { error: { type: "string" } } },
+          401: { type: "object", properties: { error: { type: "string" } } },
+          403: { description: "Wallet does not belong to authenticated user", type: "object", properties: { error: { type: "string" } } },
+          429: { description: "Rate limit exceeded", type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
@@ -828,6 +855,7 @@ async function bootstrap() {
         },
         response: {
           200: { description: "Friendbot funding result", type: "object", properties: { success: { type: "boolean" }, data: { type: "object", additionalProperties: true } } },
+          429: { description: "Rate limit exceeded", type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
@@ -872,6 +900,8 @@ async function bootstrap() {
         response: {
           200: { description: "Submission result", type: "object", properties: { success: { type: "boolean" }, result: { type: "object", additionalProperties: true } } },
         },
+          401: { type: "object", properties: { error: { type: "string" } } },
+          429: { description: "Rate limit exceeded", type: "object", properties: { error: { type: "string" } } },
       },
     },
     async (request) => {
@@ -1459,6 +1489,8 @@ async function bootstrap() {
         response: {
           200: { description: "Derived public key", type: "object", properties: { publicKey: { type: "string" } } },
           400: { type: "object", properties: { error: { type: "string" } } },
+          401: { type: "object", properties: { error: { type: "string" } } },
+          429: { description: "Rate limit exceeded", type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
@@ -1493,6 +1525,8 @@ async function bootstrap() {
         response: {
           200: { description: "Validation result", type: "object", properties: { valid: { type: "boolean" } } },
           400: { type: "object", properties: { error: { type: "string" } } },
+          401: { type: "object", properties: { error: { type: "string" } } },
+          429: { description: "Rate limit exceeded", type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
@@ -1530,6 +1564,8 @@ async function bootstrap() {
         response: {
           200: { description: "Derived keypair from mnemonic", type: "object", properties: { publicKey: { type: "string" }, secretKey: { type: "string" }, accountIndex: { type: "number" } } },
           400: { type: "object", properties: { error: { type: "string" } } },
+          401: { type: "object", properties: { error: { type: "string" } } },
+          429: { description: "Rate limit exceeded", type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
