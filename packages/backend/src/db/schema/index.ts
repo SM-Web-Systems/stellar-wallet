@@ -202,6 +202,8 @@ export const users = pgTable(
     twoFaMethod: text("two_fa_method").default("none"), // 'none' | 'totp'
     twoFaBackupCodes: text("two_fa_backup_codes"),
     twoFaStaticCode: text("two_fa_static_code"), // hashed user-chosen 6-digit code // JSON array of hashed codes
+    phoneNumber: varchar("phone_number", { length: 20 }).unique(),
+    phoneVerified: boolean("phone_verified").notNull().default(false),
   },
   (table) => [
     uniqueIndex("idx_users_email").on(table.email),

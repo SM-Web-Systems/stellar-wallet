@@ -24,190 +24,245 @@ export async function authRoutes(app: FastifyInstance) {
   // REGISTER
   // ──────────────────────────────────────────
   app.post("/api/v1/auth/register", {
-      preHandler: verifyTurnstile,
-      schema: {
-        description: "Register a new user account. Returns JWT tokens and user profile.",
-        tags: ["Auth"],
-        body: {
-          type: "object",
-          required: ["email", "password"],
-          properties: {
-            email: { type: "string", format: "email", description: "User email address" },
-            password: { type: "string", minLength: 8, description: "Password (min 8 characters)" },
-            firstName: { type: "string", description: "First name (optional)" },
-            lastName: { type: "string", description: "Last name (optional)" },
-            turnstileToken: { type: "string", description: "Cloudflare Turnstile token" },
+    preHandler: verifyTurnstile,
+    schema: {
+      tags: ["Auth"],
+      description:
+        "Register a new user account with email and/or phone number. At least one identifier (email or phoneNumber) is required. Returns JWT tokens and user profile.",
+      body: {
+        type: "object",
+        required: ["password"],
+        properties: {
+          email: { type: "string", format: "email", description: "User email address" },
+          password: { type: "string", minLength: 8, description: "Password (min 8 characters)" },
+          phoneNumber: {
+            type: "string",
+            pattern: "^\\+[1-9]\\d{6,14}$",
+            description: "Phone number in E.164 format (e.g. +14155552671)",
           },
-        },
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              user: {
-                type: "object",
-                properties: {
-                  id: { type: "number" },
-                  email: { type: "string" },
-                  firstName: { type: "string", nullable: true },
-                  lastName: { type: "string", nullable: true },
-                },
-              },
-              accessToken: { type: "string" },
-              refreshToken: { type: "string" },
-            },
-          },
-          400: { type: "object", properties: { error: { type: "string" } } },
-          409: { type: "object", properties: { error: { type: "string" } } },
+          firstName: { type: "string", description: "First name (optional)" },
+          lastName: { type: "string", description: "Last name (optional)" },
+          turnstileToken: { type: "string", description: "Cloudflare Turnstile token" },
         },
       },
-    }, async (request, reply) => {
-    const { email, password, firstName, lastName } = request.body as {
-      email: string;
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            user: {
+              type: "object",
+              properties: {
+                id: { type: "number" },
+                email: { type: "string", nullable: true },
+                phoneNumber: { type: "string", nullable: true },
+                firstName: { type: "string", nullable: true },
+                lastName: { type: "string", nullable: true },
+              },
+            },
+            accessToken: { type: "string" },
+            refreshToken: { type: "string" },
+          },
+        },
+        400: { type: "object", properties: { error: { type: "string" } } },
+        409: { type: "object", properties: { error: { type: "string" } } },
+      },
+    },
+  }, async (request, reply) => {
+    const { email, password, phoneNumber, firstName, lastName } = request.body as {
+      email?: string;
       password: string;
+      phoneNumber?: string;
       firstName?: string;
       lastName?: string;
     };
 
-    if (!email || !password) {
-      return reply.status(400).send({ error: "Email and password are required" });
+    // ── Require at least one identifier ──
+    if (!email && !phoneNumber) {
+      return reply.status(400).send({ error: "Email or phone number is required" });
     }
 
-    if (password.length < 8) {
-      return reply.status(400).send({ error: "Password must be at least 8 characters" });
+    // ── Validate E.164 phone format if provided ──
+    if (phoneNumber && !/^\+[1-9]\d{6,14}$/.test(phoneNumber)) {
+      return reply.status(400).send({ error: "Phone number must be in E.164 format (e.g. +14155552671)" });
     }
 
-    // Check if user exists
-    const existing = await db
-      .select({ id: schema.users.id })
-      .from(schema.users)
-      .where(eq(schema.users.email, email.toLowerCase().trim()))
-      .limit(1);
-
-    if (existing.length > 0) {
-      return reply.status(409).send({ error: "Email already registered" });
+    // ── Check for duplicates ──
+    if (email) {
+      const [existingByEmail] = await db
+        .select({ id: schema.users.id })
+        .from(schema.users)
+        .where(eq(schema.users.email, email.toLowerCase().trim()))
+        .limit(1);
+      if (existingByEmail) {
+        return reply.status(409).send({ error: "Email already registered" });
+      }
     }
 
+    if (phoneNumber) {
+      const [existingByPhone] = await db
+        .select({ id: schema.users.id })
+        .from(schema.users)
+        .where(eq(schema.users.phoneNumber, phoneNumber))
+        .limit(1);
+      if (existingByPhone) {
+        return reply.status(409).send({ error: "Phone number already registered" });
+      }
+    }
+
+    // ── Create user ──
     const passwordHash = await hashPassword(password);
 
-    const [user] = await db
+    const [newUser] = await db
       .insert(schema.users)
       .values({
-        email: email.toLowerCase().trim(),
+        email: email ? email.toLowerCase().trim() : null,
+        phoneNumber: phoneNumber || null,
         passwordHash,
-        firstName: firstName?.trim() || null,
-        lastName: lastName?.trim() || null,
+        firstName: firstName || null,
+        lastName: lastName || null,
       })
-      .returning({
-        id: schema.users.id,
-        email: schema.users.email,
-        firstName: schema.users.firstName,
-        lastName: schema.users.lastName,
-      });
+      .returning();
 
-    const accessToken = generateAccessToken({ userId: user.id, email: user.email });
-    const refreshToken = generateRefreshToken({ userId: user.id, email: user.email });
-    await storeRefreshToken(user.id, refreshToken);
+    // ── Generate tokens ──
+    const accessToken = generateAccessToken({ userId: newUser.id, email: newUser.email });
+    const refreshToken = generateRefreshToken({ userId: newUser.id, email: newUser.email });
+    await storeRefreshToken(newUser.id, refreshToken);
 
-    // Send verification email
-    try {
-      const verifyToken = randomBytes(32).toString("hex");
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-      await db.execute(
-        sql`INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES (${user.id}, ${verifyToken}, ${expiresAt})`
-      );
-      await sendVerificationEmail(user.email, verifyToken);
-    } catch (emailErr) {
-      console.error("[register] Failed to send verification email:", emailErr);
+    // ── Send verification email if email provided ──
+    if (email) {
+      try {
+        const verifyToken = randomBytes(32).toString("hex");
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+        await db.execute(
+          sql`INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES (${newUser.id}, ${verifyToken}, ${expiresAt})`
+        );
+        await sendVerificationEmail(newUser.email!, verifyToken);
+      } catch (err: any) {
+        console.error("[register] Failed to send verification email:", err.message);
+        // Non-fatal — user is still registered
+      }
     }
 
-    return {
+    return reply.send({
       user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        isEmailVerified: false,
+        id: newUser.id,
+        email: newUser.email,
+        phoneNumber: newUser.phoneNumber,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
       },
       accessToken,
       refreshToken,
-    };
+    });
   });
 
   // ──────────────────────────────────────────
   // LOGIN
   // ──────────────────────────────────────────
   app.post("/api/v1/auth/login", {
-      preHandler: verifyTurnstile,
-      schema: {
-        description: "Authenticate user. If 2FA is enabled, first call returns twoFaRequired:true, then re-call with twoFaToken.",
-        tags: ["Auth"],
-        body: {
-          type: "object",
-          required: ["email", "password"],
-          properties: {
-            email: { type: "string", format: "email" },
-            password: { type: "string" },
-            turnstileToken: { type: "string", description: "Cloudflare Turnstile token" },
-            twoFaToken: { type: "string", description: "6-digit TOTP/email/static code or 8-char backup code (required if 2FA enabled)" },
+    preHandler: verifyTurnstile,
+    schema: {
+      description:
+        "Authenticate with email or phone number. If 2FA is enabled, first call returns twoFaRequired:true, then re-call with twoFaToken.",
+      tags: ["Auth"],
+      body: {
+        type: "object",
+        required: ["password"],
+        properties: {
+          email: { type: "string", format: "email", description: "Login with email" },
+          phoneNumber: {
+            type: "string",
+            description: "Login with phone number (E.164 format, alternative to email)",
           },
-        },
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              user: {
-                type: "object",
-                properties: {
-                  id: { type: "number" },
-                  email: { type: "string" },
-                  firstName: { type: "string", nullable: true },
-                  lastName: { type: "string", nullable: true },
-                  avatar: { type: "string", nullable: true },
-                  preferredLanguage: { type: "string" },
-                  preferredNetwork: { type: "string" },
-                },
-              },
-              accessToken: { type: "string" },
-              refreshToken: { type: "string" },
-              twoFaRequired: { type: "boolean", description: "True if 2FA code is needed" },
-              twoFaMethod: { type: "string", enum: ["totp", "email", "static"], description: "Which 2FA method is active" },
-              message: { type: "string" },
-            },
+          password: { type: "string" },
+          turnstileToken: { type: "string", description: "Cloudflare Turnstile token" },
+          twoFaToken: {
+            type: "string",
+            description: "6-digit TOTP/email/static code or 8-char backup code (required if 2FA enabled)",
           },
-          400: { type: "object", properties: { error: { type: "string" } } },
-          401: { type: "object", properties: { error: { type: "string" } } },
         },
       },
-    }, async (request, reply) => {
-    const { email, password } = request.body as { email: string; password: string };
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            user: {
+              type: "object",
+              properties: {
+                id: { type: "number" },
+                email: { type: "string", nullable: true },
+                phoneNumber: { type: "string", nullable: true },
+                firstName: { type: "string", nullable: true },
+                lastName: { type: "string", nullable: true },
+                avatar: { type: "string", nullable: true },
+                preferredLanguage: { type: "string" },
+                preferredNetwork: { type: "string" },
+              },
+            },
+            accessToken: { type: "string" },
+            refreshToken: { type: "string" },
+            twoFaRequired: { type: "boolean", description: "True if 2FA code is needed" },
+            twoFaMethod: {
+              type: "string",
+              enum: ["totp", "email", "static"],
+              description: "Which 2FA method is active",
+            },
+            message: { type: "string" },
+          },
+        },
+        400: { type: "object", properties: { error: { type: "string" } } },
+        401: { type: "object", properties: { error: { type: "string" } } },
+      },
+    },
+  }, async (request, reply) => {
+    const { email, phoneNumber, password } = request.body as {
+      email?: string;
+      phoneNumber?: string;
+      password: string;
+    };
 
-    if (!email || !password) {
-      return reply.status(400).send({ error: "Email and password are required" });
+    // ── Require at least one identifier ──
+    if (!email && !phoneNumber) {
+      return reply.status(400).send({ error: "Email or phone number is required" });
     }
 
-    const [user] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.email, email.toLowerCase().trim()))
-      .limit(1);
+    if (!password) {
+      return reply.status(400).send({ error: "Password is required" });
+    }
+
+    // ── Look up user by email or phone ──
+    let user;
+    if (email) {
+      [user] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, email.toLowerCase().trim()))
+        .limit(1);
+    } else {
+      [user] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.phoneNumber, phoneNumber!))
+        .limit(1);
+    }
 
     if (!user) {
-      return reply.status(401).send({ error: "Invalid email or password" });
+      return reply.status(401).send({ error: "Invalid credentials" });
     }
 
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
-      return reply.status(401).send({ error: "Invalid email or password" });
+      return reply.status(401).send({ error: "Invalid credentials" });
     }
 
-    // Check if 2FA is enabled
+    // ── 2FA check ──
     if (user.twoFaEnabled) {
       const { twoFaToken } = request.body as any;
       const method = user.twoFaMethod || "totp";
 
       if (!twoFaToken) {
         // For email method, send a code automatically
-        if (method === "email") {
+        if (method === "email" && user.email) {
           const { send2FACode } = await import("../lib/mailer");
           const code = Math.floor(100000 + Math.random() * 900000).toString();
           const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -223,11 +278,12 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.status(200).send({
           twoFaRequired: true,
           twoFaMethod: method,
-          message: method === "email"
-            ? "A verification code has been sent to your email"
-            : method === "static"
-            ? "Enter one of your backup codes"
-            : "Enter the code from your authenticator app",
+          message:
+            method === "email"
+              ? "A verification code has been sent to your email"
+              : method === "static"
+              ? "Enter your 6-digit PIN"
+              : "Enter the code from your authenticator app",
         });
       }
 
@@ -243,16 +299,24 @@ export async function authRoutes(app: FastifyInstance) {
         });
       } else if (method === "email") {
         const { and: andOp } = await import("drizzle-orm");
-        const [emailCode] = await db.select().from(schema.emailCodes)
-          .where(andOp(
-            eq(schema.emailCodes.userId, user.id),
-            eq(schema.emailCodes.code, cleanToken),
-            eq(schema.emailCodes.type, "login"),
-            eq(schema.emailCodes.used, false)
-          )).limit(1);
+        const [emailCode] = await db
+          .select()
+          .from(schema.emailCodes)
+          .where(
+            andOp(
+              eq(schema.emailCodes.userId, user.id),
+              eq(schema.emailCodes.code, cleanToken),
+              eq(schema.emailCodes.type, "login"),
+              eq(schema.emailCodes.used, false)
+            )
+          )
+          .limit(1);
         if (emailCode && new Date(emailCode.expiresAt) > new Date()) {
           twoFaValid = true;
-          await db.update(schema.emailCodes).set({ used: true }).where(eq(schema.emailCodes.id, emailCode.id));
+          await db
+            .update(schema.emailCodes)
+            .set({ used: true })
+            .where(eq(schema.emailCodes.id, emailCode.id));
         }
       } else if (method === "static" && cleanToken.length === 6 && /^\d+$/.test(cleanToken)) {
         const hashedInput = crypto.createHash("sha256").update(cleanToken).digest("hex");
@@ -269,7 +333,10 @@ export async function authRoutes(app: FastifyInstance) {
         if (idx !== -1) {
           twoFaValid = true;
           storedCodes.splice(idx, 1);
-          await db.update(schema.users).set({ twoFaBackupCodes: JSON.stringify(storedCodes) }).where(eq(schema.users.id, user.id));
+          await db
+            .update(schema.users)
+            .set({ twoFaBackupCodes: JSON.stringify(storedCodes) })
+            .where(eq(schema.users.id, user.id));
         }
       }
 
@@ -278,7 +345,7 @@ export async function authRoutes(app: FastifyInstance) {
       }
     }
 
-    // Update last login
+    // ── Update last login ──
     await db
       .update(schema.users)
       .set({ lastLoginAt: new Date() })
@@ -292,6 +359,7 @@ export async function authRoutes(app: FastifyInstance) {
       user: {
         id: user.id,
         email: user.email,
+        phoneNumber: user.phoneNumber,
         firstName: user.firstName,
         lastName: user.lastName,
         avatar: user.avatar,
@@ -307,29 +375,29 @@ export async function authRoutes(app: FastifyInstance) {
   // REFRESH TOKEN
   // ──────────────────────────────────────────
   app.post("/api/v1/auth/refresh", {
-      schema: {
-        description: "Exchange a refresh token for a new access/refresh token pair. Old refresh token is revoked.",
-        tags: ["Auth"],
-        body: {
-          type: "object",
-          required: ["refreshToken"],
-          properties: {
-            refreshToken: { type: "string", description: "Current refresh token" },
-          },
-        },
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              accessToken: { type: "string" },
-              refreshToken: { type: "string" },
-            },
-          },
-          400: { type: "object", properties: { error: { type: "string" } } },
-          401: { type: "object", properties: { error: { type: "string" } } },
+    schema: {
+      description: "Exchange a refresh token for a new access/refresh token pair. Old refresh token is revoked.",
+      tags: ["Auth"],
+      body: {
+        type: "object",
+        required: ["refreshToken"],
+        properties: {
+          refreshToken: { type: "string", description: "Current refresh token" },
         },
       },
-    }, async (request, reply) => {
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            accessToken: { type: "string" },
+            refreshToken: { type: "string" },
+          },
+        },
+        400: { type: "object", properties: { error: { type: "string" } } },
+        401: { type: "object", properties: { error: { type: "string" } } },
+      },
+    },
+  }, async (request, reply) => {
     const { refreshToken } = request.body as { refreshToken: string };
 
     if (!refreshToken) {
@@ -364,20 +432,20 @@ export async function authRoutes(app: FastifyInstance) {
   // LOGOUT
   // ──────────────────────────────────────────
   app.post("/api/v1/auth/logout", {
-      schema: {
-        description: "Revoke a refresh token, ending the session.",
-        tags: ["Auth"],
-        body: {
-          type: "object",
-          properties: {
-            refreshToken: { type: "string" },
-          },
-        },
-        response: {
-          200: { type: "object", properties: { ok: { type: "boolean" } } },
+    schema: {
+      description: "Revoke a refresh token, ending the session.",
+      tags: ["Auth"],
+      body: {
+        type: "object",
+        properties: {
+          refreshToken: { type: "string" },
         },
       },
-    }, async (request, reply) => {
+      response: {
+        200: { type: "object", properties: { ok: { type: "boolean" } } },
+      },
+    },
+  }, async (request, reply) => {
     const { refreshToken } = request.body as { refreshToken: string };
     if (refreshToken) {
       await revokeRefreshToken(refreshToken);
@@ -389,49 +457,51 @@ export async function authRoutes(app: FastifyInstance) {
   // GET CURRENT USER (protected)
   // ──────────────────────────────────────────
   app.get("/api/v1/auth/me", {
-      preHandler: authMiddleware,
-      schema: {
-        description: "Get current authenticated user profile with their wallets.",
-        tags: ["Auth"],
-        security: [{ bearerAuth: [] }],
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              id: { type: "number" },
-              email: { type: "string" },
-              firstName: { type: "string", nullable: true },
-              lastName: { type: "string", nullable: true },
-              avatar: { type: "string", nullable: true },
-              preferredLanguage: { type: "string" },
-              preferredNetwork: { type: "string" },
-              createdAt: { type: "string", format: "date-time" },
-              wallets: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    id: { type: "number" },
-                    name: { type: "string" },
-                    publicKey: { type: "string" },
-                    network: { type: "string" },
-                    isActive: { type: "boolean" },
-                    createdAt: { type: "string", format: "date-time" },
-                  },
+    preHandler: authMiddleware,
+    schema: {
+      description: "Get current authenticated user profile with their wallets.",
+      tags: ["Auth"],
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            id: { type: "number" },
+            email: { type: "string", nullable: true },
+            phoneNumber: { type: "string", nullable: true },
+            firstName: { type: "string", nullable: true },
+            lastName: { type: "string", nullable: true },
+            avatar: { type: "string", nullable: true },
+            preferredLanguage: { type: "string" },
+            preferredNetwork: { type: "string" },
+            createdAt: { type: "string", format: "date-time" },
+            wallets: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "number" },
+                  name: { type: "string" },
+                  publicKey: { type: "string" },
+                  network: { type: "string" },
+                  isActive: { type: "boolean" },
+                  createdAt: { type: "string", format: "date-time" },
                 },
               },
             },
           },
-          404: { type: "object", properties: { error: { type: "string" } } },
         },
+        404: { type: "object", properties: { error: { type: "string" } } },
       },
-    }, async (request, reply) => {
+    },
+  }, async (request, reply) => {
     const userId = request.user!.userId;
 
     const [user] = await db
       .select({
         id: schema.users.id,
         email: schema.users.email,
+        phoneNumber: schema.users.phoneNumber,
         firstName: schema.users.firstName,
         lastName: schema.users.lastName,
         avatar: schema.users.avatar,
@@ -467,39 +537,46 @@ export async function authRoutes(app: FastifyInstance) {
   // UPDATE PROFILE (protected)
   // ──────────────────────────────────────────
   app.patch("/api/v1/auth/profile", {
-      preHandler: authMiddleware,
-      schema: {
-        description: "Update user profile fields (first name, last name, avatar, language, network).",
-        tags: ["Auth"],
-        security: [{ bearerAuth: [] }],
-        body: {
-          type: "object",
-          properties: {
-            firstName: { type: "string" },
-            lastName: { type: "string" },
-            avatar: { type: "string" },
-            preferredLanguage: { type: "string", enum: ["en", "fr", "es", "pt", "zh"] },
-            preferredNetwork: { type: "string", enum: ["testnet", "mainnet"] },
+    preHandler: authMiddleware,
+    schema: {
+      description: "Update user profile fields (name, avatar, language, network, phone number).",
+      tags: ["Auth"],
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: "object",
+        properties: {
+          firstName: { type: "string" },
+          lastName: { type: "string" },
+          avatar: { type: "string" },
+          phoneNumber: {
+            type: "string",
+            pattern: "^\\+[1-9]\\d{6,14}$",
+            description: "Update phone number (E.164 format)",
           },
-        },
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              id: { type: "number" },
-              email: { type: "string" },
-              firstName: { type: "string", nullable: true },
-              lastName: { type: "string", nullable: true },
-              avatar: { type: "string", nullable: true },
-              preferredLanguage: { type: "string" },
-              preferredNetwork: { type: "string" },
-            },
-          },
+          preferredLanguage: { type: "string", enum: ["en", "fr", "es", "pt", "zh"] },
+          preferredNetwork: { type: "string", enum: ["testnet", "mainnet"] },
         },
       },
-    }, async (request) => {
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            id: { type: "number" },
+            email: { type: "string", nullable: true },
+            phoneNumber: { type: "string", nullable: true },
+            firstName: { type: "string", nullable: true },
+            lastName: { type: "string", nullable: true },
+            avatar: { type: "string", nullable: true },
+            preferredLanguage: { type: "string" },
+            preferredNetwork: { type: "string" },
+          },
+        },
+        409: { type: "object", properties: { error: { type: "string" } } },
+      },
+    },
+  }, async (request, reply) => {
     const userId = request.user!.userId;
-    const { firstName, lastName, avatar, preferredLanguage, preferredNetwork } = request.body as any;
+    const { firstName, lastName, avatar, phoneNumber, preferredLanguage, preferredNetwork } = request.body as any;
 
     const updates: any = { updatedAt: new Date() };
     if (firstName !== undefined) updates.firstName = firstName;
@@ -508,6 +585,25 @@ export async function authRoutes(app: FastifyInstance) {
     if (preferredLanguage !== undefined) updates.preferredLanguage = preferredLanguage;
     if (preferredNetwork !== undefined) updates.preferredNetwork = preferredNetwork;
 
+    // ── Phone number update with uniqueness check ──
+    if (phoneNumber !== undefined) {
+      if (phoneNumber && !/^\+[1-9]\d{6,14}$/.test(phoneNumber)) {
+        return reply.status(400).send({ error: "Phone number must be in E.164 format" });
+      }
+      if (phoneNumber) {
+        const [existing] = await db
+          .select({ id: schema.users.id })
+          .from(schema.users)
+          .where(eq(schema.users.phoneNumber, phoneNumber))
+          .limit(1);
+        if (existing && existing.id !== userId) {
+          return reply.status(409).send({ error: "Phone number already in use by another account" });
+        }
+      }
+      updates.phoneNumber = phoneNumber || null;
+      updates.phoneVerified = false; // Reset verification when phone changes
+    }
+
     const [updated] = await db
       .update(schema.users)
       .set(updates)
@@ -515,6 +611,7 @@ export async function authRoutes(app: FastifyInstance) {
       .returning({
         id: schema.users.id,
         email: schema.users.email,
+        phoneNumber: schema.users.phoneNumber,
         firstName: schema.users.firstName,
         lastName: schema.users.lastName,
         avatar: schema.users.avatar,
@@ -529,28 +626,31 @@ export async function authRoutes(app: FastifyInstance) {
   // CHANGE PASSWORD (protected)
   // ──────────────────────────────────────────
   app.post("/api/v1/auth/change-password", {
-      preHandler: authMiddleware,
-      schema: {
-        description: "Change user password. Revokes all refresh tokens, forcing re-login on all devices.",
-        tags: ["Auth"],
-        security: [{ bearerAuth: [] }],
-        body: {
-          type: "object",
-          required: ["currentPassword", "newPassword"],
-          properties: {
-            currentPassword: { type: "string" },
-            newPassword: { type: "string", minLength: 8 },
-          },
-        },
-        response: {
-          200: { type: "object", properties: { ok: { type: "boolean" } } },
-          400: { type: "object", properties: { error: { type: "string" } } },
-          401: { type: "object", properties: { error: { type: "string" } } },
+    preHandler: authMiddleware,
+    schema: {
+      description: "Change user password. Revokes all refresh tokens, forcing re-login on all devices.",
+      tags: ["Auth"],
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: "object",
+        required: ["currentPassword", "newPassword"],
+        properties: {
+          currentPassword: { type: "string" },
+          newPassword: { type: "string", minLength: 8 },
         },
       },
-    }, async (request, reply) => {
+      response: {
+        200: { type: "object", properties: { ok: { type: "boolean" } } },
+        400: { type: "object", properties: { error: { type: "string" } } },
+        401: { type: "object", properties: { error: { type: "string" } } },
+      },
+    },
+  }, async (request, reply) => {
     const userId = request.user!.userId;
-    const { currentPassword, newPassword } = request.body as { currentPassword: string; newPassword: string };
+    const { currentPassword, newPassword } = request.body as {
+      currentPassword: string;
+      newPassword: string;
+    };
 
     if (!currentPassword || !newPassword || newPassword.length < 8) {
       return reply.status(400).send({ error: "Invalid passwords" });
@@ -568,7 +668,10 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     const newHash = await hashPassword(newPassword);
-    await db.update(schema.users).set({ passwordHash: newHash, updatedAt: new Date() }).where(eq(schema.users.id, userId));
+    await db
+      .update(schema.users)
+      .set({ passwordHash: newHash, updatedAt: new Date() })
+      .where(eq(schema.users.id, userId));
 
     // Revoke all refresh tokens (force re-login everywhere)
     await revokeAllUserTokens(userId);
@@ -576,111 +679,244 @@ export async function authRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
+  // ──────────────────────────────────────────
+  // FORGOT PASSWORD
+  // ──────────────────────────────────────────
+  app.post("/api/v1/auth/forgot-password", {
+    schema: {
+      description: "Request a password reset link. Works with email only.",
+      tags: ["Auth"],
+      body: {
+        type: "object",
+        required: ["email"],
+        properties: {
+          email: { type: "string", format: "email" },
+        },
+      },
+      response: {
+        200: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" } } },
+        400: { type: "object", properties: { error: { type: "string" } } },
+      },
+    },
+  }, async (request, reply) => {
+    const { email } = request.body as { email: string };
 
-    // ──────────────────────────────────────────
-    // VERIFY EMAIL
-    // ──────────────────────────────────────────
-    app.get("/api/v1/auth/verify-email", {
-      schema: {
-        description: "Verify email address using token from verification email.",
-        tags: ["Auth"],
-        querystring: {
+    if (!email) {
+      return reply.status(400).send({ error: "Email is required" });
+    }
+
+    // Always return success to prevent email enumeration
+    const successResponse = { success: true, message: "If that email is registered, a reset link has been sent" };
+
+    const [user] = await db
+      .select({ id: schema.users.id, email: schema.users.email })
+      .from(schema.users)
+      .where(eq(schema.users.email, email.toLowerCase().trim()))
+      .limit(1);
+
+    if (!user) {
+      return successResponse;
+    }
+
+    try {
+      const resetToken = randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      await db.execute(
+        sql`INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (${user.id}, ${resetToken}, ${expiresAt})`
+      );
+
+      // Import and send password reset email
+      const { sendPasswordResetEmail } = await import("../lib/email");
+      await sendPasswordResetEmail(user.email!, resetToken);
+    } catch (err: any) {
+      console.error("[forgot-password] Error:", err.message);
+      // Still return success to prevent enumeration
+    }
+
+    return successResponse;
+  });
+
+  // ──────────────────────────────────────────
+  // RESET PASSWORD
+  // ──────────────────────────────────────────
+  app.post("/api/v1/auth/reset-password", {
+    schema: {
+      description: "Reset password using token from forgot-password email.",
+      tags: ["Auth"],
+      body: {
+        type: "object",
+        required: ["token", "newPassword"],
+        properties: {
+          token: { type: "string", description: "Reset token from email" },
+          newPassword: { type: "string", minLength: 8 },
+        },
+      },
+      response: {
+        200: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" } } },
+        400: { type: "object", properties: { error: { type: "string" } } },
+      },
+    },
+  }, async (request, reply) => {
+    const { token, newPassword } = request.body as { token: string; newPassword: string };
+
+    if (!token || !newPassword || newPassword.length < 8) {
+      return reply.status(400).send({ error: "Valid token and password (min 8 chars) required" });
+    }
+
+    try {
+      const result = await db.execute(
+        sql`SELECT id, user_id, expires_at, used_at FROM password_reset_tokens WHERE token = ${token} LIMIT 1`
+      );
+      const record = (result as any).rows?.[0] || (result as any)[0];
+
+      if (!record) {
+        return reply.status(400).send({ error: "Invalid or expired reset token" });
+      }
+      if (record.used_at) {
+        return reply.status(400).send({ error: "Reset token has already been used" });
+      }
+      if (new Date(record.expires_at) < new Date()) {
+        return reply.status(400).send({ error: "Reset token has expired" });
+      }
+
+      const newHash = await hashPassword(newPassword);
+      await db
+        .update(schema.users)
+        .set({ passwordHash: newHash, updatedAt: new Date() })
+        .where(eq(schema.users.id, record.user_id));
+
+      // Mark token as used
+      await db.execute(
+        sql`UPDATE password_reset_tokens SET used_at = NOW() WHERE id = ${record.id}`
+      );
+
+      // Revoke all refresh tokens
+      await revokeAllUserTokens(record.user_id);
+
+      return { success: true, message: "Password reset successfully. Please log in." };
+    } catch (err: any) {
+      console.error("[reset-password] Error:", err.message);
+      return reply.status(500).send({ error: "Password reset failed" });
+    }
+  });
+
+  // ──────────────────────────────────────────
+  // VERIFY EMAIL
+  // ──────────────────────────────────────────
+  app.get("/api/v1/auth/verify-email", {
+    schema: {
+      description: "Verify email address using token from verification email.",
+      tags: ["Auth"],
+      querystring: {
+        type: "object",
+        required: ["token"],
+        properties: {
+          token: { type: "string", description: "64-char hex verification token" },
+        },
+      },
+      response: {
+        200: {
           type: "object",
-          required: ["token"],
-          properties: {
-            token: { type: "string", description: "64-char hex verification token" },
-          },
+          properties: { success: { type: "boolean" }, message: { type: "string" } },
         },
-        response: {
-          200: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" } } },
-          400: { type: "object", properties: { error: { type: "string" } } },
-        },
+        400: { type: "object", properties: { error: { type: "string" } } },
       },
-    }, async (request, reply) => {
-      const { token } = request.query as { token: string };
+    },
+  }, async (request, reply) => {
+    const { token } = request.query as { token: string };
 
-      if (!token) {
-        return reply.status(400).send({ error: "Token is required" });
+    if (!token) {
+      return reply.status(400).send({ error: "Token is required" });
+    }
+
+    try {
+      const result = await db.execute(
+        sql`SELECT id, user_id, expires_at, used_at FROM email_verification_tokens WHERE token = ${token} LIMIT 1`
+      );
+      const record = (result as any).rows?.[0] || (result as any)[0];
+
+      if (!record) {
+        return reply.status(400).send({ error: "Invalid verification token" });
       }
 
-      try {
-        const result = await db.execute(
-          sql`SELECT id, user_id, expires_at, used_at FROM email_verification_tokens WHERE token = ${token} LIMIT 1`
-        );
-        const record = (result as any).rows?.[0] || (result as any)[0];
-
-        if (!record) {
-          return reply.status(400).send({ error: "Invalid verification token" });
-        }
-
-        if (record.used_at) {
-          return { success: true, message: "Email already verified" };
-        }
-
-        if (new Date(record.expires_at) < new Date()) {
-          return reply.status(400).send({ error: "Verification token has expired. Please request a new one." });
-        }
-
-        // Mark email as verified
-        await db.update(schema.users)
-          .set({ isEmailVerified: true })
-          .where(eq(schema.users.id, record.user_id));
-
-        // Mark token as used
-        await db.execute(
-          sql`UPDATE email_verification_tokens SET used_at = NOW() WHERE id = ${record.id}`
-        );
-
-        return { success: true, message: "Email verified successfully!" };
-      } catch (err: any) {
-        console.error("[verify-email] Error:", err.message);
-        return reply.status(500).send({ error: "Verification failed" });
+      if (record.used_at) {
+        return { success: true, message: "Email already verified" };
       }
-    });
 
-    // ──────────────────────────────────────────
-    // RESEND VERIFICATION EMAIL
-    // ──────────────────────────────────────────
-    app.post("/api/v1/auth/resend-verification", {
-      preHandler: authMiddleware,
-      schema: {
-        description: "Resend email verification link to the authenticated user.",
-        tags: ["Auth"],
-        security: [{ bearerAuth: [] }],
-        response: {
-          200: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" } } },
-          400: { type: "object", properties: { error: { type: "string" } } },
+      if (new Date(record.expires_at) < new Date()) {
+        return reply.status(400).send({ error: "Verification token has expired. Please request a new one." });
+      }
+
+      // Mark email as verified
+      await db
+        .update(schema.users)
+        .set({ isEmailVerified: true })
+        .where(eq(schema.users.id, record.user_id));
+
+      // Mark token as used
+      await db.execute(
+        sql`UPDATE email_verification_tokens SET used_at = NOW() WHERE id = ${record.id}`
+      );
+
+      return { success: true, message: "Email verified successfully!" };
+    } catch (err: any) {
+      console.error("[verify-email] Error:", err.message);
+      return reply.status(500).send({ error: "Verification failed" });
+    }
+  });
+
+  // ──────────────────────────────────────────
+  // RESEND VERIFICATION EMAIL
+  // ──────────────────────────────────────────
+  app.post("/api/v1/auth/resend-verification", {
+    preHandler: authMiddleware,
+    schema: {
+      description: "Resend email verification link to the authenticated user.",
+      tags: ["Auth"],
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: {
+          type: "object",
+          properties: { success: { type: "boolean" }, message: { type: "string" } },
         },
+        400: { type: "object", properties: { error: { type: "string" } } },
       },
-    }, async (request, reply) => {
-      const userId = request.user!.userId;
+    },
+  }, async (request, reply) => {
+    const userId = request.user!.userId;
 
-      const [user] = await db
-        .select({ email: schema.users.email, isEmailVerified: schema.users.isEmailVerified })
-        .from(schema.users)
-        .where(eq(schema.users.id, userId))
-        .limit(1);
+    const [user] = await db
+      .select({
+        email: schema.users.email,
+        isEmailVerified: schema.users.isEmailVerified,
+      })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId))
+      .limit(1);
 
-      if (!user) {
-        return reply.status(404).send({ error: "User not found" });
-      }
+    if (!user) {
+      return reply.status(404).send({ error: "User not found" });
+    }
 
-      if (user.isEmailVerified) {
-        return { success: true, message: "Email is already verified" };
-      }
+    if (!user.email) {
+      return reply.status(400).send({ error: "No email address on this account" });
+    }
 
-      try {
-        const verifyToken = randomBytes(32).toString("hex");
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        await db.execute(
-          sql`INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES (${userId}, ${verifyToken}, ${expiresAt})`
-        );
-        await sendVerificationEmail(user.email, verifyToken);
-        return { success: true, message: "Verification email sent" };
-      } catch (err: any) {
-        console.error("[resend-verification] Error:", err.message);
-        return reply.status(500).send({ error: "Failed to send verification email" });
-      }
-    });
+    if (user.isEmailVerified) {
+      return { success: true, message: "Email is already verified" };
+    }
 
+    try {
+      const verifyToken = randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await db.execute(
+        sql`INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES (${userId}, ${verifyToken}, ${expiresAt})`
+      );
+      await sendVerificationEmail(user.email, verifyToken);
+      return { success: true, message: "Verification email sent" };
+    } catch (err: any) {
+      console.error("[resend-verification] Error:", err.message);
+      return reply.status(500).send({ error: "Failed to send verification email" });
+    }
+  });
 }

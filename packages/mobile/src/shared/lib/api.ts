@@ -39,6 +39,59 @@ export function horizonUrl(publicKey?: string) {
   return publicKey ? `${base}/accounts/${publicKey}` : base;
 }
 
+// ─── Auth ──────────────────────────────────────────────────
+export const authApi = {
+  register: (data: {
+    email?: string;
+    password: string;
+    phoneNumber?: string;
+    firstName?: string;
+    lastName?: string;
+  }) =>
+    request("/api/v1/auth/register", { method: "POST", body: JSON.stringify(data) }),
+
+  login: (data: {
+    email?: string;
+    phoneNumber?: string;
+    password: string;
+    twoFaToken?: string;
+  }) =>
+    request("/api/v1/auth/login", { method: "POST", body: JSON.stringify(data) }),
+
+  me: () => request("/api/v1/auth/me"),
+
+  updateProfile: (data: Record<string, any>) =>
+    request("/api/v1/auth/profile", { method: "PATCH", body: JSON.stringify(data) }),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request("/api/v1/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
+  forgotPassword: (email: string) =>
+    request("/api/v1/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (token: string, newPassword: string) =>
+    request("/api/v1/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, newPassword }),
+    }),
+
+  logout: (refreshToken: string) =>
+    request("/api/v1/auth/logout", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken }),
+    }),
+
+  resendVerification: () =>
+    request("/api/v1/auth/resend-verification", { method: "POST" }),
+};
+
+// ─── Tokens ────────────────────────────────────────────────
 export const tokenApi = {
   featured: () => request("/api/v1/tokens/featured"),
   search: (query: string) => request(`/api/v1/tokens?query=${encodeURIComponent(query)}`),
@@ -51,6 +104,7 @@ export const tokenApi = {
     }),
 };
 
+// ─── Swap ──────────────────────────────────────────────────
 export const swapApi = {
   quote: (params: Record<string, string>) => {
     const qs = new URLSearchParams(params).toString();
@@ -63,6 +117,7 @@ export const swapApi = {
     }),
 };
 
+// ─── Wallet ────────────────────────────────────────────────
 export const walletApi = {
   accountInfo: (pubKey: string) => request(`/api/v1/wallet/${pubKey}`),
   fund: (publicKey: string) =>
@@ -70,7 +125,6 @@ export const walletApi = {
       method: "POST",
       body: JSON.stringify({ publicKey }),
     }),
-  // Server-side wallet management
   list: () => request("/api/v1/wallets"),
   add: (body: { name: string; publicKey: string; encryptedSecret?: string; network?: string }) =>
     request("/api/v1/wallets", { method: "POST", body: JSON.stringify(body) }),
@@ -82,6 +136,7 @@ export const walletApi = {
     request(`/api/v1/wallets/${id}`, { method: "DELETE" }),
 };
 
+// ─── Transactions ──────────────────────────────────────────
 export const txApi = {
   history: (pubKey: string, limit = 20, cursor?: string) => {
     const params = new URLSearchParams({ limit: String(limit) });
@@ -95,6 +150,7 @@ export const txApi = {
     }),
 };
 
+// ─── Keypair ───────────────────────────────────────────────
 export const keypairApi = {
   generate: () => request("/api/v1/keypair/generate"),
   fromSecret: (secret: string) =>
@@ -113,49 +169,43 @@ export function buildPaymentTx(params: {
   memo?: string;
   network?: string;
 }) {
-  // This is built client-side using Stellar SDK
-  // Kept as a placeholder — the actual implementation is in wallet store or send page
   return params;
 }
 
+// ─── Trustlines ────────────────────────────────────────────
 export const trustlineApi = {
   list: (publicKey: string) =>
-    fetch(`${API_BASE}/api/v1/trustlines/${publicKey}`).then(r => r.json()),
-
+    fetch(`${API_BASE}/api/v1/trustlines/${publicKey}`).then((r) => r.json()),
   check: (publicKey: string, code: string, issuer: string) =>
-    fetch(`${API_BASE}/api/v1/trustlines/check/${publicKey}/${code}/${issuer}`).then(r => r.json()),
-
+    fetch(`${API_BASE}/api/v1/trustlines/check/${publicKey}/${code}/${issuer}`).then((r) => r.json()),
   buildAdd: (publicKey: string, assetCode: string, assetIssuer: string) =>
     fetch(`${API_BASE}/api/v1/trustlines/add`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ publicKey, assetCode, assetIssuer }),
-    }).then(r => r.json()),
-
+    }).then((r) => r.json()),
   buildRemove: (publicKey: string, assetCode: string, assetIssuer: string) =>
     fetch(`${API_BASE}/api/v1/trustlines/remove`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ publicKey, assetCode, assetIssuer }),
-    }).then(r => r.json()),
+    }).then((r) => r.json()),
 };
 
+// ─── Signing ───────────────────────────────────────────────
 export const signingApi = {
   getMode: () =>
-    request("/api/v1/user/signing-mode").then((data) => data.signingMode as "self" | "delegated"),
-
+    request("/api/v1/user/signing-mode").then((data: any) => data.signingMode as "self" | "delegated"),
   setMode: (mode: "self" | "delegated") =>
     request("/api/v1/user/signing-mode", {
       method: "PATCH",
       body: JSON.stringify({ mode }),
     }),
-
   sign: (xdr: string, networkPassphrase: string) =>
     request("/api/v1/transactions/sign", {
       method: "POST",
       body: JSON.stringify({ xdr, networkPassphrase }),
     }),
-
   signAndSubmit: (xdr: string, networkPassphrase: string) =>
     request("/api/v1/transactions/sign-and-submit", {
       method: "POST",

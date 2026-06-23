@@ -206,8 +206,8 @@ async function bootstrap() {
             query: { type: "string", description: "Search by code or name" },
             sortBy: { type: "string", description: "Sort field" },
             verified: { type: "string", enum: ["true", "false"] },
-            limit: { type: "integer", default: 50 },
-            offset: { type: "integer", default: 0 },
+            limit: { type: "integer", default: 50, minimum: 1, maximum: 100, description: "Results per page (1–100, default 50)" },
+            offset: { type: "integer", default: 0, minimum: 0 },
           },
         },
         response: {
@@ -249,12 +249,17 @@ async function bootstrap() {
     },
     async (request) => {
       const { query, sortBy, verified, limit, offset } = request.query as any;
+
+      // Clamp limit to 1–100, reject negatives
+      const safeLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
+      const safeOffset = Math.max(parseInt(offset) || 0, 0);
+
       return tokenService.search({
         query,
         sortBy,
         verified: verified === "true",
-        limit: limit ? parseInt(limit) : 50,
-        offset: offset ? parseInt(offset) : 0,
+        limit: safeLimit,
+        offset: safeOffset,
       });
     }
   );
@@ -1374,22 +1379,34 @@ async function bootstrap() {
   // Keypair Routes
   // ═══════════════════════════════════════
 
-  app.get(
-    "/api/v1/keypair/generate",
-    {
-      schema: {
-        tags: ["Keypair"],
-        summary: "Generate a random Stellar keypair",
-        response: {
-          200: { description: "Random keypair", type: "object", properties: { publicKey: { type: "string", description: "Stellar public key (G...)" }, secretKey: { type: "string", description: "Stellar secret key (S...)" } } },
-        },
+  app.get("/api/v1/keypair/generate", {
+    preHandler: authMiddleware,
+    config: {
+      rateLimit: {
+        max: 3,
+        timeWindow: "1 minute",
       },
     },
-    async () => {
-      const pair = StellarSdk.Keypair.random();
-      return { publicKey: pair.publicKey(), secretKey: pair.secret() };
-    }
-  );
+    schema: {
+      tags: ["Keypair"],
+      summary: "Generate a random Stellar keypair",
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            publicKey: { type: "string", description: "Stellar public key (G...)" },
+            secretKey: { type: "string", description: "Stellar secret key (S...)" },
+          },
+        },
+        401: { type: "object", properties: { error: { type: "string" } } },
+        429: { type: "object", properties: { error: { type: "string" } } },
+      },
+    },
+  }, async (request, reply) => {
+    const keypair = Keypair.random();
+    return { publicKey: keypair.publicKey(), secretKey: keypair.secret() };
+  });
 
   app.post(
     "/api/v1/keypair/from-secret",

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../shared/store/auth";
-import { Eye, EyeOff, Loader2, Check, X } from "lucide-react";
+import { Eye, EyeOff, Loader2, Check, X, Phone, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 export default function RegisterPage() {
@@ -10,7 +10,9 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const register = useAuthStore((s) => s.register);
 
+  const [mode, setMode] = useState<"email" | "phone">("email");
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
@@ -18,21 +20,28 @@ export default function RegisterPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const hasIdentifier = mode === "email" ? email.trim().length > 0 : phoneNumber.trim().length > 0;
   const rules = [
     { key: "rule8chars", ok: password.length >= 8 },
     { key: "ruleUppercase", ok: /[A-Z]/.test(password) },
     { key: "ruleNumber", ok: /\d/.test(password) },
     { key: "ruleMatch", ok: password.length > 0 && password === confirmPw },
   ];
-  const allValid = rules.every((r) => r.ok);
+  const allValid = rules.every((r) => r.ok) && hasIdentifier;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return toast.error(t("auth.fillAllFields"));
+    if (!hasIdentifier) return toast.error(t("auth.emailOrPhoneRequired", "Email or phone number is required"));
     if (!allValid) return toast.error(t("auth.fixPasswordReqs"));
     setLoading(true);
     try {
-      await register({ email, password, firstName: firstName || undefined, lastName: lastName || undefined });
+      await register({
+        email: mode === "email" ? email.trim() : undefined,
+        phoneNumber: mode === "phone" ? phoneNumber.trim() : undefined,
+        password,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+      });
       toast.success(t("auth.accountCreated"));
       navigate("/onboarding");
     } catch (err: any) {
@@ -48,6 +57,7 @@ export default function RegisterPage() {
       <p className="text-xs text-stellar-muted mb-4">{t("auth.createSubtitle")}</p>
 
       <form onSubmit={handleSubmit} className="space-y-2.5 flex-1">
+        {/* Name fields */}
         <div className="grid grid-cols-2 gap-2">
           <input
             value={firstName}
@@ -62,13 +72,48 @@ export default function RegisterPage() {
             className="px-3 py-2 rounded-lg bg-stellar-card border border-stellar-border text-white text-sm placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
           />
         </div>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder={t("auth.emailPlaceholder")}
-          className="w-full px-3 py-2 rounded-lg bg-stellar-card border border-stellar-border text-white text-sm placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
-        />
+
+        {/* Email / Phone toggle */}
+        <div className="flex gap-1 bg-stellar-card rounded-lg p-0.5">
+          <button
+            type="button"
+            onClick={() => setMode("email")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              mode === "email" ? "bg-stellar-blue text-white" : "text-stellar-muted hover:text-white"
+            }`}
+          >
+            <Mail size={12} /> {t("auth.email", "Email")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("phone")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              mode === "phone" ? "bg-stellar-blue text-white" : "text-stellar-muted hover:text-white"
+            }`}
+          >
+            <Phone size={12} /> {t("auth.phone", "Phone")}
+          </button>
+        </div>
+
+        {mode === "email" ? (
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={t("auth.emailPlaceholder")}
+            className="w-full px-3 py-2 rounded-lg bg-stellar-card border border-stellar-border text-white text-sm placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
+          />
+        ) : (
+          <input
+            type="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            placeholder="+14155552671"
+            className="w-full px-3 py-2 rounded-lg bg-stellar-card border border-stellar-border text-white text-sm placeholder:text-stellar-muted focus:outline-none focus:border-stellar-blue"
+          />
+        )}
+
+        {/* Password fields */}
         <div className="relative">
           <input
             type={showPw ? "text" : "password"}

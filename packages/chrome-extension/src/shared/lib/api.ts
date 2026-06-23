@@ -72,8 +72,9 @@ async function tryRefresh(): Promise<boolean> {
 // ─── Auth ──────────────────────────────────────────────────
 export const authApi = {
   register: (data: {
-    email: string;
+    email?: string;
     password: string;
+    phoneNumber?: string;
     firstName?: string;
     lastName?: string;
   }) =>
@@ -81,24 +82,50 @@ export const authApi = {
       "/api/v1/auth/register",
       { method: "POST", body: JSON.stringify(data) }
     ),
-  login: (email: string, password: string) =>
-    request<{ user: any; accessToken: string; refreshToken: string }>(
+
+  login: (identifier: string, password: string, twoFaToken?: string) => {
+    const body: Record<string, string> = { password };
+    if (identifier.startsWith("+")) {
+      body.phoneNumber = identifier;
+    } else {
+      body.email = identifier;
+    }
+    if (twoFaToken) body.twoFaToken = twoFaToken;
+    return request<{ user: any; accessToken: string; refreshToken: string; twoFaRequired?: boolean; twoFaMethod?: string; message?: string }>(
       "/api/v1/auth/login",
-      { method: "POST", body: JSON.stringify({ email, password }) }
-    ),
-  me: () => request<{ user: any }>("/api/v1/auth/me"),
+      { method: "POST", body: JSON.stringify(body) }
+    );
+  },
+
+  me: () => request<any>("/api/v1/auth/me"),
+
   updateProfile: (data: Record<string, any>) =>
-    request<{ user: any }>("/api/v1/auth/profile", {
+    request<any>("/api/v1/auth/profile", {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+
   changePassword: (currentPassword: string, newPassword: string) =>
     request<{ message: string }>("/api/v1/auth/change-password", {
       method: "POST",
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
+
   forgotPassword: (email: string) =>
-    request("/api/v1/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
+    request("/api/v1/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (token: string, newPassword: string) =>
+    request("/api/v1/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, newPassword }),
+    }),
+
+  resendVerification: () =>
+    request("/api/v1/auth/resend-verification", { method: "POST" }),
+
   logout: () => {
     const refreshToken = getRefreshToken();
     return request<{ message: string }>("/api/v1/auth/logout", {

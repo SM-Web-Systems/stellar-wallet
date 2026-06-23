@@ -2,12 +2,14 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useWalletStore } from "./wallet";
+import { authApi } from "../lib/api";
 
 const API_BASE = "https://ammawallet.com";
 
 export interface UserProfile {
   id: number;
-  email: string;
+  email: string | null;
+  phoneNumber: string | null;
   firstName: string | null;
   lastName: string | null;
   avatar: string | null;
@@ -24,8 +26,14 @@ interface AuthState {
   hasPin: boolean;
   isLocked: boolean;
 
-  register: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  register: (data: {
+    email?: string;
+    password: string;
+    phoneNumber?: string;
+    firstName?: string;
+    lastName?: string;
+  }) => Promise<void>;
+  login: (identifier: string, password: string, twoFaToken?: string) => Promise<any>;
   logout: () => Promise<void>;
   loadProfile: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
@@ -67,6 +75,11 @@ async function apiRequest(path: string, options: RequestInit = {}) {
   return data;
 }
 
+// Detect if identifier is a phone number (starts with +) or email
+function isPhoneNumber(identifier: string): boolean {
+  return identifier.startsWith("+");
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -78,25 +91,43 @@ export const useAuthStore = create<AuthState>()(
       hasPin: false,
       isLocked: true,
 
-      register: async (email, password, firstName, lastName) => {
-        const data = await apiRequest("/api/v1/auth/register", {
+      register: async (data) => {
+        const res = await apiRequest("/api/v1/auth/register", {
           method: "POST",
-          body: JSON.stringify({ email, password, firstName, lastName }),
+          body: JSON.stringify(data),
         });
         set({
-          user: data.user,
-          accessToken: data.accessToken,
-          refreshToken: data.refreshToken,
+          user: res.user,
+          accessToken: res.accessToken,
+          refreshToken: res.refreshToken,
           isAuthenticated: true,
           isLocked: false,
         });
       },
 
-      login: async (email, password) => {
+      login: async (identifier, password, twoFaToken) => {
+        const body: Record<string, string> = { password };
+
+        if (isPhoneNumber(identifier)) {
+          body.phoneNumber = identifier;
+        } else {
+          body.email = identifier;
+        }
+
+        if (twoFaToken) {
+          body.twoFaToken = twoFaToken;
+        }
+
         const data = await apiRequest("/api/v1/auth/login", {
           method: "POST",
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify(body),
         });
+
+        // If 2FA is required, return the response so the UI can prompt
+        if (data.twoFaRequired) {
+          return data;
+        }
+
         set({
           user: data.user,
           accessToken: data.accessToken,
@@ -104,8 +135,11 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
           isLocked: get().hasPin,
         });
+
         // Sync wallets from server
         await useWalletStore.getState().syncFromServer(data.accessToken);
+
+        return data;
       },
 
       logout: async () => {
@@ -146,7 +180,6 @@ export const useAuthStore = create<AuthState>()(
             signingMode = modeRes.signingMode || "self";
           } catch {}
           set({ user: data, isAuthenticated: true, signingMode });
-          // Sync wallets from server
           await useWalletStore.getState().syncFromServer(accessToken);
         } catch {
           const refreshed = await refreshSession();

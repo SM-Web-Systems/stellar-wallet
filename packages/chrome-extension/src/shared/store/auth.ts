@@ -5,7 +5,8 @@ import { useWalletStore } from "./wallet";
 
 interface User {
   id: number;
-  email: string;
+  email: string | null;
+  phoneNumber: string | null;
   firstName: string | null;
   lastName: string | null;
   avatar: string | null;
@@ -19,21 +20,27 @@ interface AuthState {
   signingMode: "self" | "delegated";
 
   register: (data: {
-    email: string;
+    email?: string;
     password: string;
+    phoneNumber?: string;
     firstName?: string;
     lastName?: string;
   }) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string, twoFaToken?: string) => Promise<any>;
   logout: () => Promise<void>;
   loadProfile: () => Promise<void>;
   updateProfile: (data: {
     firstName?: string;
     lastName?: string;
+    phoneNumber?: string;
     preferredLanguage?: string;
     preferredNetwork?: string;
   }) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+}
+
+function isPhoneNumber(identifier: string): boolean {
+  return identifier.startsWith("+");
 }
 
 async function fetchSigningMode(): Promise<"self" | "delegated"> {
@@ -57,12 +64,19 @@ export const useAuthStore = create<AuthState>()(
         set({ user: res.user, isAuthenticated: true });
       },
 
-      login: async (email, password) => {
-        const res = await authApi.login(email, password);
+      login: async (identifier, password, twoFaToken) => {
+        const res = await authApi.login(identifier, password, twoFaToken);
+
+        // If 2FA is required, return the response so the UI can prompt
+        if (res.twoFaRequired) {
+          return res;
+        }
+
         setTokens(res.accessToken, res.refreshToken);
         const signingMode = await fetchSigningMode();
         set({ user: res.user, isAuthenticated: true, signingMode });
         await useWalletStore.getState().syncFromServer();
+        return res;
       },
 
       logout: async () => {
@@ -83,7 +97,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           const res = await authApi.me();
           const signingMode = await fetchSigningMode();
-          set({ user: res.user, isAuthenticated: true, signingMode });
+          set({ user: res, isAuthenticated: true, signingMode });
           await useWalletStore.getState().syncFromServer();
         } catch {
           clearTokens();
@@ -93,7 +107,7 @@ export const useAuthStore = create<AuthState>()(
 
       updateProfile: async (data) => {
         const res = await authApi.updateProfile(data);
-        set({ user: res.user });
+        set((state) => ({ user: { ...state.user!, ...res } }));
       },
 
       changePassword: async (currentPassword, newPassword) => {
