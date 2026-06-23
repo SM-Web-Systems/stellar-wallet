@@ -163,6 +163,12 @@ async function bootstrap() {
   // ═══════════════════════════════════════
   // Health
   // ═══════════════════════════════════════
+  app.get("/api/v1/health", async () => ({
+    status: "ok",
+    network: config.STELLAR_NETWORK,
+    timestamp: new Date().toISOString(),
+  }));
+
   app.get(
     "/health",
     {
@@ -284,6 +290,7 @@ async function bootstrap() {
   app.get(
     "/api/v1/tokens/expert/:code/:issuer",
     {
+      config: { rateLimit: { max: 20, timeWindow: "1 minute" } },
       schema: {
         tags: ["Tokens"],
         summary: "Proxy to StellarExpert asset data",
@@ -354,7 +361,7 @@ async function bootstrap() {
     },
     async (request, reply) => {
       const { limit, order } = request.query as { limit?: string; order?: string };
-      const targetCount = Math.min(parseInt(limit || "200"), 500);
+      const targetCount = Math.min(parseInt(limit || "200"), 200);
       const allRecords: any[] = [];
       let cursor = "";
       const perPage = 50;
@@ -582,7 +589,9 @@ async function bootstrap() {
   app.post(
     "/api/v1/tokens/favorite",
     {
+      preHandler: authMiddleware,
       schema: {
+        security: [{ bearerAuth: [] }],
         tags: ["Tokens"],
         summary: "Toggle token favorite status",
         body: {
@@ -749,6 +758,7 @@ async function bootstrap() {
   app.get(
     "/api/v1/wallet/:publicKey",
     {
+      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
       schema: {
         tags: ["Wallet"],
         summary: "Get account info from Horizon",
@@ -785,6 +795,7 @@ async function bootstrap() {
   app.post(
     "/api/v1/wallet/fund",
     {
+      config: { rateLimit: { max: 3, timeWindow: "10 minutes" } },
       schema: {
         tags: ["Wallet"],
         summary: "Fund testnet account via Friendbot",
@@ -826,7 +837,9 @@ async function bootstrap() {
   app.post(
     "/api/v1/transactions/submit",
     {
+      preHandler: authMiddleware,
       schema: {
+        security: [{ bearerAuth: [] }],
         tags: ["Transactions"],
         summary: "Submit a signed transaction",
         body: {
@@ -1300,6 +1313,7 @@ async function bootstrap() {
   app.get(
     "/api/v1/transactions/:publicKey",
     {
+      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
       schema: {
         tags: ["Transactions"],
         summary: "Get transaction history for an account",
@@ -1335,7 +1349,7 @@ async function bootstrap() {
           .operations()
           .forAccount(publicKey)
           .order("desc")
-          .limit(parseInt(limit));
+          .limit(Math.min(parseInt(limit) || 20, 100));
 
         if (cursor) {
           builder = builder.cursor(cursor);
@@ -1409,7 +1423,10 @@ async function bootstrap() {
   app.post(
     "/api/v1/keypair/from-secret",
     {
+      preHandler: authMiddleware,
+      config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
       schema: {
+        security: [{ bearerAuth: [] }],
         tags: ["Keypair"],
         summary: "Derive public key from secret key",
         body: {
@@ -1440,7 +1457,10 @@ async function bootstrap() {
   app.post(
     "/api/v1/keypair/validate-mnemonic",
     {
+      preHandler: authMiddleware,
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
       schema: {
+        security: [{ bearerAuth: [] }],
         tags: ["Keypair"],
         summary: "Validate a BIP-39 mnemonic phrase",
         body: {
@@ -1473,7 +1493,10 @@ async function bootstrap() {
   app.post(
     "/api/v1/keypair/from-mnemonic",
     {
+      preHandler: authMiddleware,
+      config: { rateLimit: { max: 3, timeWindow: "1 minute" } },
       schema: {
+        security: [{ bearerAuth: [] }],
         tags: ["Keypair"],
         summary: "Derive keypair from mnemonic (SEP-0005)",
         body: {
