@@ -403,3 +403,57 @@ export const auditLogs = pgTable("audit_logs", {
   userAgent: text("user_agent"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// ════════════════════════════════════════════
+// NFT Collections
+// ════════════════════════════════════════════
+export const nftCollections = pgTable("nft_collections", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  type: varchar("type", { length: 10 }).notNull().default("sep50"),
+  contractId: varchar("contract_id", { length: 56 }).unique(),
+  assetCode: varchar("asset_code", { length: 12 }),
+  assetIssuer: varchar("asset_issuer", { length: 56 }),
+  name: text("name"),
+  symbol: varchar("symbol", { length: 20 }),
+  baseUri: text("base_uri"),
+  description: text("description"),
+  image: text("image"),
+  creator: varchar("creator", { length: 56 }),
+  totalSupply: integer("total_supply").default(0),
+  isVerified: boolean("is_verified").default(false),
+  network: varchar("network", { length: 10 }).notNull().default("testnet"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ════════════════════════════════════════════
+// NFT Tokens
+// ════════════════════════════════════════════
+export const nftTokens = pgTable("nft_tokens", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  collectionId: integer("collection_id").notNull().references(() => nftCollections.id),
+  tokenId: integer("token_id").notNull(),
+  owner: varchar("owner", { length: 56 }),
+  metadataUri: text("metadata_uri"),
+  name: text("name"),
+  description: text("description"),
+  image: text("image"),
+  attributes: jsonb("attributes").default([]),
+  isBurned: boolean("is_burned").default(false),
+  lastSyncedAt: timestamp("last_synced_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  uniqueIndex("idx_nft_collection_token").on(table.collectionId, table.tokenId),
+]);
+
+export const nftCollectionsRelations = relations(nftCollections, ({ many }) => ({
+  tokens: many(nftTokens),
+}));
+
+export const nftTokensRelations = relations(nftTokens, ({ one }) => ({
+  collection: one(nftCollections, {
+    fields: [nftTokens.collectionId],
+    references: [nftCollections.id],
+  }),
+}));

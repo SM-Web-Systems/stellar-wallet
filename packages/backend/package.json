@@ -27,10 +27,12 @@
     "fastify": "^5.2.0",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^9.0.1",
+    "phone": "^3.1.71",
     "postgres": "^3.4.8",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
     "stellar-hd-wallet": "^1.0.2",
+    "twilio": "^6.0.2",
     "web-push": "^3.6.7"
   },
   "devDependencies": {

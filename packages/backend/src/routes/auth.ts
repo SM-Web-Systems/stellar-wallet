@@ -20,6 +20,9 @@ import crypto from "crypto";
 import { verifyTurnstile } from "../middleware/turnstile";
 import { sendVerificationEmail } from "../lib/email";
 
+import { validatePhoneNumber } from "../lib/phone-validation";
+import { sendSmsVerification, checkSmsVerification } from "../lib/sms";
+
 export async function authRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────
   // REGISTER
@@ -961,4 +964,182 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(500).send({ error: "Failed to send verification email" });
     }
   });
+
+
+  // ── Phone Verification ─────────────────────────────────────
+
+  app.post("/api/v1/auth/send-phone-code", {
+    schema: {
+      tags: ["Auth"],
+      description: "Send SMS verification code to authenticated user's phone number. Requires SMS to be enabled.",
+      body: {
+        type: "object" as const,
+        properties: {},
+      },
+      response: {
+        200: {
+          type: "object" as const,
+          properties: {
+            success: { type: "boolean" as const },
+            message: { type: "string" as const },
+          },
+        },
+      },
+      security: [{ bearerAuth: [] }],
+    },
+    preHandler: [authMiddleware],
+  }, async (request: any, reply) => {
+    const userId = request.user!.userId;
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+    if (!user || !user.phoneNumber) {
+      return reply.status(400).send({ error: "No phone number on file" });
+    }
+    if (user.phoneVerified) {
+      return reply.status(400).send({ error: "Phone already verified" });
+    }
+    const result = await sendSmsVerification(user.phoneNumber);
+    if (!result.success) {
+      return reply.status(503).send({ error: result.error || "SMS service unavailable" });
+    }
+    return { success: true, message: "Verification code sent" };
+  });
+
+  app.post("/api/v1/auth/verify-phone", {
+    schema: {
+      tags: ["Auth"],
+      description: "Verify phone number with OTP code received via SMS.",
+      body: {
+        type: "object" as const,
+        required: ["code"] as const,
+        properties: {
+          code: { type: "string" as const, description: "6-digit OTP code" },
+        },
+      },
+      response: {
+        200: {
+          type: "object" as const,
+          properties: {
+            success: { type: "boolean" as const },
+            message: { type: "string" as const },
+          },
+        },
+      },
+      security: [{ bearerAuth: [] }],
+    },
+    preHandler: [authMiddleware],
+  }, async (request: any, reply) => {
+    const userId = request.user!.userId;
+    const body = request.body as { code: string };
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+    if (!user || !user.phoneNumber) {
+      return reply.status(400).send({ error: "No phone number on file" });
+    }
+    if (user.phoneVerified) {
+      return reply.status(400).send({ error: "Phone already verified" });
+    }
+    const result = await checkSmsVerification(user.phoneNumber, body.code);
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error || "Invalid code" });
+    }
+    await db.update(schema.users).set({ phoneVerified: true }).where(eq(schema.users.id, userId));
+    return { success: true, message: "Phone number verified" };
+  });
+
+  app.post("/api/v1/auth/forgot-password-sms", {
+    config: { rateLimit: { max: 3, timeWindow: "15 minutes" } },
+    schema: {
+      tags: ["Auth"],
+      description: "Request password reset via SMS OTP. For users who registered with phone only.",
+      body: {
+        type: "object" as const,
+        required: ["phoneNumber"] as const,
+        properties: {
+          phoneNumber: { type: "string" as const, description: "Phone number in E.164 format" },
+        },
+      },
+      response: {
+        200: {
+          type: "object" as const,
+          properties: {
+            success: { type: "boolean" as const },
+            message: { type: "string" as const },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const { phoneNumber } = request.body as { phoneNumber: string };
+    const pv = validatePhoneNumber(phoneNumber);
+    if (!pv.isValid) {
+      // Always return success to prevent enumeration
+      return { success: true, message: "If that number is registered, a code has been sent." };
+    }
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.phoneNumber, pv.phoneNumber)).limit(1);
+    if (!user) {
+      return { success: true, message: "If that number is registered, a code has been sent." };
+    }
+    const result = await sendSmsVerification(pv.phoneNumber);
+    if (!result.success) {
+      // Still return success to prevent enumeration
+      console.error("[auth] SMS forgot-password send failed:", result.error);
+    }
+    return { success: true, message: "If that number is registered, a code has been sent." };
+  });
+
+  app.post("/api/v1/auth/reset-password-sms", {
+    config: { rateLimit: { max: 5, timeWindow: "15 minutes" } },
+    schema: {
+      tags: ["Auth"],
+      description: "Reset password using SMS OTP code. Phone must be verified first via forgot-password-sms.",
+      body: {
+        type: "object" as const,
+        required: ["phoneNumber", "code", "newPassword"] as const,
+        properties: {
+          phoneNumber: { type: "string" as const },
+          code: { type: "string" as const, description: "6-digit OTP from SMS" },
+          newPassword: { type: "string" as const, minLength: 8 },
+        },
+      },
+      response: {
+        200: {
+          type: "object" as const,
+          properties: {
+            success: { type: "boolean" as const },
+            message: { type: "string" as const },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const { phoneNumber, code, newPassword } = request.body as {
+      phoneNumber: string; code: string; newPassword: string;
+    };
+    const pv = validatePhoneNumber(phoneNumber);
+    if (!pv.isValid) {
+      return reply.status(400).send({ error: "Invalid phone number" });
+    }
+    // Verify the OTP code
+    const check = await checkSmsVerification(pv.phoneNumber, code);
+    if (!check.success) {
+      return reply.status(400).send({ error: check.error || "Invalid or expired code" });
+    }
+    // Find user
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.phoneNumber, pv.phoneNumber)).limit(1);
+    if (!user) {
+      return reply.status(400).send({ error: "User not found" });
+    }
+    // Hash new password
+    const bcrypt = require("bcryptjs");
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    await db.update(schema.users).set({ password: hashedPassword }).where(eq(schema.users.id, user.id));
+    // Revoke all refresh tokens
+    await db.delete(schema.refreshTokens).where(eq(schema.refreshTokens.userId, user.id));
+    // Mark phone as verified (they proved ownership)
+    if (!user.phoneVerified) {
+      await db.update(schema.users).set({ phoneVerified: true }).where(eq(schema.users.id, user.id));
+    }
+    await auditLog("password_reset", user.id, { method: "sms" }, request.ip);
+    return { success: true, message: "Password has been reset. Please login with your new password." };
+  });
+
 }

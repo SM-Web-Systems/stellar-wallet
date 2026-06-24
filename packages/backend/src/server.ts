@@ -23,6 +23,7 @@ import { pushRoutes } from "./routes/push";
 import { fiatRampRoutes } from "./routes/fiat";
 import { portfolioRoutes } from "./routes/portfolio";
 import { earnRoutes } from "./routes/earn";
+import { nftRoutes } from "./routes/nft";
 import { moneygramRoutes } from "./routes/moneygram";
 import { curatedTokenRoutes } from "./routes/curated-tokens";
 import StellarHDWallet from "stellar-hd-wallet";
@@ -119,6 +120,7 @@ async function bootstrap() {
         { name: "Push Notifications", description: "Web push notification management" },
         { name: "Fiat Ramp", description: "Fiat on/off ramp — MoneyGram cash in/out via SEP-24" },
         { name: "Earn", description: "Liquidity pool staking and fee earning" },
+        { name: "NFTs", description: "Non-fungible token collections and management (SEP-50 + SEP-39)" },
         { name: "Portfolio", description: "Portfolio analytics and balance tracking" },
         { name: "Admin", description: "Admin-only endpoints for system management" },
       ],
@@ -193,6 +195,7 @@ async function bootstrap() {
   app.register(curatedTokenRoutes);
   app.register(moneygramRoutes);
   app.register(earnRoutes);
+  app.register(nftRoutes);
   app.register(fastifyStatic, {
     root: path.resolve(__dirname, "../assets/icons"),
     prefix: "/assets/icons/",
