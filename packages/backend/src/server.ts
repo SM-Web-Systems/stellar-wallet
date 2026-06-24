@@ -27,7 +27,7 @@ import { moneygramRoutes } from "./routes/moneygram";
 import { curatedTokenRoutes } from "./routes/curated-tokens";
 import StellarHDWallet from "stellar-hd-wallet";
 import { db, schema } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { authMiddleware } from "./middleware/auth";
 import { auditLog } from "./lib/audit";
 import { apiKeyMiddleware } from "./lib/api-key";
@@ -120,6 +120,7 @@ async function bootstrap() {
         { name: "Fiat Ramp", description: "Fiat on/off ramp — MoneyGram cash in/out via SEP-24" },
         { name: "Earn", description: "Liquidity pool staking and fee earning" },
         { name: "Portfolio", description: "Portfolio analytics and balance tracking" },
+        { name: "Admin", description: "Admin-only endpoints for system management" },
       ],
     },
   });
@@ -1958,6 +1959,134 @@ async function bootstrap() {
       }
     }
   );
+
+  
+  // ═══════════════════════════════════════
+  // Admin — Audit Logs
+  // ═══════════════════════════════════════
+  app.get("/api/v1/admin/audit-logs", {
+    preHandler: authMiddleware,
+    schema: {
+      tags: ["Admin"],
+      summary: "View audit logs (admin only)",
+      security: [{ bearerAuth: [] }],
+      querystring: {
+        type: "object",
+        properties: {
+          limit: { type: "integer", default: 50, minimum: 1, maximum: 200 },
+          offset: { type: "integer", default: 0, minimum: 0 },
+          action: { type: "string", description: "Filter by action type" },
+          userId: { type: "integer", description: "Filter by user ID" },
+        },
+      },
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            logs: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "number" },
+                  userId: { type: "number", nullable: true },
+                  action: { type: "string" },
+                  detail: { type: "object" },
+                  ipAddress: { type: "string", nullable: true },
+                  createdAt: { type: "string" },
+                },
+              },
+            },
+            total: { type: "number" },
+          },
+        },
+        403: { type: "object", properties: { error: { type: "string" } } },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.user!.userId;
+
+    // Check if user is admin (id = 1 or has admin role)
+    const [user] = await db
+      .select({ id: schema.users.id })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId))
+      .limit(1);
+
+    // Simple admin check — user ID 1 is admin (extend as needed)
+    if (!user || user.id !== 1) {
+      return reply.status(403).send({ error: "Admin access required" });
+    }
+
+    const { limit = 50, offset = 0, action, userId: filterUserId } = request.query as any;
+    const conditions: any[] = [];
+
+    if (action) {
+      conditions.push(eq(schema.auditLogs.action, action));
+    }
+    if (filterUserId) {
+      conditions.push(eq(schema.auditLogs.userId, parseInt(filterUserId)));
+    }
+
+    const where = conditions.length > 0
+      ? conditions.length === 1 ? conditions[0] : and(...conditions)
+      : undefined;
+
+    const logs = await db
+      .select()
+      .from(schema.auditLogs)
+      .where(where)
+      .orderBy(sql`created_at DESC`)
+      .limit(Math.min(limit, 200))
+      .offset(offset);
+
+    const [{ count }] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(schema.auditLogs)
+      .where(where);
+
+    return { logs, total: Number(count) };
+  });
+
+// ═══════════════════════════════════════
+  // Cleanup Jobs
+  // ═══════════════════════════════════════
+
+  // Purge expired refresh tokens every hour
+  setInterval(async () => {
+    try {
+      const result = await db.execute(
+        sql`DELETE FROM refresh_tokens WHERE expires_at < NOW()`
+      );
+      console.log("[cleanup] Purged expired refresh tokens");
+    } catch (err: any) {
+      console.error("[cleanup] refresh token purge failed:", err.message);
+    }
+  }, 60 * 60 * 1000); // every hour
+
+  // Purge expired/used password reset tokens every 6 hours
+  setInterval(async () => {
+    try {
+      await db.execute(
+        sql`DELETE FROM password_reset_tokens WHERE expires_at < NOW() OR used_at IS NOT NULL`
+      );
+      console.log("[cleanup] Purged expired password reset tokens");
+    } catch (err: any) {
+      console.error("[cleanup] password reset token purge failed:", err.message);
+    }
+  }, 6 * 60 * 60 * 1000); // every 6 hours
+
+  // Purge audit logs older than 90 days — runs daily
+  setInterval(async () => {
+    try {
+      await db.execute(
+        sql`DELETE FROM audit_logs WHERE created_at < NOW() - INTERVAL '90 days'`
+      );
+      console.log("[cleanup] Purged audit logs older than 90 days");
+    } catch (err: any) {
+      console.error("[cleanup] audit log purge failed:", err.message);
+    }
+  }, 24 * 60 * 60 * 1000); // every 24 hours
 
   // Auto-liquifier scheduled task — runs every 6 hours
   setInterval(async () => {
