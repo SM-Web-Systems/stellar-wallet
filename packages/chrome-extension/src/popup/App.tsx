@@ -68,8 +68,8 @@ function BottomNav() {
   const tabs = [
     { to: "/dashboard", icon: Home, label: t("nav.dashboard", "Home") },
     { to: "/tokens", icon: Coins, label: t("nav.tokens", "Tokens") },
+    { to: "/nfts", icon: ImageIcon, label: t("nav.nfts", "NFTs") },
     { to: "/swap", icon: ArrowLeftRight, label: t("nav.swap", "Swap") },
-    { to: "/earn", icon: Droplets, label: t("nav.earn", "Earn") },
     { to: "/buy-sell", icon: DollarSign, label: t("nav.buysell", "Buy") },
   ];
 
@@ -98,62 +98,29 @@ function BottomNav() {
 
 function Header() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
-    <div className="flex items-center justify-between px-2 py-1.5 border-b border-stellar-border bg-stellar-card">
-      <div className="flex-1 min-w-0">
-        <AccountSwitcher />
-      </div>
-      <div className="flex items-center gap-0.5 shrink-0">
-        <button
-          onClick={() => navigate("/send")}
-          className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
-          title="Send"
-        >
-          <Send size={16} />
-        </button>
-        <button
-          onClick={() => navigate("/receive")}
-          className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
-          title="Receive"
-        >
-          <QrCode size={16} />
-        </button>
-        <button
-          onClick={() => navigate("/contacts")}
-          className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
-          title="Contacts"
-        >
-          <Users size={16} />
-        </button>
-        <button
-          onClick={() => navigate("/nfts")}
-          className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
-          title="NFTs"
-        >
-          <ImageIcon size={16} />
-        </button>
-        <button
-          onClick={() => navigate("/portfolio")}
-          className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
-          title="Portfolio"
-        >
-          <PieChart size={16} />
-        </button>
-        <button
-          onClick={() => navigate("/history")}
-          className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
-          title="History"
-        >
-          <HistoryIcon size={16} />
-        </button>
-        <button
-          onClick={() => navigate("/settings")}
-          className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
-          title="Settings"
-        >
-          <SettingsIcon size={16} />
-        </button>
+    <div className="border-b border-stellar-border bg-stellar-card">
+      <div className="flex items-center justify-between px-2 py-1.5">
+        <div className="flex-1 min-w-0">
+          <AccountSwitcher />
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <button onClick={() => navigate("/send")} className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors" title={t("nav.send", "Send")}>
+            <Send size={15} />
+          </button>
+          <button onClick={() => navigate("/receive")} className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors" title={t("nav.receive", "Receive")}>
+            <QrCode size={15} />
+          </button>
+          <div className="w-px h-4 bg-stellar-border mx-0.5" />
+          <button onClick={() => navigate("/history")} className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors" title={t("nav.history", "History")}>
+            <HistoryIcon size={15} />
+          </button>
+          <button onClick={() => navigate("/settings")} className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors" title={t("nav.settings", "Settings")}>
+            <SettingsIcon size={15} />
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Home, Coins, Send, QrCode, ArrowLeftRight } from "lucide-react-native";
+import { Home, Coins, Image, ArrowLeftRight, DollarSign } from "lucide-react-native";
 
 export default function TabLayout() {
   const { t } = useTranslation();
@@ -37,17 +37,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="send"
+        name="nfts"
         options={{
-          title: t("nav.send", "Send"),
-          tabBarIcon: ({ color, size }) => <Send size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="receive"
-        options={{
-          title: t("nav.receive", "Receive"),
-          tabBarIcon: ({ color, size }) => <QrCode size={size} color={color} />,
+          title: t("nav.nfts", "NFTs"),
+          tabBarIcon: ({ color, size }) => <Image size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -57,6 +50,22 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <ArrowLeftRight size={size} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="send"
+        options={{
+          title: t("nav.send", "Send"),
+          tabBarIcon: () => null,
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="receive"
+        options={{
+          title: t("nav.receive", "Receive"),
+          tabBarIcon: () => null,
+          href: null,
         }}
       />
     </Tabs>

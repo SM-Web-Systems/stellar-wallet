@@ -391,3 +391,27 @@ export const earnApi = {
     }),
 };
 
+
+// ─── NFTs (SEP-50 Soroban + SEP-39 Classic) ───────────────
+export const nftApi = {
+  collections: (limit = 50, offset = 0, network?: string) => {
+    const qs = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    if (network) qs.set("network", network);
+    return request<{ collections: any[]; total: number }>(`/api/v1/nfts/collections?${qs}`);
+  },
+  collection: (id: number) => request<any>(`/api/v1/nfts/collections/${id}`),
+  tokensByOwner: (publicKey: string, includeClassicScan = false, limit = 50, offset = 0) => {
+    const qs = new URLSearchParams({
+      limit: String(limit), offset: String(offset),
+      includeClassicScan: String(includeClassicScan),
+    });
+    return request<{ indexed: { tokens: any[]; total: number }; classicNfts: any[] }>(
+      `/api/v1/nfts/owner/${publicKey}?${qs}`
+    );
+  },
+  classicScan: (publicKey: string) => request<any[]>(`/api/v1/nfts/classic/${publicKey}`),
+  transfer: (body: { contractId: string; fromAddress: string; toAddress: string; tokenId: number }) =>
+    request<{ xdr: string; networkPassphrase: string }>(
+      "/api/v1/nfts/transfer", { method: "POST", body: JSON.stringify(body) }
+    ),
+};

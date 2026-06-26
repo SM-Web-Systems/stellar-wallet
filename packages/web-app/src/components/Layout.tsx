@@ -15,6 +15,7 @@ import {
   Key,
   Menu,
   X,
+  Image as ImageIcon,
 } from "lucide-react";
 
 import { useAuthStore } from "../store/auth";
@@ -40,21 +41,50 @@ export default function Layout() {
     navigate("/login");
   };
 
-  const NAV = [
-    { to: "/dashboard", label: t("nav.dashboard"), icon: Home },
-    { to: "/tokens", label: t("nav.tokens"), icon: Coins },
-    { to: "/send", label: t("nav.send"), icon: Send },
-    { to: "/receive", label: t("nav.receive"), icon: QrCode },
-    { to: "/swap", label: t("nav.swap"), icon: ArrowLeftRight },
-    { to: "/history", label: t("nav.history"), icon: HistoryIcon },
-    { to: "/settings", label: t("nav.settings"), icon: SettingsIcon },
-    { to: "/api-keys", label: t("nav.apiKeys", "API Keys"), icon: Key },
-    { to: "/contacts", label: t("nav.contacts", "Contacts"), icon: BookUser },
-    { to: "/portfolio", label: t("nav.portfolio", "Portfolio"), icon: PieChart },
-    { to: "/earn", label: t("nav.earn", "Earn"), icon: Droplets },
-    { to: "/buy-sell", label: t("nav.buySell", "Buy & Sell"), icon: DollarSign },
-    { to: "/help", label: t("nav.help", "Help & FAQ"), icon: HelpCircle },
+  const NAV_SECTIONS = [
+    {
+      label: t("nav.group.main", ""),
+      items: [
+        { to: "/dashboard", label: t("nav.dashboard"), icon: Home },
+        { to: "/tokens", label: t("nav.tokens"), icon: Coins },
+        { to: "/nfts", label: t("nav.nfts", "NFTs"), icon: ImageIcon },
+      ],
+    },
+    {
+      label: t("nav.group.transact", "Transact"),
+      items: [
+        { to: "/send", label: t("nav.send"), icon: Send },
+        { to: "/receive", label: t("nav.receive"), icon: QrCode },
+        { to: "/swap", label: t("nav.swap"), icon: ArrowLeftRight },
+      ],
+    },
+    {
+      label: t("nav.group.finance", "Finance"),
+      items: [
+        { to: "/buy-sell", label: t("nav.buySell", "Buy & Sell"), icon: DollarSign },
+        { to: "/earn", label: t("nav.earn", "Earn"), icon: Droplets },
+        { to: "/portfolio", label: t("nav.portfolio", "Portfolio"), icon: PieChart },
+      ],
+    },
+    {
+      label: t("nav.group.social", "Social"),
+      items: [
+        { to: "/contacts", label: t("nav.contacts", "Contacts"), icon: BookUser },
+        { to: "/history", label: t("nav.history"), icon: HistoryIcon },
+      ],
+    },
+    {
+      label: t("nav.group.system", "System"),
+      items: [
+        { to: "/settings", label: t("nav.settings"), icon: SettingsIcon },
+        { to: "/api-keys", label: t("nav.apiKeys", "API Keys"), icon: Key },
+        { to: "/help", label: t("nav.help", "Help & FAQ"), icon: HelpCircle },
+      ],
+    },
   ];
+
+  // Flat list for mobile header title lookup
+  const NAV = NAV_SECTIONS.flatMap((s) => s.items);
 
   const sidebarContent = (
     <>
@@ -71,24 +101,35 @@ export default function Layout() {
         </div>
       )}
 
-      <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
-        {NAV.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            onClick={() => setMobileOpen(false)}
-            className={({ isActive }) =>
-              clsx(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
-                isActive
-                  ? "bg-stellar-blue/20 text-white font-medium"
-                  : "text-stellar-muted hover:text-stellar-text hover:bg-white/5"
-              )
-            }
-          >
-            <Icon size={18} />
-            {label}
-          </NavLink>
+      <nav className="flex-1 px-3 py-2 overflow-y-auto">
+        {NAV_SECTIONS.map((section, si) => (
+          <div key={si} className={si > 0 ? "mt-4" : ""}>
+            {section.label && (
+              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-stellar-muted/60">
+                {section.label}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {section.items.map(({ to, icon: Icon, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    clsx(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                      isActive
+                        ? "bg-stellar-blue/15 text-white font-medium"
+                        : "text-stellar-muted hover:text-stellar-text hover:bg-white/5"
+                    )
+                  }
+                >
+                  <Icon size={17} />
+                  {label}
+                </NavLink>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 

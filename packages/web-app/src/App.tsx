@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./store/auth";
 import { useWalletStore } from "./store/wallet";
 import Layout from "./components/Layout";
+import NftsPage from "./pages/Nfts";
 const LoginPage = lazy(() => import("./pages/Login"));
 const RegisterPage = lazy(() => import("./pages/Register"));
 const VerifyEmailPage = lazy(() => import("./pages/VerifyEmail"));
@@ -89,6 +90,7 @@ export default function App() {
           <Route path="/buy-sell" element={<BuySellPage />} />
           <Route path="/help" element={<HelpPage />} />
         <Route path="/contacts" element={<ContactsPage />} />
+        <Route path="/nfts" element={<NftsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
