@@ -46,7 +46,20 @@ export const config = {
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || "",
   FIAT_RAMP_FEE_PERCENT: parseFloat(process.env.FIAT_RAMP_FEE_PERCENT || "0.3"),
   FIAT_RAMP_PROVIDER: process.env.FIAT_RAMP_PROVIDER || "internal",
-  SIGNING_PUBLIC_KEY: process.env.SIGNING_PUBLIC_KEY || "",
+
+  // Stripe Crypto Onramp
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY || "",
+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || "",
+    onrampEnabled: process.env.STRIPE_ONRAMP_ENABLED === "true",
+  },
+
+  // Transak
+  transak: {
+    apiKey: process.env.TRANSAK_API_KEY || "",
+    environment: process.env.TRANSAK_ENVIRONMENT || "STAGING",
+    enabled: process.env.TRANSAK_ENABLED === "true",
+  },  SIGNING_PUBLIC_KEY: process.env.SIGNING_PUBLIC_KEY || "",
   SIGNING_SECRET_KEY: process.env.SIGNING_SECRET_KEY || "",
   MONEYGRAM_RAMPS_URL: process.env.MONEYGRAM_RAMPS_URL || "https://extstellar.moneygram.com",
   MONEYGRAM_RAMPS_DOMAIN: process.env.MONEYGRAM_RAMPS_DOMAIN || "extstellar.moneygram.com",
