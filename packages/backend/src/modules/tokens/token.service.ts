@@ -64,6 +64,9 @@ export class TokenService {
       .call();
 
     for (const asset of assets.records) {
+      // Skip junk tokens with fewer than 3 trustlines
+      if (asset.num_accounts < 3) continue;
+
       const assetType =
         asset.asset_code.length <= 4
           ? "credit_alphanum4"
@@ -175,6 +178,17 @@ export class TokenService {
     } = params;
 
     const conditions = [eq(tokens.isSpam, false)];
+
+    // ─── Quality gate: default listing only shows quality tokens ───
+    if (!query) {
+      conditions.push(
+        or(
+          eq(tokens.isVerified, true),
+          sql`CAST(${tokens.ratingAverage} AS NUMERIC) >= 3`,
+          sql`${tokens.trustlineCount} > 10`
+        )!
+      );
+    }
 
     if (query) {
       conditions.push(
