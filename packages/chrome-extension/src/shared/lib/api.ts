@@ -355,3 +355,44 @@ export const twoFactorApi = {
   backupCodes: () => request<any>("/api/v1/2fa/backup-codes"),
 };
 
+
+// ─── NFTs (SEP-50 Soroban + SEP-39 Classic) ───────────────
+export const nftApi = {
+  collections: (limit = 50, offset = 0, network?: string) => {
+    const qs = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    if (network) qs.set("network", network);
+    return request<{ collections: any[]; total: number }>(`/api/v1/nfts/collections?${qs}`);
+  },
+  collection: (id: number) =>
+    request<any>(`/api/v1/nfts/collections/${id}`),
+  createCollection: (body: {
+    name: string; standard: "sep50" | "sep39";
+    contractId?: string; issuerAddress?: string;
+    symbol?: string; description?: string; imageUrl?: string;
+  }) => request<any>("/api/v1/nfts/collections", { method: "POST", body: JSON.stringify(body) }),
+  tokensByOwner: (publicKey: string, includeClassicScan = false, limit = 50, offset = 0) => {
+    const qs = new URLSearchParams({
+      limit: String(limit), offset: String(offset),
+      includeClassicScan: String(includeClassicScan),
+    });
+    return request<{ indexed: { tokens: any[]; total: number }; classicNfts: any[] }>(
+      `/api/v1/nfts/owner/${publicKey}?${qs}`
+    );
+  },
+  tokensByCollection: (collectionId: number, limit = 50, offset = 0) =>
+    request<{ tokens: any[]; total: number }>(
+      `/api/v1/nfts/collections/${collectionId}/tokens?limit=${limit}&offset=${offset}`
+    ),
+  tokenDetail: (collectionId: number, tokenId: string) =>
+    request<any>(`/api/v1/nfts/token/${collectionId}/${tokenId}`),
+  sep50Metadata: (contractId: string) =>
+    request<any>(`/api/v1/nfts/sep50/${contractId}/metadata`),
+  sep50Token: (contractId: string, tokenId: number) =>
+    request<any>(`/api/v1/nfts/sep50/${contractId}/token/${tokenId}`),
+  classicScan: (publicKey: string) =>
+    request<any[]>(`/api/v1/nfts/classic/${publicKey}`),
+  transfer: (body: { contractId: string; fromAddress: string; toAddress: string; tokenId: number }) =>
+    request<{ xdr: string; networkPassphrase: string }>(
+      "/api/v1/nfts/transfer", { method: "POST", body: JSON.stringify(body) }
+    ),
+};

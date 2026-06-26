@@ -18,6 +18,7 @@ import {
   Droplets,
   DollarSign,
   PieChart,
+  Image as ImageIcon,
   Users,
 } from "lucide-react";
 import { useAuthStore } from "../shared/store/auth";
@@ -41,6 +42,7 @@ import EarnPage from "./pages/Earn";
 import BuySellPage from "./pages/BuySell";
 import PortfolioPage from "./pages/Portfolio";
 import ForgotPasswordPage from "./pages/ForgotPassword";
+import NftsPage from "./pages/Nfts";
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -125,6 +127,13 @@ function Header() {
           <Users size={16} />
         </button>
         <button
+          onClick={() => navigate("/nfts")}
+          className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
+          title="NFTs"
+        >
+          <ImageIcon size={16} />
+        </button>
+        <button
           onClick={() => navigate("/portfolio")}
           className="p-1.5 rounded-lg hover:bg-white/5 text-stellar-muted hover:text-white transition-colors"
           title="Portfolio"
@@ -206,6 +215,7 @@ export default function App() {
                 <Routes>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/tokens" element={<Tokens />} />
+                  <Route path="/nfts" element={<NftsPage />} />
                   <Route path="/send" element={<SendPage />} />
                   <Route path="/receive" element={<ReceivePage />} />
                   <Route path="/swap" element={<SwapPage />} />
