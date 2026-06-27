@@ -51,7 +51,7 @@ Amma Wallet module for [Stellar Wallets Kit](https://github.com/Creit-Tech/Stell
 ## Links
 
 - Amma Wallet: https://ammawallet.com
-- GitHub: https://github.com/SM-Web-Systems/stellar-wallet
+- GitHub: https://github.com/SM-Web-Systems/amma-wallet
 - Stellar Wallets Kit: https://github.com/Creit-Tech/Stellar-Wallets-Kit
 
 ## License
