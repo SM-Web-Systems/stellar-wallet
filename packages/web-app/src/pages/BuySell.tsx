@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { fiatApi, moneygramApi } from "../lib/api";
 import { useWalletStore } from "../store/wallet";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Loader2, RefreshCw, AlertCircle, CreditCard, Building2, Smartphone, Banknote, ExternalLink } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2, RefreshCw, CreditCard, Building2, Smartphone, Banknote, ExternalLink } from "lucide-react";
 
 type Tab = "buy" | "sell";
 
@@ -225,12 +225,32 @@ export default function BuySellPage() {
                 }
               </button>
             ) : (
-              <div className="flex items-start gap-2 mt-3 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                <AlertCircle size={16} className="text-yellow-400 mt-0.5 shrink-0" />
-                <p className="text-xs text-yellow-300">
-                  {t("fiat.cardNotice", "Card and bank transfer payments coming soon. Use MoneyGram Cash for immediate transactions.")}
-                </p>
-              </div>
+              <button
+                onClick={() => {
+                  const walletAddress = activeAccount?.publicKey || "";
+                  const params = new URLSearchParams({
+                    apiKey: "52a6703b-cb9b-4f77-83bc-3682394288fd",
+                    environment: "PRODUCTION",
+                    cryptoCurrencyCode: "XLM",
+                    network: "stellar",
+                    defaultCryptoCurrency: "XLM",
+                    walletAddress,
+                    fiatCurrency: currency,
+                    fiatAmount: amount,
+                    productsAvailed: tab === "buy" ? "BUY" : "SELL",
+                    paymentMethod: paymentMethod === "card" ? "credit_debit_card" : paymentMethod === "bank_transfer" ? "sepa_bank_transfer" : "mobile_money",
+                    themeColor: "6366f1",
+                  });
+                  window.open("https://global.transak.com/?" + params.toString(), "_blank", "noopener,noreferrer");
+                }}
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white py-3 rounded-lg font-medium transition-all"
+              >
+                <ExternalLink size={16} />
+                {tab === "buy"
+                  ? t("fiat.transakBuy", "Buy with Transak")
+                  : t("fiat.transakSell", "Sell with Transak")
+                }
+              </button>
             )}
           </div>
         )}
