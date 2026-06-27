@@ -60,6 +60,7 @@ export const tokens = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
     localIcon: text('local_icon'),
+    network: varchar("network", { length: 10 }).notNull().default('pubnet'),
   },
   (table) => [
     uniqueIndex("idx_tokens_code_issuer").on(table.assetCode, table.assetIssuer),
