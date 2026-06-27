@@ -133,14 +133,14 @@ export class NftService {
     })
       .from(schema.nftTokens)
       .leftJoin(schema.nftCollections, eq(schema.nftTokens.collectionId, schema.nftCollections.id))
-      .where(eq(schema.nftTokens.ownerAddress, ownerAddress))
+      .where(eq(schema.nftTokens.owner, ownerAddress))
       .orderBy(desc(schema.nftTokens.createdAt))
       .limit(Math.min(limit, 100))
       .offset(offset);
 
     const [{ count }] = await db.select({ count: sql<number>`count(*)::int` })
       .from(schema.nftTokens)
-      .where(eq(schema.nftTokens.ownerAddress, ownerAddress));
+      .where(eq(schema.nftTokens.owner, ownerAddress));
 
     return { tokens, total: count };
   }
