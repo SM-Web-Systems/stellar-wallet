@@ -78,6 +78,7 @@ export class TokenService {
           assetType,
           assetCode: asset.asset_code,
           assetIssuer: asset.asset_issuer,
+          network: config.STELLAR_NETWORK === 'mainnet' || config.STELLAR_NETWORK === 'pubnet' ? 'pubnet' : 'testnet',
           totalSupply: asset.amount,
           trustlineCount: asset.num_accounts,
         })
@@ -177,7 +178,10 @@ export class TokenService {
       offset = 0,
     } = params;
 
-    const conditions = [eq(tokens.isSpam, false)];
+    const conditions = [
+      eq(tokens.isSpam, false),
+      eq(tokens.network, config.STELLAR_NETWORK === 'mainnet' || config.STELLAR_NETWORK === 'pubnet' ? 'pubnet' : 'testnet'),
+    ];
 
     // ─── Quality gate: default listing only shows quality tokens ───
     if (!query) {
