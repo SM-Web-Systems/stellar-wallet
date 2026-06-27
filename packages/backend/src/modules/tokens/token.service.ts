@@ -180,7 +180,7 @@ export class TokenService {
 
     const conditions = [
       eq(tokens.isSpam, false),
-      eq(tokens.network, config.STELLAR_NETWORK === 'mainnet' || config.STELLAR_NETWORK === 'pubnet' ? 'pubnet' : 'testnet'),
+      eq(tokens.network, params.network || 'pubnet'),
     ];
 
     // ─── Quality gate: default listing only shows quality tokens ───

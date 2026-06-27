@@ -254,6 +254,7 @@ async function bootstrap() {
             verified: { type: "string", enum: ["true", "false"] },
             limit: { type: "integer", default: 50, minimum: 1, maximum: 100, description: "Results per page (1–100, default 50)" },
             offset: { type: "integer", default: 0, minimum: 0 },
+            network: { type: "string", enum: ["pubnet", "testnet"], default: "pubnet", description: "Stellar network" },
           },
         },
         response: {
@@ -294,7 +295,7 @@ async function bootstrap() {
       },
     },
     async (request) => {
-      const { query, sortBy, verified, limit, offset } = request.query as any;
+      const { query, sortBy, verified, limit, offset, network } = request.query as any;
 
       // Clamp limit to 1–100, reject negatives
       const safeLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
@@ -306,6 +307,7 @@ async function bootstrap() {
         verified: verified === "true",
         limit: safeLimit,
         offset: safeOffset,
+        network: network || "pubnet",
       });
     }
   );
