@@ -43,6 +43,7 @@ import BuySellPage from "./pages/BuySell";
 import PortfolioPage from "./pages/Portfolio";
 import ForgotPasswordPage from "./pages/ForgotPassword";
 import NftsPage from "./pages/Nfts";
+import ApprovePage from "./pages/Approve";
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -206,6 +207,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/approve" element={<ApprovePage />} />
       </Routes>
     </div>
   );
