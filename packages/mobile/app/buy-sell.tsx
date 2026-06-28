@@ -14,7 +14,7 @@ export default function BuySellScreen() {
     (s) => s.accounts.find((a) => a.id === s.activeAccountId)?.publicKey ?? ""
   );
   const [tab, setTab] = useState<"buy" | "sell">("buy");
-  const [method, setMethod] = useState<"moneygram" | "quote">("moneygram");
+  const [method, setMethod] = useState<"moneygram" | "quote" | "transak">("transak");
   const [currency, setCurrency] = useState("USD");
   const [amount, setAmount] = useState("");
 
@@ -136,6 +136,14 @@ export default function BuySellScreen() {
             </TouchableOpacity>
           </View>
 
+          <TouchableOpacity
+            onPress={() => setMethod("transak")}
+            style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: method === "transak" ? "#818cf8" : "#1f2937", backgroundColor: method === "transak" ? "rgba(99,102,241,0.1)" : "transparent" }}
+          >
+            <DollarSign size={16} color={method === "transak" ? "#818cf8" : "#6b7280"} />
+            <Text style={{ fontSize: 12, fontWeight: "500", color: method === "transak" ? "#818cf8" : "#6b7280" }}>{t("buysell.transak", "Card / Bank (Transak)")}</Text>
+          </TouchableOpacity>
+
           {limits && (
             <Text style={{ fontSize: 10, color: "#6b7280" }}>
               {t("buysell.limits", "Limits")}: ${limits.min} – ${limits.max} USDC · {t("buysell.fee", "Fee")}: {mgInfo?.feePercent}%
@@ -155,6 +163,30 @@ export default function BuySellScreen() {
                   {tab === "buy" ? t("buysell.depositMG", "Deposit via MoneyGram") : t("buysell.withdrawMG", "Withdraw via MoneyGram")}
                 </Text>
               )}
+            </TouchableOpacity>
+          ) : method === "transak" ? (
+            <TouchableOpacity
+              onPress={() => {
+                const params = new URLSearchParams({
+                  apiKey: "52a6703b-cb9b-4f77-83bc-3682394288fd",
+                  environment: "PRODUCTION",
+                  cryptoCurrencyCode: "XLM",
+                  network: "stellar",
+                  defaultCryptoCurrency: "XLM",
+                  walletAddress: publicKey,
+                  fiatCurrency: currency,
+                  fiatAmount: amount || "50",
+                  productsAvailed: tab === "buy" ? "BUY" : "SELL",
+                  themeColor: "6366f1",
+                });
+                Linking.openURL("https://global.transak.com/?" + params.toString());
+              }}
+              disabled={!publicKey}
+              style={{ backgroundColor: "#6366f1", borderRadius: 8, paddingVertical: 14, alignItems: "center", opacity: !publicKey ? 0.5 : 1 }}
+            >
+              <Text style={{ color: "#fff", fontSize: 14, fontWeight: "600" }}>
+                {tab === "buy" ? t("buysell.transakBuy", "Buy with Transak") : t("buysell.transakSell", "Sell with Transak")}
+              </Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity

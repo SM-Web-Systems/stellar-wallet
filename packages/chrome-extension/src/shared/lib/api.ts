@@ -138,9 +138,9 @@ export const authApi = {
 // ─── Tokens ────────────────────────────────────────────────
 export const tokenApi = {
   featured: () => request<any[]>("/api/v1/tokens/featured"),
-  search: (query: string, sortBy = "rating", limit = 50) =>
+  search: (query: string, sortBy = "rating", limit = 50, network = "pubnet") =>
     request<any[]>(
-      `/api/v1/tokens?query=${encodeURIComponent(query)}&sortBy=${sortBy}&limit=${limit}`
+      `/api/v1/tokens?query=${encodeURIComponent(query)}&sortBy=${sortBy}&limit=${limit}&network=${network}`
     ),
   detail: (code: string, issuer: string) =>
     request<any>(

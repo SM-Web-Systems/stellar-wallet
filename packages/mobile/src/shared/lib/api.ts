@@ -94,7 +94,7 @@ export const authApi = {
 // ─── Tokens ────────────────────────────────────────────────
 export const tokenApi = {
   featured: () => request("/api/v1/tokens/featured"),
-  search: (query: string) => request(`/api/v1/tokens?query=${encodeURIComponent(query)}`),
+  search: (query: string, network: string = "pubnet") => request(`/api/v1/tokens?query=${encodeURIComponent(query)}&network=${network}`),
   userTokens: (pubKey: string) => request(`/api/v1/tokens/user/${pubKey}`),
   detail: (code: string, issuer: string) => request(`/api/v1/tokens/${code}/${issuer}`),
   toggleFavorite: (publicKey: string, tokenId: number) =>

@@ -3,18 +3,18 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { fiatApi, moneygramApi } from "../../shared/lib/api";
 import { useWalletStore } from "../../shared/store/wallet";
-import { DollarSign, ArrowDownUp, Banknote, ExternalLink, Loader2 } from "lucide-react";
+import { DollarSign, ArrowDownUp, Banknote, ExternalLink, Loader2, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 
 type Tab = "buy" | "sell";
-type Method = "quote" | "moneygram";
+type Method = "quote" | "moneygram" | "transak";
 
 export default function BuySell() {
   const { t } = useTranslation();
   const activeAccount = useWalletStore((s) => s.accounts.find((a) => a.id === s.activeAccountId));
   const publicKey = activeAccount?.publicKey || "";
   const [tab, setTab] = useState<Tab>("buy");
-  const [method, setMethod] = useState<Method>("moneygram");
+  const [method, setMethod] = useState<Method>("transak");
   const [currency, setCurrency] = useState("USD");
   const [amount, setAmount] = useState("");
 
@@ -134,6 +134,13 @@ export default function BuySell() {
             <ArrowDownUp size={14} />
             {t("buysell.quote", "Quote")}
           </button>
+          <button
+            onClick={() => setMethod("transak")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium border transition-colors ${method === "transak" ? "border-indigo-500 bg-indigo-500/10 text-indigo-400" : "border-stellar-border text-stellar-muted hover:text-white"}`}
+          >
+            <CreditCard size={14} />
+            Transak
+          </button>
         </div>
 
         {limits && (
@@ -150,6 +157,29 @@ export default function BuySell() {
           >
             {mgLoading ? <Loader2 size={16} className="animate-spin" /> : <ExternalLink size={16} />}
             {tab === "buy" ? t("buysell.depositMG", "Deposit via MoneyGram") : t("buysell.withdrawMG", "Withdraw via MoneyGram")}
+          </button>
+        ) : method === "transak" ? (
+          <button
+            onClick={() => {
+              const params = new URLSearchParams({
+                apiKey: "52a6703b-cb9b-4f77-83bc-3682394288fd",
+                environment: "PRODUCTION",
+                cryptoCurrencyCode: "XLM",
+                network: "stellar",
+                defaultCryptoCurrency: "XLM",
+                walletAddress: publicKey,
+                fiatCurrency: currency,
+                fiatAmount: amount || "50",
+                productsAvailed: tab === "buy" ? "BUY" : "SELL",
+                themeColor: "6366f1",
+              });
+              window.open("https://global.transak.com/?" + params.toString(), "_blank", "noopener,noreferrer");
+            }}
+            disabled={!publicKey}
+            className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            <ExternalLink size={16} />
+            {tab === "buy" ? t("buysell.transakBuy", "Buy with Transak") : t("buysell.transakSell", "Sell with Transak")}
           </button>
         ) : (
           <button
