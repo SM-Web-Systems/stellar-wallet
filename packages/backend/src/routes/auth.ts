@@ -150,7 +150,6 @@ export async function authRoutes(app: FastifyInstance) {
         .returning();
 
       // ── Generate tokens ──
-      //  await auditLog("login", { userId: user.id, ip: request.ip, userAgent: request.headers["user-agent"] });
 
       const accessToken = generateAccessToken({
         userId: newUser.id,
