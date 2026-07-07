@@ -30,6 +30,8 @@ export const config = {
   // Cloudflare Turnstile
   TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY || "",
   TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY || "",
+  // API keys for third-party integrations (comma-separated)
+  API_KEYS: (process.env.API_KEYS || "").split(",").filter(Boolean),
 
   // Platform fee
   PLATFORM_FEE_PERCENT: parseFloat(process.env.PLATFORM_FEE_PERCENT || "0.1"),

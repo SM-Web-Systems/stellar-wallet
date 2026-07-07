@@ -7,6 +7,12 @@ export async function verifyTurnstile(request: FastifyRequest, reply: FastifyRep
     return;
   }
 
+  // Skip Turnstile for authorized API integrations using X-API-Key header
+  const apiKey = request.headers["x-api-key"] as string | undefined;
+  if (apiKey && config.API_KEYS.length > 0 && config.API_KEYS.includes(apiKey)) {
+    return;
+  }
+
   const body = request.body as any;
 
   // Skip turnstile on 2FA step — user already passed verification on the first login attempt

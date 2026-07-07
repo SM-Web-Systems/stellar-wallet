@@ -98,28 +98,46 @@ export class NftService {
    */
   async indexToken(data: {
     collectionId: number;
-    tokenId: string;
-    ownerAddress: string;
+    tokenId: number;
+    owner: string;
     name?: string;
     description?: string;
-    imageUrl?: string;
+    image?: string;
     metadataUri?: string;
-    metadataJson?: any;
-    assetCode?: string;
-    assetIssuer?: string;
+    attributes?: any;
   }) {
+    // Upsert: if token already indexed, update owner + metadata
     const [token] = await db.insert(schema.nftTokens).values({
       collectionId: data.collectionId,
-      tokenIdentifier: data.tokenId,
-      ownerAddress: data.ownerAddress,
+      tokenId: data.tokenId,
+      owner: data.owner,
       name: data.name || null,
       description: data.description || null,
-      imageUrl: data.imageUrl || null,
+      image: data.image || null,
       metadataUri: data.metadataUri || null,
-      metadataJson: data.metadataJson ? JSON.stringify(data.metadataJson) : null,
-      assetCode: data.assetCode || null,
-      assetIssuer: data.assetIssuer || null,
+      attributes: data.attributes || [],
+    }).onConflictDoUpdate({
+      target: [schema.nftTokens.collectionId, schema.nftTokens.tokenId],
+      set: {
+        owner: data.owner,
+        name: data.name || null,
+        description: data.description || null,
+        image: data.image || null,
+        metadataUri: data.metadataUri || null,
+        attributes: data.attributes || [],
+        lastSyncedAt: new Date(),
+        updatedAt: new Date(),
+      },
     }).returning();
+
+    // Update collection totalSupply
+    const [{ count }] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(schema.nftTokens)
+      .where(eq(schema.nftTokens.collectionId, data.collectionId));
+    await db.update(schema.nftCollections)
+      .set({ totalSupply: count, updatedAt: new Date() })
+      .where(eq(schema.nftCollections.id, data.collectionId));
+
     return token;
   }
 
@@ -175,7 +193,7 @@ export class NftService {
       .leftJoin(schema.nftCollections, eq(schema.nftTokens.collectionId, schema.nftCollections.id))
       .where(and(
         eq(schema.nftTokens.collectionId, collectionId),
-        eq(schema.nftTokens.tokenIdentifier, tokenIdentifier),
+        eq(schema.nftTokens.tokenId, Number(tokenIdentifier)),
       ))
       .limit(1);
     return token || null;
@@ -388,6 +406,84 @@ export class NftService {
       return [];
     }
   }
+
+  /**
+   * Sync all tokens for a SEP-50 collection by querying the contract on-chain.
+   * Iterates token IDs from 0 to totalSupply and indexes each one.
+   */
+  async syncCollectionTokens(collectionId: number) {
+    const collection = await this.getCollection(collectionId);
+    if (!collection || !collection.contractId) {
+      throw new Error("Collection not found or missing contractId");
+    }
+
+    // Query current total supply from contract
+    const contractData = await this.querySep50Contract(collection.contractId);
+    if (!contractData) throw new Error("Failed to query contract");
+
+    const results: any[] = [];
+    for (let i = 0; i < contractData.totalSupply; i++) {
+      try {
+        const [ownerOf, tokenUri] = await Promise.all([
+          this.querySep50OwnerOf(collection.contractId, i),
+          this.querySep50TokenUri(collection.contractId, i),
+        ]);
+
+        if (!ownerOf) continue; // token may be burned
+
+        // Try to fetch metadata from tokenUri
+        let name: string | undefined;
+        let description: string | undefined;
+        let image: string | undefined;
+        let attributes: any;
+
+        if (tokenUri) {
+          try {
+            // Convert IPFS URI to HTTP gateway
+            const httpUri = tokenUri.startsWith("ipfs://")
+              ? tokenUri.replace("ipfs://", "https://ipfs.io/ipfs/")
+              : tokenUri;
+            const resp = await fetch(httpUri, { signal: AbortSignal.timeout(10000) });
+            if (resp.ok) {
+              const metadata = await resp.json();
+              name = metadata.name;
+              description = metadata.description;
+              image = metadata.image;
+              attributes = metadata.attributes;
+              // Also convert image IPFS URI
+              if (image && image.startsWith("ipfs://")) {
+                image = image.replace("ipfs://", "https://ipfs.io/ipfs/");
+              }
+            }
+          } catch (err: any) {
+            console.warn(`[nft] Failed to fetch metadata for token ${i}:`, err.message);
+          }
+        }
+
+        const token = await this.indexToken({
+          collectionId,
+          tokenId: i,
+          owner: ownerOf,
+          name,
+          description,
+          image,
+          metadataUri: tokenUri || undefined,
+          attributes,
+        });
+        results.push(token);
+      } catch (err: any) {
+        console.warn(`[nft] Failed to sync token ${i}:`, err.message);
+      }
+    }
+
+    // Update collection totalSupply
+    await db.update(schema.nftCollections)
+      .set({ totalSupply: contractData.totalSupply, updatedAt: new Date() })
+      .where(eq(schema.nftCollections.id, collectionId));
+
+    return { synced: results.length, totalSupply: contractData.totalSupply };
+  }
+
 }
 
 export const nftService = new NftService();

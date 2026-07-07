@@ -325,6 +325,124 @@ export async function nftRoutes(app: FastifyInstance) {
     }
   });
 
+
+  // ── Mint / Index ───────────────────────────────────────────
+
+  app.post("/api/v1/nfts/mint", {
+    schema: {
+      tags: ["NFTs"],
+      summary: "Index an NFT after minting",
+      description: "After minting an NFT on-chain, call this to index it in the database so it appears in owner lookups.",
+      body: {
+        type: "object" as const,
+        required: ["collectionId", "tokenId", "owner"] as const,
+        properties: {
+          collectionId: { type: "integer" as const, description: "ID of the registered collection" },
+          tokenId: { type: "integer" as const, description: "On-chain token ID (e.g. 0, 1, 2...)" },
+          owner: { type: "string" as const, description: "Stellar public key of the owner" },
+          name: { type: "string" as const },
+          description: { type: "string" as const },
+          image: { type: "string" as const },
+          metadataUri: { type: "string" as const },
+          attributes: { type: "array" as const, items: { type: "object" as const, additionalProperties: true } },
+        },
+      },
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: { type: "object" as const, additionalProperties: true },
+        400: { type: "object" as const, properties: { error: { type: "string" as const } } },
+        404: { type: "object" as const, properties: { error: { type: "string" as const } } },
+      },
+    },
+    preHandler: authMiddleware,
+  }, async (request: any, reply) => {
+    const { collectionId, tokenId, owner, name, description, image, metadataUri, attributes } = request.body as any;
+    const userId = request.user!.userId;
+
+    // Verify collection exists
+    const collection = await nftService.getCollection(collectionId);
+    if (!collection) {
+      return reply.status(404).send({ error: "Collection not found" });
+    }
+
+    // For SEP-50, optionally verify on-chain ownership
+    if (collection.contractId) {
+      try {
+        const onChainOwner = await nftService.querySep50OwnerOf(collection.contractId, tokenId);
+        if (onChainOwner && onChainOwner !== owner) {
+          return reply.status(400).send({ error: `On-chain owner mismatch: expected ${onChainOwner}, got ${owner}` });
+        }
+      } catch (err: any) {
+        // Contract query failed — allow indexing anyway but log warning
+        console.warn(`[nft] Could not verify on-chain owner for token ${tokenId}:`, err.message);
+      }
+    }
+
+    try {
+      const token = await nftService.indexToken({
+        collectionId,
+        tokenId,
+        owner,
+        name,
+        description,
+        image,
+        metadataUri,
+        attributes,
+      });
+
+      await auditLog("nft_mint_indexed", userId, {
+        collectionId,
+        tokenId,
+        owner,
+      }, request.ip);
+
+      return token;
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message || "Failed to index token" });
+    }
+  });
+
+  app.post("/api/v1/nfts/collections/:collectionId/sync", {
+    schema: {
+      tags: ["NFTs"],
+      summary: "Sync collection tokens from on-chain",
+      description: "Queries the SEP-50 contract and indexes all tokens (owner, metadata). Useful after batch minting.",
+      params: {
+        type: "object" as const,
+        properties: { collectionId: { type: "string" as const } },
+        required: ["collectionId"] as const,
+      },
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: {
+          type: "object" as const,
+          properties: {
+            synced: { type: "number" as const },
+            totalSupply: { type: "number" as const },
+          },
+        },
+        400: { type: "object" as const, properties: { error: { type: "string" as const } } },
+        404: { type: "object" as const, properties: { error: { type: "string" as const } } },
+      },
+    },
+    preHandler: authMiddleware,
+    config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
+  }, async (request: any, reply) => {
+    const collectionId = Number((request.params as any).collectionId);
+    const userId = request.user!.userId;
+
+    try {
+      const result = await nftService.syncCollectionTokens(collectionId);
+      await auditLog("nft_collection_synced", userId, { collectionId, ...result }, request.ip);
+      return result;
+    } catch (err: any) {
+      if (err.message.includes("not found")) {
+        return reply.status(404).send({ error: err.message });
+      }
+      return reply.status(400).send({ error: err.message || "Sync failed" });
+    }
+  });
+
   // ── Classic SEP-39 Scan ────────────────────────────────────
 
   app.get("/api/v1/nfts/classic/:publicKey", {
