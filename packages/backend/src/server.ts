@@ -35,9 +35,9 @@ import { apiKeyMiddleware } from "./lib/api-key";
 import { decryptSecret } from "./lib/decrypt-secret";
 
 const app = Fastify({
-    bodyLimit: 1_048_576, // 1 MB max request body
-    logger: true,
-  });
+  bodyLimit: 1_048_576, // 1 MB max request body
+  logger: true,
+});
 const tokenService = new TokenService();
 const swapService = new SwapService();
 const stellar = new StellarSdk.Horizon.Server(config.HORIZON_URL);
@@ -71,7 +71,7 @@ async function bootstrap() {
           "- **Wallet info**: 30 req / min\n" +
           "- **Transaction history**: 30 req / min\n" +
           "- **StellarExpert proxy**: 20 req / min\n\n" +
-          "Rate-limited responses return HTTP 429 with `{\"error\": \"Too many requests. Please slow down.\"}`.\n\n" +
+          'Rate-limited responses return HTTP 429 with `{"error": "Too many requests. Please slow down."}`.\n\n' +
           "## Ownership Verification\n" +
           "Endpoints that operate on a wallet (e.g. swap/build, sign, sign-and-submit) verify that the " +
           "provided publicKey belongs to the authenticated user.\n\n" +
@@ -105,24 +105,67 @@ async function bootstrap() {
       },
       tags: [
         { name: "Health", description: "Server health check" },
-        { name: "Auth", description: "Authentication & user management. Register with email and/or phone number. Rate-limited." },
-        { name: "Tokens", description: "Token registry, search, and metadata. Favorites require auth. Directory and search results are paginated with max limits." },
-        { name: "Wallet", description: "Wallet account info (rate-limited) and testnet funding (rate-limited, testnet only)." },
+        {
+          name: "Auth",
+          description:
+            "Authentication & user management. Register with email and/or phone number. Rate-limited.",
+        },
+        {
+          name: "Tokens",
+          description:
+            "Token registry, search, and metadata. Favorites require auth. Directory and search results are paginated with max limits.",
+        },
+        {
+          name: "Wallet",
+          description:
+            "Wallet account info (rate-limited) and testnet funding (rate-limited, testnet only).",
+        },
         { name: "Trustlines", description: "Stellar trustline management" },
-        { name: "Swap", description: "DEX swap quotes and execution. Build requires auth and wallet ownership verification." },
-        { name: "Transactions", description: "Transaction submission (auth required) and history (rate-limited)." },
-        { name: "Keypair", description: "Keypair generation and derivation. All endpoints require authentication and are rate-limited." },
+        {
+          name: "Swap",
+          description:
+            "DEX swap quotes and execution. Build requires auth and wallet ownership verification.",
+        },
+        {
+          name: "Transactions",
+          description:
+            "Transaction submission (auth required) and history (rate-limited).",
+        },
+        {
+          name: "Keypair",
+          description:
+            "Keypair generation and derivation. All endpoints require authentication and are rate-limited.",
+        },
         { name: "Signing", description: "Delegated signing mode" },
-        { name: "2FA", description: "Two-factor authentication setup and management" },
+        {
+          name: "2FA",
+          description: "Two-factor authentication setup and management",
+        },
         { name: "Wallets", description: "Multi-wallet management" },
         { name: "API Keys", description: "API key management" },
         { name: "Contacts", description: "Address book management" },
-        { name: "Push Notifications", description: "Web push notification management" },
-        { name: "Fiat Ramp", description: "Fiat on/off ramp — MoneyGram cash in/out via SEP-24" },
+        {
+          name: "Push Notifications",
+          description: "Web push notification management",
+        },
+        {
+          name: "Fiat Ramp",
+          description: "Fiat on/off ramp — MoneyGram cash in/out via SEP-24",
+        },
         { name: "Earn", description: "Liquidity pool staking and fee earning" },
-        { name: "NFTs", description: "Non-fungible token collections and management (SEP-50 + SEP-39)" },
-        { name: "Portfolio", description: "Portfolio analytics and balance tracking" },
-        { name: "Admin", description: "Admin-only endpoints for system management" },
+        {
+          name: "NFTs",
+          description:
+            "Non-fungible token collections and management (SEP-50 + SEP-39)",
+        },
+        {
+          name: "Portfolio",
+          description: "Portfolio analytics and balance tracking",
+        },
+        {
+          name: "Admin",
+          description: "Admin-only endpoints for system management",
+        },
       ],
     },
   });
@@ -233,7 +276,7 @@ async function bootstrap() {
       status: "ok",
       network: config.STELLAR_NETWORK,
       timestamp: new Date().toISOString(),
-    })
+    }),
   );
 
   // ═══════════════════════════════════════
@@ -252,9 +295,20 @@ async function bootstrap() {
             query: { type: "string", description: "Search by code or name" },
             sortBy: { type: "string", description: "Sort field" },
             verified: { type: "string", enum: ["true", "false"] },
-            limit: { type: "integer", default: 50, minimum: 1, maximum: 100, description: "Results per page (1–100, default 50)" },
+            limit: {
+              type: "integer",
+              default: 50,
+              minimum: 1,
+              maximum: 100,
+              description: "Results per page (1–100, default 50)",
+            },
             offset: { type: "integer", default: 0, minimum: 0 },
-            network: { type: "string", enum: ["pubnet", "testnet"], default: "pubnet", description: "Stellar network" },
+            network: {
+              type: "string",
+              enum: ["pubnet", "testnet"],
+              default: "pubnet",
+              description: "Stellar network",
+            },
           },
         },
         response: {
@@ -295,7 +349,8 @@ async function bootstrap() {
       },
     },
     async (request) => {
-      const { query, sortBy, verified, limit, offset, network } = request.query as any;
+      const { query, sortBy, verified, limit, offset, network } =
+        request.query as any;
 
       // Clamp limit to 1–100, reject negatives
       const safeLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
@@ -309,7 +364,7 @@ async function bootstrap() {
         offset: safeOffset,
         network: network || "pubnet",
       });
-    }
+    },
   );
 
   app.get(
@@ -319,13 +374,24 @@ async function bootstrap() {
         tags: ["Tokens"],
         summary: "Get featured tokens",
         response: {
-          200: { description: "Featured token list", type: "array", items: { type: "object", properties: { assetCode: { type: "string" }, assetIssuer: { type: "string" }, tomlName: { type: "string" } } } },
+          200: {
+            description: "Featured token list",
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                assetCode: { type: "string" },
+                assetIssuer: { type: "string" },
+                tomlName: { type: "string" },
+              },
+            },
+          },
         },
       },
     },
     async () => {
       return tokenService.getFeatured();
-    }
+    },
   );
 
   // ═══════════════════════════════════════
@@ -347,7 +413,11 @@ async function bootstrap() {
           required: ["code", "issuer"],
         },
         response: {
-          200: { description: "StellarExpert asset data", type: "object", additionalProperties: true },
+          200: {
+            description: "StellarExpert asset data",
+            type: "object",
+            additionalProperties: true,
+          },
           400: { type: "object", properties: { error: { type: "string" } } },
           502: { type: "object", properties: { error: { type: "string" } } },
         },
@@ -367,7 +437,7 @@ async function bootstrap() {
 
       try {
         const res = await fetch(
-          `https://api.stellar.expert/explorer/public/asset/${code}-${issuer}`
+          `https://api.stellar.expert/explorer/public/asset/${code}-${issuer}`,
         );
         if (!res.ok) {
           return reply
@@ -377,11 +447,14 @@ async function bootstrap() {
         const data = await res.json();
         return reply.send(data);
       } catch (err: any) {
-        return reply
-          .status(502)
-          .send({ error: config.NODE_ENV === "production" ? "Failed to fetch from StellarExpert" : (err.message || "Failed to fetch from StellarExpert") });
+        return reply.status(502).send({
+          error:
+            config.NODE_ENV === "production"
+              ? "Failed to fetch from StellarExpert"
+              : err.message || "Failed to fetch from StellarExpert",
+        });
       }
-    }
+    },
   );
 
   app.get(
@@ -398,13 +471,31 @@ async function bootstrap() {
           },
         },
         response: {
-          200: { description: "Asset directory records", type: "object", properties: { _embedded: { type: "object", properties: { records: { type: "array", items: { type: "object", additionalProperties: true } } } }, total: { type: "number" } } },
+          200: {
+            description: "Asset directory records",
+            type: "object",
+            properties: {
+              _embedded: {
+                type: "object",
+                properties: {
+                  records: {
+                    type: "array",
+                    items: { type: "object", additionalProperties: true },
+                  },
+                },
+              },
+              total: { type: "number" },
+            },
+          },
           502: { type: "object", properties: { error: { type: "string" } } },
         },
       },
     },
     async (request, reply) => {
-      const { limit, order } = request.query as { limit?: string; order?: string };
+      const { limit, order } = request.query as {
+        limit?: string;
+        order?: string;
+      };
       const targetCount = Math.min(parseInt(limit || "200"), 200);
       const allRecords: any[] = [];
       let cursor = "";
@@ -412,7 +503,11 @@ async function bootstrap() {
 
       try {
         while (allRecords.length < targetCount) {
-          let url = "https://api.stellar.expert/explorer/public/asset?order=" + (order || "desc") + "&limit=" + perPage;
+          let url =
+            "https://api.stellar.expert/explorer/public/asset?order=" +
+            (order || "desc") +
+            "&limit=" +
+            perPage;
           if (cursor) {
             url += "&cursor=" + cursor;
           }
@@ -442,7 +537,7 @@ async function bootstrap() {
       } catch (err: any) {
         return reply.status(502).send({ error: err.message });
       }
-    }
+    },
   );
 
   app.get(
@@ -460,7 +555,18 @@ async function bootstrap() {
           required: ["code", "issuer"],
         },
         response: {
-          200: { description: "Token detail", type: "object", properties: { assetCode: { type: "string" }, assetIssuer: { type: "string" }, tomlName: { type: "string" }, balance: { type: "string" }, isVerified: { type: "boolean" } }, additionalProperties: true },
+          200: {
+            description: "Token detail",
+            type: "object",
+            properties: {
+              assetCode: { type: "string" },
+              assetIssuer: { type: "string" },
+              tomlName: { type: "string" },
+              balance: { type: "string" },
+              isVerified: { type: "boolean" },
+            },
+            additionalProperties: true,
+          },
         },
       },
     },
@@ -468,13 +574,12 @@ async function bootstrap() {
       const { code, issuer } = request.params as any;
       const token = await tokenService.getDetail(
         code,
-        issuer === "native" ? null : issuer
+        issuer === "native" ? null : issuer,
       );
       if (!token) return { error: "Token not found" };
       return token;
-    }
+    },
   );
-
 
   // ─── Price History (Trade Aggregations from Horizon) ───
   app.get(
@@ -482,7 +587,8 @@ async function bootstrap() {
     {
       schema: {
         tags: ["Tokens"],
-        summary: "Get token price history (OHLCV from Horizon trade aggregations)",
+        summary:
+          "Get token price history (OHLCV from Horizon trade aggregations)",
         params: {
           type: "object",
           properties: {
@@ -498,7 +604,8 @@ async function bootstrap() {
               type: "string",
               enum: ["3600000", "86400000", "604800000"],
               default: "86400000",
-              description: "Candle resolution in ms: 1h=3600000, 1d=86400000, 1w=604800000",
+              description:
+                "Candle resolution in ms: 1h=3600000, 1d=86400000, 1w=604800000",
             },
             limit: { type: "integer", default: 30, minimum: 1, maximum: 200 },
             counterCode: { type: "string", default: "USDC" },
@@ -536,13 +643,15 @@ async function bootstrap() {
     },
     async (request, reply) => {
       const { code, issuer } = request.params as any;
-      const { resolution, limit, counterCode, counterIssuer } = request.query as any;
+      const { resolution, limit, counterCode, counterIssuer } =
+        request.query as any;
 
       const res_ms = resolution || "86400000";
       const lim = Math.min(parseInt(limit) || 30, 200);
 
       // Build Horizon trade_aggregations URL
-      const horizonUrl = config.HORIZON_URL || "https://horizon-testnet.stellar.org";
+      const horizonUrl =
+        config.HORIZON_URL || "https://horizon-testnet.stellar.org";
       const params = new URLSearchParams();
       params.set("resolution", res_ms);
       params.set("limit", String(lim));
@@ -552,7 +661,8 @@ async function bootstrap() {
       if (code === "XLM" || issuer === "native") {
         params.set("base_asset_type", "native");
       } else {
-        const assetType = code.length <= 4 ? "credit_alphanum4" : "credit_alphanum12";
+        const assetType =
+          code.length <= 4 ? "credit_alphanum4" : "credit_alphanum12";
         params.set("base_asset_type", assetType);
         params.set("base_asset_code", code);
         params.set("base_asset_issuer", issuer);
@@ -560,11 +670,14 @@ async function bootstrap() {
 
       // Counter asset (default USDC on testnet)
       const cCode = counterCode || "USDC";
-      const cIssuer = counterIssuer || "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5";
+      const cIssuer =
+        counterIssuer ||
+        "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5";
       if (cCode === "XLM") {
         params.set("counter_asset_type", "native");
       } else {
-        const cType = cCode.length <= 4 ? "credit_alphanum4" : "credit_alphanum12";
+        const cType =
+          cCode.length <= 4 ? "credit_alphanum4" : "credit_alphanum12";
         params.set("counter_asset_type", cType);
         params.set("counter_asset_code", cCode);
         params.set("counter_asset_issuer", cIssuer);
@@ -575,31 +688,37 @@ async function bootstrap() {
         const res = await fetch(url);
         if (!res.ok) {
           const text = await res.text();
-          return reply.status(400).send({ error: "Horizon error: " + text.substring(0, 200) });
+          return reply
+            .status(400)
+            .send({ error: "Horizon error: " + text.substring(0, 200) });
         }
         const data = await res.json();
         const records = data._embedded?.records || [];
 
-        const candles = records.map((r: any) => ({
-          timestamp: parseInt(r.timestamp),
-          open: r.open,
-          high: r.high,
-          low: r.low,
-          close: r.close,
-          volume: r.base_volume,
-          tradeCount: parseInt(r.trade_count),
-        })).reverse(); // oldest first for charting
+        const candles = records
+          .map((r: any) => ({
+            timestamp: parseInt(r.timestamp),
+            open: r.open,
+            high: r.high,
+            low: r.low,
+            close: r.close,
+            volume: r.base_volume,
+            tradeCount: parseInt(r.trade_count),
+          }))
+          .reverse(); // oldest first for charting
 
         return {
           candles,
           resolution: res_ms,
-          baseAsset: code + (issuer && issuer !== "native" ? "-" + issuer.substring(0, 4) : ""),
+          baseAsset:
+            code +
+            (issuer && issuer !== "native" ? "-" + issuer.substring(0, 4) : ""),
           counterAsset: cCode,
         };
       } catch (err: any) {
         return reply.status(400).send({ error: err.message });
       }
-    }
+    },
   );
 
   app.get(
@@ -616,7 +735,19 @@ async function bootstrap() {
           required: ["publicKey"],
         },
         response: {
-          200: { description: "User token balances", type: "array", items: { type: "object", properties: { assetCode: { type: "string" }, assetIssuer: { type: "string" }, balance: { type: "string" } }, additionalProperties: true } },
+          200: {
+            description: "User token balances",
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                assetCode: { type: "string" },
+                assetIssuer: { type: "string" },
+                balance: { type: "string" },
+              },
+              additionalProperties: true,
+            },
+          },
         },
       },
     },
@@ -627,7 +758,7 @@ async function bootstrap() {
       } catch (error: any) {
         return { error: "Account not found or not funded" };
       }
-    }
+    },
   );
 
   app.post(
@@ -647,7 +778,12 @@ async function bootstrap() {
           required: ["publicKey", "tokenId"],
         },
         response: {
-          200: { description: "Favorite toggle result", type: "object", properties: { isFavorite: { type: "boolean" } }, additionalProperties: true },
+          200: {
+            description: "Favorite toggle result",
+            type: "object",
+            properties: { isFavorite: { type: "boolean" } },
+            additionalProperties: true,
+          },
           401: { type: "object", properties: { error: { type: "string" } } },
         },
       },
@@ -655,7 +791,7 @@ async function bootstrap() {
     async (request) => {
       const { publicKey, tokenId } = request.body as any;
       return tokenService.toggleFavorite(publicKey, tokenId);
-    }
+    },
   );
 
   // ═══════════════════════════════════════
@@ -676,12 +812,28 @@ async function bootstrap() {
             toCode: { type: "string" },
             toIssuer: { type: "string" },
             amount: { type: "string" },
-            direction: { type: "string", enum: ["send", "receive"], default: "send" },
+            direction: {
+              type: "string",
+              enum: ["send", "receive"],
+              default: "send",
+            },
           },
           required: ["fromCode", "toCode", "amount"],
         },
         response: {
-          200: { description: "Best swap quote", type: "object", properties: { fromAsset: { type: "string" }, toAsset: { type: "string" }, fromAmount: { type: "string" }, toAmount: { type: "string" }, path: { type: "array", items: { type: "object" } }, rate: { type: "string" } }, additionalProperties: true },
+          200: {
+            description: "Best swap quote",
+            type: "object",
+            properties: {
+              fromAsset: { type: "string" },
+              toAsset: { type: "string" },
+              fromAmount: { type: "string" },
+              toAmount: { type: "string" },
+              path: { type: "array", items: { type: "object" } },
+              rate: { type: "string" },
+            },
+            additionalProperties: true,
+          },
         },
       },
     },
@@ -699,9 +851,9 @@ async function bootstrap() {
         toCode,
         toIssuer || null,
         amount,
-        direction || "send"
+        direction || "send",
       );
-    }
+    },
   );
 
   app.post(
@@ -710,7 +862,8 @@ async function bootstrap() {
       preHandler: authMiddleware,
       schema: {
         tags: ["Swap"],
-        summary: "Build unsigned swap transaction XDR. The publicKey must belong to the authenticated user.",
+        summary:
+          "Build unsigned swap transaction XDR. The publicKey must belong to the authenticated user.",
         security: [{ bearerAuth: [] }],
         body: {
           type: "object",
@@ -722,11 +875,26 @@ async function bootstrap() {
           required: ["publicKey", "quote"],
         },
         response: {
-          200: { description: "Unsigned swap XDR", type: "object", properties: { xdr: { type: "string", description: "Unsigned transaction XDR" }, networkPassphrase: { type: "string" } } },
+          200: {
+            description: "Unsigned swap XDR",
+            type: "object",
+            properties: {
+              xdr: { type: "string", description: "Unsigned transaction XDR" },
+              networkPassphrase: { type: "string" },
+            },
+          },
           400: { type: "object", properties: { error: { type: "string" } } },
           401: { type: "object", properties: { error: { type: "string" } } },
-          403: { description: "Wallet does not belong to authenticated user", type: "object", properties: { error: { type: "string" } } },
-          429: { description: "Rate limit exceeded", type: "object", properties: { error: { type: "string" } } },
+          403: {
+            description: "Wallet does not belong to authenticated user",
+            type: "object",
+            properties: { error: { type: "string" } },
+          },
+          429: {
+            description: "Rate limit exceeded",
+            type: "object",
+            properties: { error: { type: "string" } },
+          },
         },
       },
     },
@@ -734,7 +902,9 @@ async function bootstrap() {
       const { publicKey, quote, slippageBps } = request.body as any;
 
       if (!publicKey || !quote) {
-        return reply.status(400).send({ error: "publicKey and quote are required" });
+        return reply
+          .status(400)
+          .send({ error: "publicKey and quote are required" });
       }
 
       // Ownership check: ensure publicKey belongs to authenticated user
@@ -745,24 +915,27 @@ async function bootstrap() {
         .where(
           and(
             eq(schema.userWallets.userId, userId),
-            eq(schema.userWallets.publicKey, publicKey)
-          )
+            eq(schema.userWallets.publicKey, publicKey),
+          ),
         )
         .limit(1);
 
       if (!wallet) {
-        return reply.status(403).send({ error: "This wallet does not belong to your account" });
+        return reply
+          .status(403)
+          .send({ error: "This wallet does not belong to your account" });
       }
 
       let xdr = await swapService.buildSwapTransaction(
         publicKey,
         quote,
-        slippageBps || 100
+        slippageBps || 100,
       );
 
-      const networkPassphrase = config.STELLAR_NETWORK === "testnet"
-        ? "Test SDF Network ; September 2015"
-        : "Public Global Stellar Network ; September 2015";
+      const networkPassphrase =
+        config.STELLAR_NETWORK === "testnet"
+          ? "Test SDF Network ; September 2015"
+          : "Public Global Stellar Network ; September 2015";
 
       // Inject platform fee on swaps for ALL users (self-mode pays fee on swaps)
       const feePercent = config.PLATFORM_FEE_PERCENT || 0;
@@ -772,7 +945,10 @@ async function bootstrap() {
       if (feePercent > 0 && platformWallet && xdr) {
         try {
           const { stellarClient: sc } = await import("./lib/stellar-client");
-          const tx = StellarSdk.TransactionBuilder.fromXDR(xdr, networkPassphrase);
+          const tx = StellarSdk.TransactionBuilder.fromXDR(
+            xdr,
+            networkPassphrase,
+          );
           const ops = (tx as any).operations || [];
           const account = await sc.horizon.loadAccount(publicKey);
           const builder = new StellarSdk.TransactionBuilder(account, {
@@ -782,23 +958,33 @@ async function bootstrap() {
 
           // Re-add original ops
           for (const op of ops) {
-            builder.addOperation(StellarSdk.Operation.fromXDRObject(op.toXDRObject()));
+            builder.addOperation(
+              StellarSdk.Operation.fromXDRObject(op.toXDRObject()),
+            );
           }
 
           // Calculate fee from path payment amount and add fee payment op
           for (const op of ops) {
-            if ((op.type === "pathPaymentStrictSend" || op.type === "pathPaymentStrictReceive") && op.sendAmount) {
+            if (
+              (op.type === "pathPaymentStrictSend" ||
+                op.type === "pathPaymentStrictReceive") &&
+              op.sendAmount
+            ) {
               const amount = parseFloat(op.sendAmount || op.amount || "0");
-              const feeAmount = (amount * feePercent / 100).toFixed(7);
+              const feeAmount = ((amount * feePercent) / 100).toFixed(7);
               if (parseFloat(feeAmount) > 0.0000001) {
                 builder.addOperation(
                   StellarSdk.Operation.payment({
                     destination: platformWallet,
                     asset: op.sendAsset || op.asset,
                     amount: feeAmount,
-                  })
+                  }),
                 );
-                feeInfo = { feePercent, feeAmount, asset: op.sendAsset?.getCode?.() || "XLM" };
+                feeInfo = {
+                  feePercent,
+                  feeAmount,
+                  asset: op.sendAsset?.getCode?.() || "XLM",
+                };
               }
             }
           }
@@ -806,7 +992,10 @@ async function bootstrap() {
           builder.setTimeout(300);
           xdr = builder.build().toXDR();
         } catch (feeErr: any) {
-          console.warn("[swap/build] Fee injection failed, returning without fee:", feeErr.message);
+          console.warn(
+            "[swap/build] Fee injection failed, returning without fee:",
+            feeErr.message,
+          );
         }
       }
 
@@ -815,7 +1004,7 @@ async function bootstrap() {
         networkPassphrase,
         fee: feeInfo,
       };
-    }
+    },
   );
 
   // ═══════════════════════════════════════
@@ -837,7 +1026,19 @@ async function bootstrap() {
           required: ["publicKey"],
         },
         response: {
-          200: { description: "Stellar account info", type: "object", properties: { publicKey: { type: "string" }, balances: { type: "array", items: { type: "object", additionalProperties: true } }, sequence: { type: "string" }, subentryCount: { type: "number" } } },
+          200: {
+            description: "Stellar account info",
+            type: "object",
+            properties: {
+              publicKey: { type: "string" },
+              balances: {
+                type: "array",
+                items: { type: "object", additionalProperties: true },
+              },
+              sequence: { type: "string" },
+              subentryCount: { type: "number" },
+            },
+          },
         },
       },
     },
@@ -856,7 +1057,7 @@ async function bootstrap() {
       } catch (error: any) {
         return { error: "Account not found or not funded" };
       }
-    }
+    },
   );
 
   app.post(
@@ -874,8 +1075,19 @@ async function bootstrap() {
           required: ["publicKey"],
         },
         response: {
-          200: { description: "Friendbot funding result", type: "object", properties: { success: { type: "boolean" }, data: { type: "object", additionalProperties: true } } },
-          429: { description: "Rate limit exceeded", type: "object", properties: { error: { type: "string" } } },
+          200: {
+            description: "Friendbot funding result",
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              data: { type: "object", additionalProperties: true },
+            },
+          },
+          429: {
+            description: "Rate limit exceeded",
+            type: "object",
+            properties: { error: { type: "string" } },
+          },
         },
       },
     },
@@ -888,14 +1100,19 @@ async function bootstrap() {
 
       try {
         const res = await fetch(
-          `https://friendbot.stellar.org?addr=${encodeURIComponent(publicKey)}`
+          `https://friendbot.stellar.org?addr=${encodeURIComponent(publicKey)}`,
         );
         const data = await res.json();
         return { success: true, data };
       } catch (error: any) {
-        return { error: config.NODE_ENV === "production" ? "Operation failed" : error.message };
+        return {
+          error:
+            config.NODE_ENV === "production"
+              ? "Operation failed"
+              : error.message,
+        };
       }
-    }
+    },
   );
 
   // ═══════════════════════════════════════
@@ -913,15 +1130,29 @@ async function bootstrap() {
         body: {
           type: "object",
           properties: {
-            signedXdr: { type: "string", description: "Signed transaction XDR" },
+            signedXdr: {
+              type: "string",
+              description: "Signed transaction XDR",
+            },
           },
           required: ["signedXdr"],
         },
         response: {
-          200: { description: "Submission result", type: "object", properties: { success: { type: "boolean" }, result: { type: "object", additionalProperties: true } } },
+          200: {
+            description: "Submission result",
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              result: { type: "object", additionalProperties: true },
+            },
+          },
         },
-          401: { type: "object", properties: { error: { type: "string" } } },
-          429: { description: "Rate limit exceeded", type: "object", properties: { error: { type: "string" } } },
+        401: { type: "object", properties: { error: { type: "string" } } },
+        429: {
+          description: "Rate limit exceeded",
+          type: "object",
+          properties: { error: { type: "string" } },
+        },
       },
     },
     async (request) => {
@@ -933,12 +1164,20 @@ async function bootstrap() {
         const result = await stellarClient.wallet
           .stellar()
           .submitTransaction(tx);
-                await auditLog("transaction_submit", { userId: request.user?.userId, ip: request.ip });
+        await auditLog("transaction_submit", {
+          userId: request.user?.userId,
+          ip: request.ip,
+        });
         return { success: true, result };
       } catch (error: any) {
-        return { error: config.NODE_ENV === "production" ? "Transaction submission failed" : (error.message || "Transaction submission failed") };
+        return {
+          error:
+            config.NODE_ENV === "production"
+              ? "Transaction submission failed"
+              : error.message || "Transaction submission failed",
+        };
       }
-    }
+    },
   );
 
   // ═══════════════════════════════════════
@@ -961,7 +1200,17 @@ async function bootstrap() {
           required: ["xdr"],
         },
         response: {
-          200: { description: "Signed transaction", type: "object", properties: { signedXdr: { type: "string", description: "Signed transaction XDR" }, networkPassphrase: { type: "string" } } },
+          200: {
+            description: "Signed transaction",
+            type: "object",
+            properties: {
+              signedXdr: {
+                type: "string",
+                description: "Signed transaction XDR",
+              },
+              networkPassphrase: { type: "string" },
+            },
+          },
           400: { type: "object", properties: { error: { type: "string" } } },
           403: { type: "object", properties: { error: { type: "string" } } },
           404: { type: "object", properties: { error: { type: "string" } } },
@@ -1001,8 +1250,8 @@ async function bootstrap() {
           .where(
             and(
               eq(schema.userWallets.userId, userId),
-              eq(schema.userWallets.isActive, true)
-            )
+              eq(schema.userWallets.isActive, true),
+            ),
           )
           .limit(1);
 
@@ -1040,10 +1289,13 @@ async function bootstrap() {
         return { signedXdr, networkPassphrase: passphrase };
       } catch (error: any) {
         return reply.status(500).send({
-          error: config.NODE_ENV === "production" ? "Failed to sign transaction" : (error.message || "Failed to sign transaction"),
+          error:
+            config.NODE_ENV === "production"
+              ? "Failed to sign transaction"
+              : error.message || "Failed to sign transaction",
         });
       }
-    }
+    },
   );
 
   app.post(
@@ -1059,12 +1311,32 @@ async function bootstrap() {
           properties: {
             xdr: { type: "string" },
             networkPassphrase: { type: "string" },
-            pin: { type: "string", description: "PIN to decrypt wallet secret" },
+            pin: {
+              type: "string",
+              description: "PIN to decrypt wallet secret",
+            },
           },
           required: ["xdr"],
         },
         response: {
-          200: { description: "Sign and submit result", type: "object", properties: { success: { type: "boolean" }, result: { type: "object", additionalProperties: true }, fee: { type: "object", nullable: true, properties: { feePercent: { type: "number" }, platformWallet: { type: "string" }, feeOperations: { type: "array", items: { type: "object" } } } }, feeBumped: { type: "boolean" } } },
+          200: {
+            description: "Sign and submit result",
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              result: { type: "object", additionalProperties: true },
+              fee: {
+                type: "object",
+                nullable: true,
+                properties: {
+                  feePercent: { type: "number" },
+                  platformWallet: { type: "string" },
+                  feeOperations: { type: "array", items: { type: "object" } },
+                },
+              },
+              feeBumped: { type: "boolean" },
+            },
+          },
           400: { type: "object", properties: { error: { type: "string" } } },
           403: { type: "object", properties: { error: { type: "string" } } },
           500: { type: "object", properties: { error: { type: "string" } } },
@@ -1074,7 +1346,11 @@ async function bootstrap() {
     async (request, reply) => {
       const userId = request.user!.userId;
       console.log("[sign-and-submit] userId:", userId);
-      const { xdr, networkPassphrase: clientPassphrase, pin } = request.body as {
+      const {
+        xdr,
+        networkPassphrase: clientPassphrase,
+        pin,
+      } = request.body as {
         xdr: string;
         networkPassphrase?: string;
         pin?: string;
@@ -1103,12 +1379,17 @@ async function bootstrap() {
           .where(
             and(
               eq(schema.userWallets.userId, userId),
-              eq(schema.userWallets.isActive, true)
-            )
+              eq(schema.userWallets.isActive, true),
+            ),
           )
           .limit(1);
 
-        console.log("[sign-and-submit] wallet:", wallet?.publicKey, "hasSecret:", !!wallet?.encryptedSecret);
+        console.log(
+          "[sign-and-submit] wallet:",
+          wallet?.publicKey,
+          "hasSecret:",
+          !!wallet?.encryptedSecret,
+        );
         if (!wallet || !wallet.encryptedSecret) {
           return reply
             .status(400)
@@ -1137,16 +1418,25 @@ async function bootstrap() {
         let finalTx = tx;
         let feeDetails: any = null;
 
-        if (feePercent > 0 && platformWallet && platformSecret && !(tx instanceof StellarSdk.FeeBumpTransaction)) {
+        if (
+          feePercent > 0 &&
+          platformWallet &&
+          platformSecret &&
+          !(tx instanceof StellarSdk.FeeBumpTransaction)
+        ) {
           try {
             // Calculate fees from payment operations
             const ops = tx.operations || [];
             const feeOps: any[] = [];
             for (const op of ops) {
               // Only charge platform fee on swaps (path payments), not on direct transfers
-              if ((op.type === "pathPaymentStrictSend" || op.type === "pathPaymentStrictReceive") && op.amount) {
+              if (
+                (op.type === "pathPaymentStrictSend" ||
+                  op.type === "pathPaymentStrictReceive") &&
+                op.amount
+              ) {
                 const amount = parseFloat(op.amount);
-                const feeAmount = (amount * feePercent / 100).toFixed(7);
+                const feeAmount = ((amount * feePercent) / 100).toFixed(7);
                 if (parseFloat(feeAmount) > 0.0000001) {
                   // Reduce original amount by fee (fee taken WITHIN amount)
                   const netAmount = (amount - parseFloat(feeAmount)).toFixed(7);
@@ -1163,7 +1453,9 @@ async function bootstrap() {
 
             if (feeOps.length > 0) {
               // Rebuild transaction with fee operations appended
-              const account = await stellarClient.stellar.loadAccount(wallet.publicKey);
+              const account = await stellarClient.stellar.loadAccount(
+                wallet.publicKey,
+              );
               const builder = new StellarSdk.TransactionBuilder(account, {
                 fee: tx.fee,
                 networkPassphrase: passphrase,
@@ -1171,32 +1463,40 @@ async function bootstrap() {
 
               // Re-add original operations with adjusted amounts
               for (let i = 0; i < ops.length; i++) {
-                const feeOp = feeOps.find(f => f.opIndex === i);
+                const feeOp = feeOps.find((f) => f.opIndex === i);
                 if (feeOp) {
                   // Rebuild this op with reduced amount
                   const op = ops[i];
                   if (op.type === "payment") {
-                    builder.addOperation(StellarSdk.Operation.payment({
-                      destination: op.destination,
-                      asset: op.asset,
-                      amount: feeOp.netAmount,
-                      source: op.source || undefined,
-                    }));
+                    builder.addOperation(
+                      StellarSdk.Operation.payment({
+                        destination: op.destination,
+                        asset: op.asset,
+                        amount: feeOp.netAmount,
+                        source: op.source || undefined,
+                      }),
+                    );
                   } else if (op.type === "pathPaymentStrictSend") {
-                    builder.addOperation(StellarSdk.Operation.pathPaymentStrictSend({
-                      sendAsset: op.sendAsset,
-                      sendAmount: feeOp.netAmount,
-                      destination: op.destination,
-                      destAsset: op.destAsset,
-                      destMin: op.destMin,
-                      path: op.path || [],
-                      source: op.source || undefined,
-                    }));
+                    builder.addOperation(
+                      StellarSdk.Operation.pathPaymentStrictSend({
+                        sendAsset: op.sendAsset,
+                        sendAmount: feeOp.netAmount,
+                        destination: op.destination,
+                        destAsset: op.destAsset,
+                        destMin: op.destMin,
+                        path: op.path || [],
+                        source: op.source || undefined,
+                      }),
+                    );
                   } else {
-                    builder.addOperation(StellarSdk.Operation.fromXDRObject(op.toXDRObject()));
+                    builder.addOperation(
+                      StellarSdk.Operation.fromXDRObject(op.toXDRObject()),
+                    );
                   }
                 } else {
-                  builder.addOperation(StellarSdk.Operation.fromXDRObject(op.toXDRObject()));
+                  builder.addOperation(
+                    StellarSdk.Operation.fromXDRObject(op.toXDRObject()),
+                  );
                 }
               }
 
@@ -1207,7 +1507,7 @@ async function bootstrap() {
                     destination: platformWallet,
                     asset: feeOp.asset,
                     amount: feeOp.amount,
-                  })
+                  }),
                 );
               }
 
@@ -1216,7 +1516,7 @@ async function bootstrap() {
 
               feeDetails = {
                 feePercent,
-                feeOperations: feeOps.map(f => ({
+                feeOperations: feeOps.map((f) => ({
                   asset: f.asset.isNative() ? "XLM" : f.asset.getCode(),
                   amount: f.amount,
                   originalAmount: f.originalAmount,
@@ -1225,7 +1525,10 @@ async function bootstrap() {
               };
             }
           } catch (feeErr: any) {
-            console.warn("Fee injection failed, submitting without fee:", feeErr.message);
+            console.warn(
+              "Fee injection failed, submitting without fee:",
+              feeErr.message,
+            );
             // Continue without fee — don't block the user's transaction
           }
         }
@@ -1241,8 +1544,15 @@ async function bootstrap() {
             secretKey = wallet.encryptedSecret!;
           }
         } catch (decryptErr: any) {
-          console.error("[sign-and-submit] DECRYPT ERROR:", decryptErr.message, decryptErr.stack?.split("\n").slice(0,3).join(" | "));
-          return reply.status(403).send({ error: "Invalid PIN — could not decrypt wallet: " + decryptErr.message });
+          console.error(
+            "[sign-and-submit] DECRYPT ERROR:",
+            decryptErr.message,
+            decryptErr.stack?.split("\n").slice(0, 3).join(" | "),
+          );
+          return reply.status(403).send({
+            error:
+              "Invalid PIN — could not decrypt wallet: " + decryptErr.message,
+          });
         }
         const keypair = StellarSdk.Keypair.fromSecret(secretKey);
         finalTx.sign(keypair);
@@ -1250,7 +1560,8 @@ async function bootstrap() {
         // If we added fee ops, also sign with platform key
         if (feeDetails && platformSecret) {
           try {
-            const platformKeypair = StellarSdk.Keypair.fromSecret(platformSecret);
+            const platformKeypair =
+              StellarSdk.Keypair.fromSecret(platformSecret);
             finalTx.sign(platformKeypair);
           } catch (e: any) {
             console.warn("Platform signing failed:", e.message);
@@ -1261,18 +1572,25 @@ async function bootstrap() {
         let txToSubmit: any = finalTx;
         if (platformSecret) {
           try {
-            const platformKeypair = StellarSdk.Keypair.fromSecret(platformSecret);
-            const feeBump = StellarSdk.TransactionBuilder.buildFeeBumpTransaction(
-              platformKeypair,       // fee source — platform pays
-              StellarSdk.BASE_FEE,   // max fee per operation
-              finalTx,               // inner transaction (already signed)
-              passphrase
-            );
+            const platformKeypair =
+              StellarSdk.Keypair.fromSecret(platformSecret);
+            const feeBump =
+              StellarSdk.TransactionBuilder.buildFeeBumpTransaction(
+                platformKeypair, // fee source — platform pays
+                StellarSdk.BASE_FEE, // max fee per operation
+                finalTx, // inner transaction (already signed)
+                passphrase,
+              );
             feeBump.sign(platformKeypair);
             txToSubmit = feeBump;
-            console.log("[delegated] Fee bump applied — platform pays network fee");
+            console.log(
+              "[delegated] Fee bump applied — platform pays network fee",
+            );
           } catch (fbErr: any) {
-            console.warn("[delegated] Fee bump failed, submitting as-is:", fbErr.message);
+            console.warn(
+              "[delegated] Fee bump failed, submitting as-is:",
+              fbErr.message,
+            );
             // Fall back to user-paid fee if fee bump fails
           }
         }
@@ -1280,20 +1598,40 @@ async function bootstrap() {
         const result = await stellarClient.wallet
           .stellar()
           .submitTransaction(
-            stellarClient.stellar.decodeTransaction(txToSubmit.toXDR())
+            stellarClient.stellar.decodeTransaction(txToSubmit.toXDR()),
           );
 
-        await auditLog("transaction_sign", { userId: request.user?.userId, ip: request.ip });
+        await auditLog("transaction_sign", {
+          userId: request.user?.userId,
+          ip: request.ip,
+        });
 
-      return { success: true, result, fee: feeDetails, feeBumped: txToSubmit !== finalTx };
+        return {
+          success: true,
+          result,
+          fee: feeDetails,
+          feeBumped: txToSubmit !== finalTx,
+        };
       } catch (error: any) {
-        console.error("[sign-and-submit] ERROR:", error.message, error.stack?.split("\n").slice(0,3).join(" | "));
-        console.error("[sign-and-submit] FULL ERROR:", error.message, "\n", error.stack);
+        console.error(
+          "[sign-and-submit] ERROR:",
+          error.message,
+          error.stack?.split("\n").slice(0, 3).join(" | "),
+        );
+        console.error(
+          "[sign-and-submit] FULL ERROR:",
+          error.message,
+          "\n",
+          error.stack,
+        );
         return reply.status(500).send({
-          error: config.NODE_ENV === "production" ? "Failed to sign and submit" : (error.message || "Failed to sign and submit"),
+          error:
+            config.NODE_ENV === "production"
+              ? "Failed to sign and submit"
+              : error.message || "Failed to sign and submit",
         });
       }
-    }
+    },
   );
 
   app.patch(
@@ -1312,7 +1650,13 @@ async function bootstrap() {
           required: ["mode"],
         },
         response: {
-          200: { description: "Updated signing mode", type: "object", properties: { signingMode: { type: "string", enum: ["self", "delegated"] } } },
+          200: {
+            description: "Updated signing mode",
+            type: "object",
+            properties: {
+              signingMode: { type: "string", enum: ["self", "delegated"] },
+            },
+          },
           400: { type: "object", properties: { error: { type: "string" } } },
         },
       },
@@ -1334,8 +1678,8 @@ async function bootstrap() {
           .where(
             and(
               eq(schema.userWallets.userId, userId),
-              eq(schema.userWallets.isActive, true)
-            )
+              eq(schema.userWallets.isActive, true),
+            ),
           )
           .limit(1);
 
@@ -1353,7 +1697,7 @@ async function bootstrap() {
         .where(eq(schema.users.id, userId));
 
       return { signingMode: mode };
-    }
+    },
   );
 
   app.get(
@@ -1365,7 +1709,13 @@ async function bootstrap() {
         summary: "Get current signing mode",
         security: [{ bearerAuth: [] }],
         response: {
-          200: { description: "Current signing mode", type: "object", properties: { signingMode: { type: "string", enum: ["self", "delegated"] } } },
+          200: {
+            description: "Current signing mode",
+            type: "object",
+            properties: {
+              signingMode: { type: "string", enum: ["self", "delegated"] },
+            },
+          },
         },
       },
     },
@@ -1379,7 +1729,7 @@ async function bootstrap() {
         .limit(1);
 
       return { signingMode: user?.signingMode || "self" };
-    }
+    },
   );
 
   // Transaction history
@@ -1405,7 +1755,29 @@ async function bootstrap() {
           },
         },
         response: {
-          200: { description: "Transaction history", type: "object", properties: { records: { type: "array", items: { type: "object", properties: { id: { type: "string" }, type: { type: "string" }, createdAt: { type: "string" }, transactionHash: { type: "string" }, from: { type: "string" }, to: { type: "string" }, amount: { type: "string" }, assetCode: { type: "string" } } } }, nextCursor: { type: "string", nullable: true } } },
+          200: {
+            description: "Transaction history",
+            type: "object",
+            properties: {
+              records: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    type: { type: "string" },
+                    createdAt: { type: "string" },
+                    transactionHash: { type: "string" },
+                    from: { type: "string" },
+                    to: { type: "string" },
+                    amount: { type: "string" },
+                    assetCode: { type: "string" },
+                  },
+                },
+              },
+              nextCursor: { type: "string", nullable: true },
+            },
+          },
           500: { type: "object", properties: { error: { type: "string" } } },
         },
       },
@@ -1438,8 +1810,7 @@ async function bootstrap() {
           from: op.from || op.source_account || op.funder || "",
           to: op.to || op.account || "",
           amount: op.amount || op.starting_balance || "0",
-          assetCode:
-            op.asset_code || (op.asset_type === "native" ? "XLM" : ""),
+          assetCode: op.asset_code || (op.asset_type === "native" ? "XLM" : ""),
           assetIssuer: op.asset_issuer || "",
           assetType: op.asset_type || "",
         }));
@@ -1457,41 +1828,51 @@ async function bootstrap() {
         req.log.error(err, "Failed to fetch transaction history");
         return res.status(500).send({ error: "Failed to fetch history" });
       }
-    }
+    },
   );
 
   // ═══════════════════════════════════════
   // Keypair Routes
   // ═══════════════════════════════════════
 
-  app.get("/api/v1/keypair/generate", {
-    preHandler: authMiddleware,
-    config: {
-      rateLimit: {
-        max: 3,
-        timeWindow: "1 minute",
-      },
-    },
-    schema: {
-      tags: ["Keypair"],
-      summary: "Generate a random Stellar keypair",
-      security: [{ bearerAuth: [] }],
-      response: {
-        200: {
-          type: "object",
-          properties: {
-            publicKey: { type: "string", description: "Stellar public key (G...)" },
-            secretKey: { type: "string", description: "Stellar secret key (S...)" },
-          },
+  app.get(
+    "/api/v1/keypair/generate",
+    {
+      preHandler: authMiddleware,
+      config: {
+        rateLimit: {
+          max: 3,
+          timeWindow: "1 minute",
         },
-        401: { type: "object", properties: { error: { type: "string" } } },
-        429: { type: "object", properties: { error: { type: "string" } } },
+      },
+      schema: {
+        tags: ["Keypair"],
+        summary: "Generate a random Stellar keypair",
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              publicKey: {
+                type: "string",
+                description: "Stellar public key (G...)",
+              },
+              secretKey: {
+                type: "string",
+                description: "Stellar secret key (S...)",
+              },
+            },
+          },
+          401: { type: "object", properties: { error: { type: "string" } } },
+          429: { type: "object", properties: { error: { type: "string" } } },
+        },
       },
     },
-  }, async (request, reply) => {
-    const keypair = Keypair.random();
-    return { publicKey: keypair.publicKey(), secretKey: keypair.secret() };
-  });
+    async (request, reply) => {
+      const keypair = StellarSdk.Keypair.random();
+      return { publicKey: keypair.publicKey(), secretKey: keypair.secret() };
+    },
+  );
 
   app.post(
     "/api/v1/keypair/from-secret",
@@ -1510,10 +1891,18 @@ async function bootstrap() {
           required: ["secret"],
         },
         response: {
-          200: { description: "Derived public key", type: "object", properties: { publicKey: { type: "string" } } },
+          200: {
+            description: "Derived public key",
+            type: "object",
+            properties: { publicKey: { type: "string" } },
+          },
           400: { type: "object", properties: { error: { type: "string" } } },
           401: { type: "object", properties: { error: { type: "string" } } },
-          429: { description: "Rate limit exceeded", type: "object", properties: { error: { type: "string" } } },
+          429: {
+            description: "Rate limit exceeded",
+            type: "object",
+            properties: { error: { type: "string" } },
+          },
         },
       },
     },
@@ -1526,7 +1915,7 @@ async function bootstrap() {
         reply.status(400);
         return { error: "Invalid secret key" };
       }
-    }
+    },
   );
 
   app.post(
@@ -1546,10 +1935,18 @@ async function bootstrap() {
           required: ["mnemonic"],
         },
         response: {
-          200: { description: "Validation result", type: "object", properties: { valid: { type: "boolean" } } },
+          200: {
+            description: "Validation result",
+            type: "object",
+            properties: { valid: { type: "boolean" } },
+          },
           400: { type: "object", properties: { error: { type: "string" } } },
           401: { type: "object", properties: { error: { type: "string" } } },
-          429: { description: "Rate limit exceeded", type: "object", properties: { error: { type: "string" } } },
+          429: {
+            description: "Rate limit exceeded",
+            type: "object",
+            properties: { error: { type: "string" } },
+          },
         },
       },
     },
@@ -1564,7 +1961,7 @@ async function bootstrap() {
       } catch {
         return { valid: false };
       }
-    }
+    },
   );
 
   app.post(
@@ -1585,10 +1982,22 @@ async function bootstrap() {
           required: ["mnemonic"],
         },
         response: {
-          200: { description: "Derived keypair from mnemonic", type: "object", properties: { publicKey: { type: "string" }, secretKey: { type: "string" }, accountIndex: { type: "number" } } },
+          200: {
+            description: "Derived keypair from mnemonic",
+            type: "object",
+            properties: {
+              publicKey: { type: "string" },
+              secretKey: { type: "string" },
+              accountIndex: { type: "number" },
+            },
+          },
           400: { type: "object", properties: { error: { type: "string" } } },
           401: { type: "object", properties: { error: { type: "string" } } },
-          429: { description: "Rate limit exceeded", type: "object", properties: { error: { type: "string" } } },
+          429: {
+            description: "Rate limit exceeded",
+            type: "object",
+            properties: { error: { type: "string" } },
+          },
         },
       },
     },
@@ -1602,9 +2011,7 @@ async function bootstrap() {
       }
       try {
         if (!StellarHDWallet.validateMnemonic(mnemonic.trim())) {
-          return reply
-            .status(400)
-            .send({ error: "Invalid mnemonic phrase" });
+          return reply.status(400).send({ error: "Invalid mnemonic phrase" });
         }
         const wallet = StellarHDWallet.fromMnemonic(mnemonic.trim());
         return {
@@ -1617,7 +2024,7 @@ async function bootstrap() {
           .status(400)
           .send({ error: e.message || "Invalid mnemonic" });
       }
-    }
+    },
   );
 
   // ═══════════════════════════════════════
@@ -1640,7 +2047,20 @@ async function bootstrap() {
           required: ["name"],
         },
         response: {
-          200: { description: "Created API key (shown once)", type: "object", properties: { id: { type: "number" }, name: { type: "string" }, key: { type: "string", description: "Full API key — store securely, shown only once" }, createdAt: { type: "string", format: "date-time" }, message: { type: "string" } } },
+          200: {
+            description: "Created API key (shown once)",
+            type: "object",
+            properties: {
+              id: { type: "number" },
+              name: { type: "string" },
+              key: {
+                type: "string",
+                description: "Full API key — store securely, shown only once",
+              },
+              createdAt: { type: "string", format: "date-time" },
+              message: { type: "string" },
+            },
+          },
           400: { type: "object", properties: { error: { type: "string" } } },
         },
       },
@@ -1672,7 +2092,7 @@ async function bootstrap() {
         message:
           "Store this key securely — it will not be shown again in full.",
       };
-    }
+    },
   );
 
   app.get(
@@ -1684,7 +2104,25 @@ async function bootstrap() {
         summary: "List your API keys",
         security: [{ bearerAuth: [] }],
         response: {
-          200: { description: "List of API keys (key truncated)", type: "array", items: { type: "object", properties: { id: { type: "number" }, name: { type: "string" }, keyPreview: { type: "string" }, isActive: { type: "boolean" }, lastUsedAt: { type: "string", format: "date-time", nullable: true }, createdAt: { type: "string", format: "date-time" } } } },
+          200: {
+            description: "List of API keys (key truncated)",
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "number" },
+                name: { type: "string" },
+                keyPreview: { type: "string" },
+                isActive: { type: "boolean" },
+                lastUsedAt: {
+                  type: "string",
+                  format: "date-time",
+                  nullable: true,
+                },
+                createdAt: { type: "string", format: "date-time" },
+              },
+            },
+          },
         },
       },
     },
@@ -1707,7 +2145,7 @@ async function bootstrap() {
         ...k,
         keyPreview: `${k.keyPreview.slice(0, 10)}...${k.keyPreview.slice(-4)}`,
       }));
-    }
+    },
   );
 
   app.delete(
@@ -1726,7 +2164,14 @@ async function bootstrap() {
           required: ["id"],
         },
         response: {
-          200: { description: "Key revoked", type: "object", properties: { success: { type: "boolean" }, message: { type: "string" } } },
+          200: {
+            description: "Key revoked",
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              message: { type: "string" },
+            },
+          },
           404: { type: "object", properties: { error: { type: "string" } } },
         },
       },
@@ -1741,8 +2186,8 @@ async function bootstrap() {
         .where(
           and(
             eq(schema.apiKeys.id, parseInt(id)),
-            eq(schema.apiKeys.userId, userId)
-          )
+            eq(schema.apiKeys.userId, userId),
+          ),
         )
         .returning();
 
@@ -1751,9 +2196,8 @@ async function bootstrap() {
       }
 
       return { success: true, message: "API key revoked" };
-    }
+    },
   );
-
 
   // ──────────────────────────────────────────
   // STELLAR EXPERT ASSET SEARCH PROXY
@@ -1767,7 +2211,10 @@ async function bootstrap() {
         querystring: {
           type: "object",
           properties: {
-            query: { type: "string", description: "Asset code or name to search" },
+            query: {
+              type: "string",
+              description: "Asset code or name to search",
+            },
             limit: { type: "string", default: "20" },
           },
           required: ["query"],
@@ -1776,7 +2223,10 @@ async function bootstrap() {
       },
     },
     async (request, reply) => {
-      const { query, limit } = request.query as { query: string; limit?: string };
+      const { query, limit } = request.query as {
+        query: string;
+        limit?: string;
+      };
       if (!query || query.length < 1) {
         return reply.status(400).send({ error: "Query is required" });
       }
@@ -1786,8 +2236,13 @@ async function bootstrap() {
 
       // 1. Search local DB first
       try {
-        const local = await tokenService.search({ query, limit: parseInt(limit || "20") });
-        const localTokens = Array.isArray(local) ? local : (local as any).tokens || [];
+        const local = await tokenService.search({
+          query,
+          limit: parseInt(limit || "20"),
+        });
+        const localTokens = Array.isArray(local)
+          ? local
+          : (local as any).tokens || [];
         for (const t of localTokens) {
           const key = `${t.assetCode}-${t.assetIssuer}`;
           if (!seen.has(key)) {
@@ -1811,7 +2266,7 @@ async function bootstrap() {
       // 2. Search StellarExpert
       try {
         const res = await fetch(
-          `https://api.stellar.expert/explorer/public/asset?search=${encodeURIComponent(query)}&limit=${limit || "20"}&order=desc`
+          `https://api.stellar.expert/explorer/public/asset?search=${encodeURIComponent(query)}&limit=${limit || "20"}&order=desc`,
         );
         if (res.ok) {
           const data = await res.json();
@@ -1821,9 +2276,12 @@ async function bootstrap() {
             const firstDash = raw.indexOf("-");
             const lastDash = raw.lastIndexOf("-");
             const code = firstDash > 0 ? raw.substring(0, firstDash) : raw;
-            const issuer = firstDash > 0 && lastDash > firstDash
-              ? raw.substring(firstDash + 1, lastDash)
-              : firstDash > 0 ? raw.substring(firstDash + 1) : "";
+            const issuer =
+              firstDash > 0 && lastDash > firstDash
+                ? raw.substring(firstDash + 1, lastDash)
+                : firstDash > 0
+                  ? raw.substring(firstDash + 1)
+                  : "";
             const key = `${code}-${issuer}`;
             if (!seen.has(key) && code !== "XLM") {
               seen.add(key);
@@ -1848,7 +2306,7 @@ async function bootstrap() {
       try {
         const horizonUrl = config.HORIZON_URL || "https://horizon.stellar.org";
         const res = await fetch(
-          `${horizonUrl}/assets?asset_code=${encodeURIComponent(query.toUpperCase())}&limit=10`
+          `${horizonUrl}/assets?asset_code=${encodeURIComponent(query.toUpperCase())}&limit=10`,
         );
         if (res.ok) {
           const data = await res.json();
@@ -1863,7 +2321,9 @@ async function bootstrap() {
                 assetType: r.asset_type,
                 tomlName: "",
                 tomlImage: "",
-                domain: r._links?.toml?.href ? new URL(r._links.toml.href).hostname : "",
+                domain: r._links?.toml?.href
+                  ? new URL(r._links.toml.href).hostname
+                  : "",
                 isVerified: false,
                 ratingAverage: null,
                 trustlinesFunded: r.num_accounts || null,
@@ -1875,13 +2335,13 @@ async function bootstrap() {
       } catch {}
 
       return { results, total: results.length };
-    }
+    },
   );
 
   // ═══════════════════════════════════════
   // Start
   // ═══════════════════════════════════════
-  
+
   // ═══════════════════════════════════════
   // Admin: Auto-Liquifier
   // ═══════════════════════════════════════
@@ -1892,13 +2352,25 @@ async function bootstrap() {
       schema: {
         tags: ["Admin"],
         summary: "Convert all non-XLM platform fees to XLM via DEX",
-        description: "Triggers the auto-liquifier to swap all non-XLM tokens in the platform wallet to XLM. Admin only.",
+        description:
+          "Triggers the auto-liquifier to swap all non-XLM tokens in the platform wallet to XLM. Admin only.",
         security: [{ bearerAuth: [] }],
         response: {
           200: {
             type: "object",
             properties: {
-              converted: { type: "array", items: { type: "object", properties: { asset: { type: "string" }, amount: { type: "string" }, xlmReceived: { type: "string" }, txHash: { type: "string" } } } },
+              converted: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    asset: { type: "string" },
+                    amount: { type: "string" },
+                    xlmReceived: { type: "string" },
+                    txHash: { type: "string" },
+                  },
+                },
+              },
               skipped: { type: "array", items: { type: "string" } },
               errors: { type: "array", items: { type: "string" } },
               cleanedTrustlines: { type: "array", items: { type: "string" } },
@@ -1920,7 +2392,7 @@ async function bootstrap() {
       const cleanedTrustlines = await cleanupEmptyTrustlines();
 
       return { ...result, cleanedTrustlines };
-    }
+    },
   );
 
   app.get(
@@ -1936,7 +2408,17 @@ async function bootstrap() {
             type: "object",
             properties: {
               publicKey: { type: "string" },
-              balances: { type: "array", items: { type: "object", properties: { asset: { type: "string" }, balance: { type: "string" }, issuer: { type: "string" } } } },
+              balances: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    asset: { type: "string" },
+                    balance: { type: "string" },
+                    issuer: { type: "string" },
+                  },
+                },
+              },
               totalNonXlm: { type: "number" },
             },
           },
@@ -1951,182 +2433,212 @@ async function bootstrap() {
 
       try {
         const { stellarClient } = await import("./lib/stellar-client");
-        const account = await stellarClient.horizon.loadAccount(config.PLATFORM_WALLET);
+        const account = await stellarClient.horizon.loadAccount(
+          config.PLATFORM_WALLET,
+        );
         const balances = account.balances.map((b: any) => ({
           asset: b.asset_type === "native" ? "XLM" : b.asset_code,
           balance: b.balance,
           issuer: b.asset_issuer || "",
         }));
-        const totalNonXlm = balances.filter((b: any) => b.asset !== "XLM" && parseFloat(b.balance) > 0).length;
+        const totalNonXlm = balances.filter(
+          (b: any) => b.asset !== "XLM" && parseFloat(b.balance) > 0,
+        ).length;
         return { publicKey: config.PLATFORM_WALLET, balances, totalNonXlm };
       } catch (err: any) {
         return reply.status(500).send({ error: err.message });
       }
-    }
+    },
   );
 
-  
   // ═══════════════════════════════════════
   // Admin — Audit Logs
   // ═══════════════════════════════════════
-  app.get("/api/v1/admin/audit-logs", {
-    preHandler: authMiddleware,
-    schema: {
-      tags: ["Admin"],
-      summary: "View audit logs (admin only)",
-      security: [{ bearerAuth: [] }],
-      querystring: {
-        type: "object",
-        properties: {
-          limit: { type: "integer", default: 50, minimum: 1, maximum: 200 },
-          offset: { type: "integer", default: 0, minimum: 0 },
-          action: { type: "string", description: "Filter by action type" },
-          userId: { type: "integer", description: "Filter by user ID" },
-        },
-      },
-      response: {
-        200: {
+  app.get(
+    "/api/v1/admin/audit-logs",
+    {
+      preHandler: authMiddleware,
+      schema: {
+        tags: ["Admin"],
+        summary: "View audit logs (admin only)",
+        security: [{ bearerAuth: [] }],
+        querystring: {
           type: "object",
           properties: {
-            logs: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  id: { type: "number" },
-                  userId: { type: "number", nullable: true },
-                  action: { type: "string" },
-                  detail: { type: "object" },
-                  ipAddress: { type: "string", nullable: true },
-                  createdAt: { type: "string" },
-                },
-              },
-            },
-            total: { type: "number" },
+            limit: { type: "integer", default: 50, minimum: 1, maximum: 200 },
+            offset: { type: "integer", default: 0, minimum: 0 },
+            action: { type: "string", description: "Filter by action type" },
+            userId: { type: "integer", description: "Filter by user ID" },
           },
         },
-        403: { type: "object", properties: { error: { type: "string" } } },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              logs: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "number" },
+                    userId: { type: "number", nullable: true },
+                    action: { type: "string" },
+                    detail: { type: "object" },
+                    ipAddress: { type: "string", nullable: true },
+                    createdAt: { type: "string" },
+                  },
+                },
+              },
+              total: { type: "number" },
+            },
+          },
+          403: { type: "object", properties: { error: { type: "string" } } },
+        },
       },
     },
-  }, async (request, reply) => {
-    const userId = request.user!.userId;
+    async (request, reply) => {
+      const userId = request.user!.userId;
 
-    // Check if user is admin (id = 1 or has admin role)
-    const [user] = await db
-      .select({ id: schema.users.id })
-      .from(schema.users)
-      .where(eq(schema.users.id, userId))
-      .limit(1);
+      // Check if user is admin (id = 1 or has admin role)
+      const [user] = await db
+        .select({ id: schema.users.id })
+        .from(schema.users)
+        .where(eq(schema.users.id, userId))
+        .limit(1);
 
-    // Simple admin check — user ID 1 is admin (extend as needed)
-    if (!user || user.id !== 1) {
-      return reply.status(403).send({ error: "Admin access required" });
-    }
+      // Simple admin check — user ID 1 is admin (extend as needed)
+      if (!user || user.id !== 1) {
+        return reply.status(403).send({ error: "Admin access required" });
+      }
 
-    const { limit = 50, offset = 0, action, userId: filterUserId } = request.query as any;
-    const conditions: any[] = [];
+      const {
+        limit = 50,
+        offset = 0,
+        action,
+        userId: filterUserId,
+      } = request.query as any;
+      const conditions: any[] = [];
 
-    if (action) {
-      conditions.push(eq(schema.auditLogs.action, action));
-    }
-    if (filterUserId) {
-      conditions.push(eq(schema.auditLogs.userId, parseInt(filterUserId)));
-    }
+      if (action) {
+        conditions.push(eq(schema.auditLogs.action, action));
+      }
+      if (filterUserId) {
+        conditions.push(eq(schema.auditLogs.userId, parseInt(filterUserId)));
+      }
 
-    const where = conditions.length > 0
-      ? conditions.length === 1 ? conditions[0] : and(...conditions)
-      : undefined;
+      const where =
+        conditions.length > 0
+          ? conditions.length === 1
+            ? conditions[0]
+            : and(...conditions)
+          : undefined;
 
-    const logs = await db
-      .select()
-      .from(schema.auditLogs)
-      .where(where)
-      .orderBy(sql`created_at DESC`)
-      .limit(Math.min(limit, 200))
-      .offset(offset);
+      const logs = await db
+        .select()
+        .from(schema.auditLogs)
+        .where(where)
+        .orderBy(sql`created_at DESC`)
+        .limit(Math.min(limit, 200))
+        .offset(offset);
 
-    const [{ count }] = await db
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(schema.auditLogs)
-      .where(where);
+      const [{ count }] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(schema.auditLogs)
+        .where(where);
 
-    return { logs, total: Number(count) };
-  });
+      return { logs, total: Number(count) };
+    },
+  );
 
-// ═══════════════════════════════════════
+  // ═══════════════════════════════════════
   // Cleanup Jobs
   // ═══════════════════════════════════════
 
   // Purge expired refresh tokens every hour
-  setInterval(async () => {
-    try {
-      const result = await db.execute(
-        sql`DELETE FROM refresh_tokens WHERE expires_at < NOW()`
-      );
-      console.log("[cleanup] Purged expired refresh tokens");
-    } catch (err: any) {
-      console.error("[cleanup] refresh token purge failed:", err.message);
-    }
-  }, 60 * 60 * 1000); // every hour
+  setInterval(
+    async () => {
+      try {
+        const result = await db.execute(
+          sql`DELETE FROM refresh_tokens WHERE expires_at < NOW()`,
+        );
+        console.log("[cleanup] Purged expired refresh tokens");
+      } catch (err: any) {
+        console.error("[cleanup] refresh token purge failed:", err.message);
+      }
+    },
+    60 * 60 * 1000,
+  ); // every hour
 
   // Purge expired/used password reset tokens every 6 hours
-  setInterval(async () => {
-    try {
-      await db.execute(
-        sql`DELETE FROM password_reset_tokens WHERE expires_at < NOW() OR used_at IS NOT NULL`
-      );
-      console.log("[cleanup] Purged expired password reset tokens");
-    } catch (err: any) {
-      console.error("[cleanup] password reset token purge failed:", err.message);
-    }
-  }, 6 * 60 * 60 * 1000); // every 6 hours
+  setInterval(
+    async () => {
+      try {
+        await db.execute(
+          sql`DELETE FROM password_reset_tokens WHERE expires_at < NOW() OR used_at IS NOT NULL`,
+        );
+        console.log("[cleanup] Purged expired password reset tokens");
+      } catch (err: any) {
+        console.error(
+          "[cleanup] password reset token purge failed:",
+          err.message,
+        );
+      }
+    },
+    6 * 60 * 60 * 1000,
+  ); // every 6 hours
 
   // Purge audit logs older than 90 days — runs daily
-  setInterval(async () => {
-    try {
-      await db.execute(
-        sql`DELETE FROM audit_logs WHERE created_at < NOW() - INTERVAL '90 days'`
-      );
-      console.log("[cleanup] Purged audit logs older than 90 days");
-    } catch (err: any) {
-      console.error("[cleanup] audit log purge failed:", err.message);
-    }
-  }, 24 * 60 * 60 * 1000); // every 24 hours
+  setInterval(
+    async () => {
+      try {
+        await db.execute(
+          sql`DELETE FROM audit_logs WHERE created_at < NOW() - INTERVAL '90 days'`,
+        );
+        console.log("[cleanup] Purged audit logs older than 90 days");
+      } catch (err: any) {
+        console.error("[cleanup] audit log purge failed:", err.message);
+      }
+    },
+    24 * 60 * 60 * 1000,
+  ); // every 24 hours
 
   // Auto-liquifier scheduled task — runs every 6 hours
-  setInterval(async () => {
-    try {
-      console.log("[liquifier] Scheduled run starting...");
-      const result = await liquifyPlatformFees();
-      if (result.converted.length > 0) {
-        console.log(`[liquifier] Converted ${result.converted.length} asset(s)`);
-        await cleanupEmptyTrustlines();
-      } else {
-        console.log("[liquifier] No assets to convert");
+  setInterval(
+    async () => {
+      try {
+        console.log("[liquifier] Scheduled run starting...");
+        const result = await liquifyPlatformFees();
+        if (result.converted.length > 0) {
+          console.log(
+            `[liquifier] Converted ${result.converted.length} asset(s)`,
+          );
+          await cleanupEmptyTrustlines();
+        } else {
+          console.log("[liquifier] No assets to convert");
+        }
+      } catch (err: any) {
+        console.error("[liquifier] Scheduled run failed:", err.message);
       }
-    } catch (err: any) {
-      console.error("[liquifier] Scheduled run failed:", err.message);
-    }
-  }, 6 * 60 * 60 * 1000); // Every 6 hours
+    },
+    6 * 60 * 60 * 1000,
+  ); // Every 6 hours
 
   await app.listen({ port: config.PORT, host: "0.0.0.0" });
   syncTomlImages().catch(console.error);
-  console.log(
-    `\n  Amma Wallet API running on http://localhost:${config.PORT}`
-  );
+  console.log(`\n  Amma Wallet API running on http://localhost:${config.PORT}`);
   console.log(`  Network: ${config.STELLAR_NETWORK}`);
   console.log(`  Horizon: ${config.HORIZON_URL}`);
   console.log(`  API Docs: http://localhost:${config.PORT}/docs\n`);
 
   // Run token indexer on startup, then every 15 min
   runTokenIndexer().catch(console.error);
+  setInterval(() => runTokenIndexer().catch(console.error), 15 * 60 * 1000);
   setInterval(
-    () => runTokenIndexer().catch(console.error),
-    15 * 60 * 1000
+    () => {
+      syncTomlImages().catch(console.error);
+    },
+    6 * 60 * 60 * 1000,
   );
-  setInterval(() => {
-    syncTomlImages().catch(console.error);
-  }, 6 * 60 * 60 * 1000);
 }
 
 bootstrap().catch(console.error);

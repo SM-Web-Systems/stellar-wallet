@@ -8,7 +8,7 @@ import { eq, and, gt } from "drizzle-orm";
 
 export interface JwtPayload {
   userId: number;
-  email: string;
+  email: string | null;
 }
 
 const SALT_ROUNDS = 12;
@@ -17,7 +17,10 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
 }
 
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hash: string,
+): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 
@@ -41,7 +44,10 @@ export function verifyRefreshToken(token: string): JwtPayload {
   return jwt.verify(token, config.JWT_REFRESH_SECRET) as JwtPayload;
 }
 
-export async function storeRefreshToken(userId: number, token: string): Promise<void> {
+export async function storeRefreshToken(
+  userId: number,
+  token: string,
+): Promise<void> {
   const expiresAt = new Date(Date.now() + config.JWT_REFRESH_EXPIRES_IN * 1000);
   await db.insert(refreshTokens).values({ userId, token, expiresAt });
 }
@@ -54,11 +60,18 @@ export async function revokeAllUserTokens(userId: number): Promise<void> {
   await db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
 }
 
-export async function validateStoredRefreshToken(token: string): Promise<boolean> {
+export async function validateStoredRefreshToken(
+  token: string,
+): Promise<boolean> {
   const rows = await db
     .select()
     .from(refreshTokens)
-    .where(and(eq(refreshTokens.token, token), gt(refreshTokens.expiresAt, new Date())))
+    .where(
+      and(
+        eq(refreshTokens.token, token),
+        gt(refreshTokens.expiresAt, new Date()),
+      ),
+    )
     .limit(1);
   return rows.length > 0;
 }
